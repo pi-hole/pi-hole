@@ -12,14 +12,14 @@
 PI_HOLE_CONFIG_DIR="/etc/pihole"
 cachedVersions="${PI_HOLE_CONFIG_DIR}/versions"
 
-if [ -f ${cachedVersions} ]; then
+if [ -f "${cachedVersions}" ]; then
     # shellcheck source=/dev/null
-    . "$cachedVersions"
+    . "${cachedVersions}"
 else
     echo "Could not find ${PI_HOLE_CONFIG_DIR}/versions. Running update now."
     pihole updatechecker
     # shellcheck source=/dev/null
-    . "$cachedVersions"
+    . "${cachedVersions}"
 fi
 
 main() {

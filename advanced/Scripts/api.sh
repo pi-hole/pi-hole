@@ -315,7 +315,7 @@ secretRead() {
             # any other character
             charcount=$((charcount+1))
             printf '*'
-            password="$password$key"
+            password="${password}${key}"
         fi
     done
 

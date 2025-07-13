@@ -38,7 +38,7 @@ flushNetwork(){
     # If there is an .error object in the returned data, display it
     local error
     error=$(jq --compact-output <<< "${data}" '.error')
-    if [[ $error != "null" && $error != "" ]]; then
+    if [[ "${error}" != "null" && "${error}" != "" ]]; then
         echo -e "${OVER}  ${CROSS} Failed to flush the network table:"
         echo -e "      $(jq <<< "${data}" '.error')"
         LogoutAPI

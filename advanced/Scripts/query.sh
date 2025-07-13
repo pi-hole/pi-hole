@@ -44,8 +44,8 @@ GenerateOutput() {
     # Use JQ to count number of entries in lists and gravity
     # (output is number of list matches then number of gravity matches)
     counts=$(printf %s "${data}" | jq --raw-output '(.search.domains | length), (.search.gravity | group_by(.address,.type) | length)')
-    num_lists=$(echo "$counts" | sed -n '1p')
-    num_gravity=$(echo "$counts" | sed -n '2p')
+    num_lists=$(echo "${counts}" | sed -n '1p')
+    num_gravity=$(echo "${counts}" | sed -n '2p')
 
     if [ "${partial}" = true ]; then
         search_type_str="partially"

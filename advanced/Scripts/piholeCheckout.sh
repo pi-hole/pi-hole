@@ -105,19 +105,19 @@ checkout() {
         chmod 644 "${FTL_BRANCH_FILE}"
     elif [[ "${1}" == "core" ]] ; then
         str="Fetching branches from ${PI_HOLE_GIT_URL}"
-        echo -ne "  ${INFO} $str"
+        echo -ne "  ${INFO} ${str}"
         if ! fully_fetch_repo "${PI_HOLE_GIT_DIR}" ; then
-            echo -e "${OVER}  ${CROSS} $str"
+            echo -e "${OVER}  ${CROSS} ${str}"
             exit 1
         fi
         mapfile -t corebranches < <(get_available_branches "${PI_HOLE_GIT_DIR}")
 
         if [[ "${corebranches[*]}" == *"master"* ]]; then
-            echo -e "${OVER}  ${TICK} $str"
+            echo -e "${OVER}  ${TICK} ${str}"
             echo -e "  ${INFO} ${#corebranches[@]} branches available for Pi-hole Core"
         else
             # Print STDERR output from get_available_branches
-            echo -e "${OVER}  ${CROSS} $str\\n\\n${corebranches[*]}"
+            echo -e "${OVER}  ${CROSS} ${str}\\n\\n${corebranches[*]}"
             exit 1
         fi
 
@@ -132,19 +132,19 @@ checkout() {
         checkout_pull_branch "${PI_HOLE_GIT_DIR}" "${2}"
     elif [[ "${1}" == "web" ]] ; then
         str="Fetching branches from ${PI_HOLE_GIT_ADMIN_URL}"
-        echo -ne "  ${INFO} $str"
+        echo -ne "  ${INFO} ${str}"
         if ! fully_fetch_repo "${webInterfaceDir}" ; then
-            echo -e "${OVER}  ${CROSS} $str"
+            echo -e "${OVER}  ${CROSS} ${str}"
             exit 1
         fi
         mapfile -t webbranches < <(get_available_branches "${webInterfaceDir}")
 
         if [[ "${webbranches[*]}" == *"master"* ]]; then
-            echo -e "${OVER}  ${TICK} $str"
+            echo -e "${OVER}  ${TICK} ${str}"
             echo -e "  ${INFO} ${#webbranches[@]} branches available for Web Admin"
         else
             # Print STDERR output from get_available_branches
-            echo -e "${OVER}  ${CROSS} $str\\n\\n${webbranches[*]}"
+            echo -e "${OVER}  ${CROSS} ${str}\\n\\n${webbranches[*]}"
             exit 1
         fi
 
@@ -186,7 +186,7 @@ checkout() {
 
         echo -e "  ${INFO} Checking for ${COL_YELLOW}${binary}${COL_NC} binary on https://ftl.pi-hole.net"
 
-        if check_download_exists "$path"; then
+        if check_download_exists "${path}"; then
             echo "  ${TICK} Binary exists"
             echo "${2}" > "${FTL_BRANCH_FILE}"
             chmod 644 "${FTL_BRANCH_FILE}"

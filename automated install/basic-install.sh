@@ -174,7 +174,7 @@ repair=false
 runUnattended=false
 # Check arguments for the undocumented flags
 for var in "$@"; do
-    case "$var" in
+    case "${var}" in
     "--repair") repair=true ;;
     "--unattended") runUnattended=true ;;
     esac
@@ -572,7 +572,7 @@ Do you wish to continue with an IPv6-only installation?\\n\\n" \
     ;;
     esac
 
-    DNS_SERVERS="$DNS_SERVERS_IPV6_ONLY"
+    DNS_SERVERS="${DNS_SERVERS_IPV6_ONLY}"
     printf "  %b Proceeding with IPv6 only installation.\\n" "${INFO}"
 }
 
@@ -732,7 +732,7 @@ collect_v4andv6_information() {
     printf "  %b IPv4 address: %s\\n" "${INFO}" "${IPV4_ADDRESS}"
     find_IPv6_information
     printf "  %b IPv6 address: %s\\n" "${INFO}" "${IPV6_ADDRESS}"
-    if [ "$IPV4_ADDRESS" == "" ] && [ "$IPV6_ADDRESS" != "" ]; then
+    if [ "${IPV4_ADDRESS}" == "" ] && [ "${IPV6_ADDRESS}" != "" ]; then
         confirm_ipv6_only
     fi
 }
@@ -1634,9 +1634,9 @@ check_download_exists() {
     status=$(curl --head --silent "https://ftl.pi-hole.net/${1}" | head -n 1)
 
     # Check the status code
-    if grep -q "200" <<<"$status"; then
+    if grep -q "200" <<<"${status}"; then
         return 0
-    elif grep -q "404" <<<"$status"; then
+    elif grep -q "404" <<<"${status}"; then
         return 1
     fi
 
@@ -1669,7 +1669,7 @@ get_available_branches() {
     # Get reachable remote branches, but store STDERR as STDOUT variable
     output=$({ git ls-remote --heads --quiet | cut -d'/' -f3- -; } 2>&1)
     # echo status for calling function to capture
-    echo "$output"
+    echo "${output}"
     return
 }
 
@@ -1702,9 +1702,9 @@ checkout_pull_branch() {
     oldbranch="$(git symbolic-ref HEAD)"
 
     str="Switching to branch: '${branch}' from '${oldbranch}'"
-    printf "  %b %s" "${INFO}" "$str"
+    printf "  %b %s" "${INFO}" "${str}"
     git checkout "${branch}" --quiet || return 1
-    printf "%b  %b %s\\n" "${OVER}" "${TICK}" "$str"
+    printf "%b  %b %s\\n" "${OVER}" "${TICK}" "${str}"
     # Data in the repositories is public anyway so we can make it readable by everyone (+r to keep executable permission if already set by git)
     chmod -R a+rX "${directory}"
 
@@ -1950,7 +1950,7 @@ FTLcheckUpdate() {
 
         # Check whether or not the binary for this FTL branch actually exists. If not, then there is no update!
         local status
-        if ! check_download_exists "$path"; then
+        if ! check_download_exists "${path}"; then
             status=$?
             if [ "${status}" -eq 1 ]; then
                 printf "  %b Branch \"%s\" is not available.\\n" "${INFO}" "${ftlBranch}"
@@ -2347,7 +2347,7 @@ main() {
         if [ -n "${PIHOLE_DNS_1}" ]; then
             local string="\"${PIHOLE_DNS_1}\""
             [ -n "${PIHOLE_DNS_2}" ] && string+=", \"${PIHOLE_DNS_2}\""
-            setFTLConfigValue "dns.upstreams" "[ $string ]"
+            setFTLConfigValue "dns.upstreams" "[ ${string} ]"
         fi
 
         if [ -n "${QUERY_LOGGING}" ]; then

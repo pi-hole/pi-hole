@@ -82,9 +82,9 @@ debugFunc() {
     shift
 
     for value in "$@"; do
-        [[ "$value"  == *"-a"* ]] && automated="true"
-        [[ "$value"  == *"-c"* ]] && check_database_integrity="true"
-        [[ "$value" == *"--check_database"* ]] && check_database_integrity="true"
+        [[ "${value}"  == *"-a"* ]] && automated="true"
+        [[ "${value}"  == *"-c"* ]] && check_database_integrity="true"
+        [[ "${value}" == *"--check_database"* ]] && check_database_integrity="true"
     done
 
   AUTOMATED=${automated:-} CHECK_DATABASE=${check_database_integrity:-} "${PI_HOLE_SCRIPT_DIR}"/piholeDebug.sh
@@ -175,7 +175,7 @@ reloadDNS() {
     #         not know about real-time signals
 
     pid="$(getFTLPID ${FTL_PID_FILE})"
-    if [[ "$pid" -eq "-1" ]]; then
+    if [[ "${pid}" -eq "-1" ]]; then
       svc="true"
       str="FTL is not running"
       icon="${INFO}"
@@ -191,7 +191,7 @@ reloadDNS() {
     # Reloading of the DNS cache has been requested
     # Note: This will NOT re-read any *.conf files
     pid="$(getFTLPID ${FTL_PID_FILE})"
-    if [[ "$pid" -eq "-1" ]]; then
+    if [[ "${pid}" -eq "-1" ]]; then
       svc="true"
       str="FTL is not running"
       icon="${INFO}"
@@ -354,7 +354,7 @@ statusFunc() {
 
     pid="$(getFTLPID ${ftl_pid_file})"
 
-    if [[ "$pid" -eq "-1" ]]; then
+    if [[ "${pid}" -eq "-1" ]]; then
         case "${1}" in
             "web") echo "-1";;
             *) echo -e "  ${CROSS} DNS service is NOT running";;
@@ -381,7 +381,7 @@ statusFunc() {
   block_status=$(getFTLConfigValue dns.blocking.active)
   if [ ${block_status} == "true" ]; then
     case "${1}" in
-      "web") echo "$port";;
+      "web") echo "${port}";;
       *) echo -e "  ${TICK} Pi-hole blocking is enabled";;
     esac
   else

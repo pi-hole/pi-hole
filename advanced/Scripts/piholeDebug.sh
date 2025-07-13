@@ -499,9 +499,9 @@ ping_gateway() {
 
     # Find the first default route
     default_route=$(ip -j -"${protocol}" route show default)
-    if echo "$default_route" | grep 'gateway' | grep -q 'dev'; then
-        gateway_addr=$(echo "$default_route" | jq -r -c '.[0].gateway')
-        gateway_iface=$(echo "$default_route" | jq -r -c '.[0].dev')
+    if echo "${default_route}" | grep 'gateway' | grep -q 'dev'; then
+        gateway_addr=$(echo "${default_route}" | jq -r -c '.[0].gateway')
+        gateway_iface=$(echo "${default_route}" | jq -r -c '.[0].dev')
     else
         log_write "     Unable to determine gateway address for IPv${protocol}"
     fi
@@ -579,7 +579,7 @@ check_required_ports() {
     ports_in_use=()
     # Sort the addresses and remove duplicates
     while IFS= read -r line; do
-        ports_in_use+=( "$line" )
+        ports_in_use+=( "${line}" )
     done < <( ss --listening --numeric --tcp --udp --processes --no-header )
 
     local ports_configured
@@ -859,10 +859,10 @@ parse_file() {
     OLD_IFS="${IFS}"
     # Get the lines that are in the file(s) and store them in an array for parsing later
     local file_info
-    if [[ -f "$filename" ]]; then
+    if [[ -f "${filename}" ]]; then
         IFS=$'\r\n' command eval 'file_info=( $(cat "${filename}") )'
     else
-        read -r -a file_info <<< "$filename"
+        read -r -a file_info <<< "${filename}"
     fi
     # Set a named variable for better readability
     local file_lines
@@ -1160,15 +1160,15 @@ database_integrity_check(){
       else
         log_write "${CROSS} ${COL_RED}Foreign key errors in ${database} found.${COL_NC}"
         while IFS= read -r line ; do
-            log_write "    $line"
-        done <<< "$result"
+            log_write "    ${line}"
+        done <<< "${result}"
       fi
 
     else
       log_write "${CROSS} ${COL_RED}Integrity errors in ${database} found.\n${COL_NC}"
       while IFS= read -r line ; do
-        log_write "    $line"
-      done <<< "$result"
+        log_write "    ${line}"
+      done <<< "${result}"
     fi
 
 }
@@ -1196,7 +1196,7 @@ spinner(){
         while [ -d /proc/$_PID ]; do
             _elapsed=$(( $(date +%s) - _start ))
             # use hours only if needed
-            if [ "$_elapsed" -lt 3600 ]; then
+            if [ "${_elapsed}" -lt 3600 ]; then
                 printf "\r${_spin:_i++%${#_spin}:1} %02d:%02d" $((_elapsed/60)) $((_elapsed%60)) >"$(tty)"
             else
                 printf "\r${_spin:_i++%${#_spin}:1} %02d:%02d:%02d" $((_elapsed/3600)) $(((_elapsed/60)%60)) $((_elapsed%60)) >"$(tty)"

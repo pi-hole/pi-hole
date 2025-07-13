@@ -138,7 +138,7 @@ RemoveDomain() {
     # If there is an .error object in the returned data, display it
     local error
     error=$(jq --compact-output <<< "${data}" '.error')
-    if [[ $error != "null" && $error != "" ]]; then
+    if [[ "${error}" != "null" && "${error}" != "" ]]; then
         echo -e "  ${CROSS} Failed to remove domain(s):"
         echo -e "      $(jq <<< "${data}" '.error')"
     elif [[ "${verbose}" == true && "${status}" == "204" ]]; then
