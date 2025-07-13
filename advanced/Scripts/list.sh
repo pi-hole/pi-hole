@@ -19,13 +19,13 @@ source "${PI_HOLE_SCRIPT_DIR}/api.sh"
 
 # Determine database location
 DBFILE=$(getFTLConfigValue "files.database")
-if [ -z "$DBFILE" ]; then
+if [ -z "${DBFILE}" ]; then
     DBFILE="${PI_HOLE_CONFIG_DIR}/pihole-FTL.db"
 fi
 
 # Determine gravity database location
 GRAVITYDB=$(getFTLConfigValue "files.gravity")
-if [ -z "$GRAVITYDB" ]; then
+if [ -z "${GRAVITYDB}" ]; then
     GRAVITYDB="${PI_HOLE_CONFIG_DIR}/gravity.db"
 fi
 

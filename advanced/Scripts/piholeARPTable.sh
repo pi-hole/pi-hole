@@ -18,7 +18,7 @@ source "${PI_HOLE_SCRIPT_DIR}/COL_TABLE"
 
 # Determine database location
 DBFILE=$(getFTLConfigValue "files.database")
-if [ -z "$DBFILE" ]; then
+if [ -z "${DBFILE}" ]; then
     DBFILE="/etc/pihole/pihole-FTL.db"
 fi
 
