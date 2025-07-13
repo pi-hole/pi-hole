@@ -35,7 +35,7 @@ _pihole() {
             COMPREPLY=( $(compgen -W "${opts_update}" -- ${cur}) )
         ;;
         "core"|"admin"|"ftl")
-            if [[ "$prev2" == "checkout" ]]; then
+            if [[ "${prev2}" == "checkout" ]]; then
                 opts_checkout="master dev"
                 COMPREPLY=( $(compgen -W "${opts_checkout}" -- ${cur}) )
             else

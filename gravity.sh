@@ -206,7 +206,7 @@ database_table_from_file() {
   # Get MAX(id) from domainlist when INSERTing into this table
   if [[ "${table}" == "domainlist" ]]; then
     rowid="$(pihole-FTL sqlite3 -ni "${gravityDBfile}" "SELECT MAX(id) FROM domainlist;")"
-    if [[ -z "$rowid" ]]; then
+    if [[ -z "${rowid}" ]]; then
       rowid=0
     fi
     rowid+=1
@@ -566,7 +566,7 @@ gravity_DownloadBlocklists() {
 
     # this will remove first @ that is after schema and before domain
     # \1 is optional schema, \2 is userinfo
-    check_url="$(sed -re 's#([^:/]*://)?([^/]+)@#\1\2#' <<<"$url")"
+    check_url="$(sed -re 's#([^:/]*://)?([^/]+)@#\1\2#' <<<"${url}")"
 
     if [[ "${check_url}" =~ ${regex} ]]; then
       echo -e "  ${CROSS} Invalid Target"
@@ -712,7 +712,7 @@ gravity_DownloadBlocklistFromUrl() {
       fi
       echo -e "${OVER}  ${CROSS} ${str} ${domain} is blocked by one of your lists. Using DNS server ${upstream} instead"
       echo -ne "  ${INFO} ${str} Pending..."
-      customUpstreamResolver="--resolve $domain:$port:$ip"
+      customUpstreamResolver="--resolve ${domain}:${port}:${ip}"
     fi
   fi
 
@@ -722,7 +722,7 @@ gravity_DownloadBlocklistFromUrl() {
   # running the script.
   if [[ $url == "file://"* ]]; then
     # Get the file path
-    file_path=$(echo "$url" | cut -d'/' -f3-)
+    file_path=$(echo "${url}" | cut -d'/' -f3-)
     # Check if the file exists and is a regular file (i.e. not a socket, fifo, tty, block). Might still be a symlink.
     if [[ ! -f $file_path ]]; then
       # Output that the file does not exist
@@ -730,7 +730,7 @@ gravity_DownloadBlocklistFromUrl() {
       download=false
     else
       # Check if the file or a file referenced by the symlink has a+r permissions
-      permissions=$(stat -L -c "%a" "$file_path")
+      permissions=$(stat -L -c "%a" "${file_path}")
       if [[ $permissions == *4 || $permissions == *5 || $permissions == *6 || $permissions == *7 ]]; then
         # Output that we are using the local file
         echo -e "${OVER}  ${INFO} Using local file ${file_path}"
@@ -743,7 +743,7 @@ gravity_DownloadBlocklistFromUrl() {
   fi
 
   # Check for allowed protocols
-  if [[ $url != "http"* && $url != "https"* && $url != "file"* && $url != "ftp"* && $url != "ftps"* && $url != "sftp"* ]]; then
+  if [[ $url != "http"* && ${url} != "https"* && ${url} != "file"* && ${url} != "ftp"* && ${url} != "ftps"* && ${url} != "sftp"* ]]; then
     echo -e "${OVER}  ${CROSS} ${str} Invalid protocol specified. Ignoring list."
     echo -e "Ensure your URL starts with a valid protocol like http:// , https:// or file:// ."
     download=false
@@ -922,11 +922,11 @@ database_recovery() {
       fi
     else
       echo -e "${OVER}  ${CROSS} ${str} - errors found:"
-      while IFS= read -r line; do echo "  - $line"; done <<<"$result"
+      while IFS= read -r line; do echo "  - ${line}"; done <<<"${result}"
     fi
   else
     echo -e "${OVER}  ${CROSS} ${str} - errors found:"
-    while IFS= read -r line; do echo "  - $line"; done <<<"$result"
+    while IFS= read -r line; do echo "  - ${line}"; done <<<"${result}"
   fi
 
   str="Trying to recover existing gravity database"
@@ -941,7 +941,7 @@ database_recovery() {
     echo -ne " ${INFO} The old ${gravityDBfile} has been moved to ${gravityDBfile}.old"
   else
     echo -e "${OVER}  ${CROSS} ${str} - the following errors happened:"
-    while IFS= read -r line; do echo "  - $line"; done <<<"$result"
+    while IFS= read -r line; do echo "  - ${line}"; done <<<"${result}"
     echo -e "  ${CROSS} Recovery failed. Try \"pihole -r recreate\" instead."
     exit 1
   fi
