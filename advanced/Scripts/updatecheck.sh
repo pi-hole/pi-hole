@@ -45,14 +45,15 @@ function get_remote_hash() {
 ADMIN_INTERFACE_DIR=$(getFTLConfigValue "webserver.paths.webroot")$(getFTLConfigValue "webserver.paths.webhome")
 readonly ADMIN_INTERFACE_DIR
 readonly PI_HOLE_GIT_DIR="/etc/.pihole"
+readonly PI_HOLE_CONFIG_DIR="/etc/pihole"
 
 # Remove the below three legacy files if they exist
-rm -f "/etc/pihole/GitHubVersions"
-rm -f "/etc/pihole/localbranches"
-rm -f "/etc/pihole/localversions"
+rm -f "${PI_HOLE_CONFIG_DIR}/GitHubVersions"
+rm -f "${PI_HOLE_CONFIG_DIR}/localbranches"
+rm -f "${PI_HOLE_CONFIG_DIR}/localversions"
 
 # Create new versions file if it does not exist
-VERSION_FILE="/etc/pihole/versions"
+VERSION_FILE="${PI_HOLE_CONFIG_DIR}/versions"
 touch "${VERSION_FILE}"
 chmod 644 "${VERSION_FILE}"
 

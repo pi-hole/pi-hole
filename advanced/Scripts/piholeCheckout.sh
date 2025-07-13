@@ -8,8 +8,10 @@
 # This file is copyright under the latest version of the EUPL.
 # Please see LICENSE file for your rights under this license.
 
+readonly PI_HOLE_CONFIG_DIR="/etc/pihole"
 readonly PI_HOLE_SCRIPT_DIR="/opt/pihole"
 readonly PI_HOLE_GIT_DIR="/etc/.pihole"
+readonly FTL_BRANCH_FILE="${PI_HOLE_CONFIG_DIR}/ftlbranch"
 SKIP_INSTALL="true"
 # shellcheck source="./automated install/basic-install.sh"
 source "${PI_HOLE_GIT_DIR}/automated install/basic-install.sh"
@@ -90,8 +92,8 @@ checkout() {
 
         local path
         path="development/${binary}"
-        echo "development" > /etc/pihole/ftlbranch
-        chmod 644 /etc/pihole/ftlbranch
+        echo "development" > "${FTL_BRANCH_FILE}"
+        chmod 644 "${FTL_BRANCH_FILE}"
     elif [[ "${1}" == "master" ]] ; then
         # Shortcut to check out master branches
         echo -e "  ${INFO} Shortcut \"${COL_YELLOW}master${COL_NC}\" detected - checking out master branches..."
@@ -102,8 +104,8 @@ checkout() {
         #echo -e "  ${TICK} Web Interface"
         local path
         path="master/${binary}"
-        echo "master" > /etc/pihole/ftlbranch
-        chmod 644 /etc/pihole/ftlbranch
+        echo "master" > "${FTL_BRANCH_FILE}"
+        chmod 644 "${FTL_BRANCH_FILE}"
     elif [[ "${1}" == "core" ]] ; then
         str="Fetching branches from ${piholeGitUrl}"
         echo -ne "  ${INFO} $str"
@@ -189,8 +191,8 @@ checkout() {
 
         if check_download_exists "$path"; then
             echo "  ${TICK} Binary exists"
-            echo "${2}" > /etc/pihole/ftlbranch
-            chmod 644 /etc/pihole/ftlbranch
+            echo "${2}" > "${FTL_BRANCH_FILE}"
+            chmod 644 "${FTL_BRANCH_FILE}"
             echo -e "  ${INFO} Switching to branch: ${COL_CYAN}${2}${COL_NC} from ${COL_CYAN}${oldbranch}${COL_NC}"
             FTLinstall "${binary}"
             restart_service pihole-FTL

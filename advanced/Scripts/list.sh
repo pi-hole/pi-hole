@@ -9,6 +9,7 @@
 # This file is copyright under the latest version of the EUPL.
 # Please see LICENSE file for your rights under this license.
 
+PI_HOLE_CONFIG_DIR="/etc/pihole"
 PI_HOLE_SCRIPT_DIR="/opt/pihole"
 # shellcheck source="./advanced/Scripts/utils.sh"
 source "${PI_HOLE_SCRIPT_DIR}/utils.sh"
@@ -19,13 +20,13 @@ source "${PI_HOLE_SCRIPT_DIR}/api.sh"
 # Determine database location
 DBFILE=$(getFTLConfigValue "files.database")
 if [ -z "$DBFILE" ]; then
-    DBFILE="/etc/pihole/pihole-FTL.db"
+    DBFILE="${PI_HOLE_CONFIG_DIR}/pihole-FTL.db"
 fi
 
 # Determine gravity database location
 GRAVITYDB=$(getFTLConfigValue "files.gravity")
 if [ -z "$GRAVITYDB" ]; then
-    GRAVITYDB="/etc/pihole/gravity.db"
+    GRAVITYDB="${PI_HOLE_CONFIG_DIR}/gravity.db"
 fi
 
 addmode=true
