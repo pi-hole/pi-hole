@@ -24,12 +24,10 @@ source "${utilsfile}"
 # shellcheck source="./advanced/Scripts/api.sh"
 . "${PI_HOLE_SCRIPT_DIR}/api.sh"
 
-
 flushNetwork(){
     local output
 
     echo -ne "  ${INFO} Flushing network table ..."
-
 
     local data status error
     # Authenticate with FTL
@@ -65,7 +63,6 @@ flushArp(){
         echo "  Output: ${output}"
         return 1
     fi
-
 }
 
 # Process all options (if present)

@@ -96,6 +96,15 @@ flushFunc() {
   exit 0
 }
 
+# Deprecated function, should be removed in the future
+# use networkFlush instead
+arpFunc() {
+  shift
+  echo -e "  ${INFO} The 'arpflush' command is deprecated, use 'networkflush' instead"
+  "${PI_HOLE_SCRIPT_DIR}"/piholeNetworkFlush.sh "$@"
+  exit 0
+}
+
 networkFlush() {
   shift
   "${PI_HOLE_SCRIPT_DIR}"/piholeNetworkFlush.sh "$@"
@@ -560,6 +569,7 @@ case "${1}" in
   "setpassword"                   ) ;;
   "checkout"                      ) ;;
   "updatechecker"                 ) ;;
+  "arpflush"                      ) ;; # Deprecated, use networkflush instead
   "networkflush"                  ) ;;
   "-t" | "tail"                   ) ;;
   "api"                           ) need_root=0;;
@@ -602,6 +612,7 @@ case "${1}" in
   "setpassword"                   ) SetWebPassword "$@";;
   "checkout"                      ) piholeCheckoutFunc "$@";;
   "updatechecker"                 ) shift; updateCheckFunc "$@";;
+  "arpflush"                      ) arpFunc "$@";; # Deprecated, use networkflush instead
   "networkflush"                  ) networkFlush "$@";;
   "-t" | "tail"                   ) tailFunc "$2";;
   "api"                           ) shift; apiFunc "$@";;
