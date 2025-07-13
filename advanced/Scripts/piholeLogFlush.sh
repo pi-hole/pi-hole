@@ -25,21 +25,21 @@ STATEFILE="/var/lib/logrotate/pihole"
 
 # Determine database location
 DBFILE=$(getFTLConfigValue "files.database")
-if [ -z "$DBFILE" ]; then
+if [ -z "${DBFILE}" ]; then
     DBFILE="${PI_HOLE_CONFIG_DIR}/pihole-FTL.db"
 fi
 
 # Determine log file location
 LOGFILE=$(getFTLConfigValue "files.log.dnsmasq")
-if [ -z "$LOGFILE" ]; then
+if [ -z "${LOGFILE}" ]; then
     LOGFILE="${PI_HOLE_LOG_DIR}/pihole.log"
 fi
 FTLFILE=$(getFTLConfigValue "files.log.ftl")
-if [ -z "$FTLFILE" ]; then
+if [ -z "${FTLFILE}" ]; then
     FTLFILE="${PI_HOLE_LOG_DIR}/FTL.log"
 fi
 WEBFILE=$(getFTLConfigValue "files.log.webserver")
-if [ -z "$WEBFILE" ]; then
+if [ -z "${WEBFILE}" ]; then
     WEBFILE="${PI_HOLE_LOG_DIR}/webserver.log"
 fi
 

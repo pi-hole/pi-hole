@@ -11,18 +11,18 @@ PI_HOLE_LOG_DIR="/var/log/pihole"
 FTL_PID_FILE="$(getFTLConfigValue files.pid)"
 
 # Ensure that permissions are set so that pihole-FTL can edit all necessary files
-mkdir -p "$PI_HOLE_LOG_DIR"
-chown -R pihole:pihole "$PI_HOLE_CONFIG_DIR" "$PI_HOLE_LOG_DIR"
+mkdir -p "${PI_HOLE_LOG_DIR}"
+chown -R pihole:pihole "${PI_HOLE_CONFIG_DIR}" "${PI_HOLE_LOG_DIR}"
 
 # allow all users read version file (and use pihole -v)
 chmod 0644 "${PI_HOLE_CONFIG_DIR}/versions"
 
 # allow pihole to access subdirs in config and log dirs (sets execution bit on dirs)
-find "$PI_HOLE_CONFIG_DIR" "$PI_HOLE_LOG_DIR" -type d -exec chmod 0755 {} +
+find "${PI_HOLE_CONFIG_DIR}" "${PI_HOLE_LOG_DIR}" -type d -exec chmod 0755 {} +
 # Set all files (except TLS-related ones) to u+rw g+r
-find "$PI_HOLE_CONFIG_DIR" "$PI_HOLE_LOG_DIR" -type f ! \( -name '*.pem' -o -name '*.crt' \) -exec chmod 0640 {} +
+find "${PI_HOLE_CONFIG_DIR}" "${PI_HOLE_LOG_DIR}" -type f ! \( -name '*.pem' -o -name '*.crt' \) -exec chmod 0640 {} +
 # Set TLS-related files to a more restrictive u+rw *only* (they may contain private keys)
-find "$PI_HOLE_CONFIG_DIR" -type f \( -name '*.pem' -o -name '*.crt' \) -exec chmod 0600 {} +
+find "${PI_HOLE_CONFIG_DIR}" -type f \( -name '*.pem' -o -name '*.crt' \) -exec chmod 0600 {} +
 
 # Logrotate config file need to be owned by root
 chown root:root "${PI_HOLE_CONFIG_DIR}/logrotate"

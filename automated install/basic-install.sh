@@ -1151,7 +1151,7 @@ installConfigs() {
     printf "\\n  %b Installing configs from %s...\\n" "${INFO}" "${PI_HOLE_GIT_DIR}"
 
     # Ensure that permissions are correctly set
-    chown -R pihole:pihole "$PI_HOLE_CONFIG_DIR"
+    chown -R pihole:pihole "${PI_HOLE_CONFIG_DIR}"
 
     # Install empty custom.list file if it does not exist
     if [[ ! -r "${PI_HOLE_CONFIG_DIR}/hosts/custom.list" ]]; then
@@ -2053,11 +2053,11 @@ make_temporary_log() {
     TEMPLOG=$(mktemp /tmp/pihole_temp.XXXXXX)
     # Open handle 3 for templog
     # https://stackoverflow.com/questions/18460186/writing-outputs-to-log-file-and-console
-    exec 3>"$TEMPLOG"
+    exec 3>"${TEMPLOG}"
     # Delete templog, but allow for addressing via file handle
     # This lets us write to the log without having a temporary file on the drive, which
     # is meant to be a security measure so there is not a lingering file on the drive during the install process
-    rm "$TEMPLOG"
+    rm "${TEMPLOG}"
 }
 
 copy_to_install_log() {

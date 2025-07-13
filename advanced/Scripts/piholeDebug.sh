@@ -142,11 +142,11 @@ make_temporary_log() {
     TEMPLOG=$(mktemp /tmp/pihole_temp.XXXXXX)
     # Open handle 3 for templog
     # https://stackoverflow.com/questions/18460186/writing-outputs-to-log-file-and-console
-    exec 3>"$TEMPLOG"
+    exec 3>"${TEMPLOG}"
     # Delete templog, but allow for addressing via file handle
     # This lets us write to the log without having a temporary file on the drive, which
     # is meant to be a security measure so there is not a lingering file on the drive during the debug process
-    rm "$TEMPLOG"
+    rm "${TEMPLOG}"
 }
 
 log_write() {
@@ -196,7 +196,7 @@ compare_local_version_to_git_version() {
         # move into it
         cd "${git_dir}" || \
         # If not, show an error
-        log_write "${COL_RED}Could not cd into ${git_dir}$COL_NC"
+        log_write "${COL_RED}Could not cd into ${git_dir}${COL_NC}"
         if git status &> /dev/null; then
             # The current version the user is on
             local local_version
@@ -330,20 +330,20 @@ check_selinux() {
         DEFAULT_SELINUX=$(awk -F= '/^SELINUX=/ {print $2}' /etc/selinux/config)
         case "${DEFAULT_SELINUX,,}" in
             enforcing)
-                log_write "${CROSS} ${COL_RED}Default SELinux: $DEFAULT_SELINUX${COL_NC}"
+                log_write "${CROSS} ${COL_RED}Default SELinux: ${DEFAULT_SELINUX}${COL_NC}"
                 ;;
             *)  # 'permissive' and 'disabled'
-                log_write "${TICK} ${COL_GREEN}Default SELinux: $DEFAULT_SELINUX${COL_NC}";
+                log_write "${TICK} ${COL_GREEN}Default SELinux: ${DEFAULT_SELINUX}${COL_NC}";
                 ;;
         esac
         # Check the current state of SELinux
         CURRENT_SELINUX=$(getenforce)
         case "${CURRENT_SELINUX,,}" in
             enforcing)
-                log_write "${CROSS} ${COL_RED}Current SELinux: $CURRENT_SELINUX${COL_NC}"
+                log_write "${CROSS} ${COL_RED}Current SELinux: ${CURRENT_SELINUX}${COL_NC}"
                 ;;
             *)  # 'permissive' and 'disabled'
-                log_write "${TICK} ${COL_GREEN}Current SELinux: $CURRENT_SELINUX${COL_NC}";
+                log_write "${TICK} ${COL_GREEN}Current SELinux: ${CURRENT_SELINUX}${COL_NC}";
                 ;;
         esac
     else
@@ -521,7 +521,7 @@ ping_gateway() {
         # If pinging the gateway is not successful,
         if ! ${cmd} -c 1 -W 2 -n "${gateway}" >/dev/null; then
             # let the user know
-            log_write "${CROSS} ${COL_RED}Gateway did not respond.${COL_NC} ($FAQ_GATEWAY)\\n"
+            log_write "${CROSS} ${COL_RED}Gateway did not respond.${COL_NC} (${FAQ_GATEWAY})\\n"
             # and return an error code
             return 1
         # Otherwise,
@@ -856,7 +856,7 @@ parse_file() {
     # Set the first argument passed to this function as a named variable for better readability
     local filename="${1}"
     # Put the current Internal Field Separator into another variable so it can be restored later
-    OLD_IFS="$IFS"
+    OLD_IFS="${IFS}"
     # Get the lines that are in the file(s) and store them in an array for parsing later
     local file_info
     if [[ -f "$filename" ]]; then
@@ -878,7 +878,7 @@ parse_file() {
         fi
     done
     # Set the IFS back to what it was
-    IFS="$OLD_IFS"
+    IFS="${OLD_IFS}"
 }
 
 check_name_resolution() {
@@ -992,7 +992,7 @@ head_tail_log() {
     local head_line
     local tail_line
     # Put the current Internal Field Separator into another variable so it can be restored later
-    OLD_IFS="$IFS"
+    OLD_IFS="${IFS}"
     # Get the lines that are in the file(s) and store them in an array for parsing later
     IFS=$'\r\n'
     local log_head=()
@@ -1009,7 +1009,7 @@ head_tail_log() {
         log_write "   ${tail_line}"
     done
     # Set the IFS back to what it was
-    IFS="$OLD_IFS"
+    IFS="${OLD_IFS}"
 }
 
 show_db_entries() {
@@ -1019,7 +1019,7 @@ show_db_entries() {
 
     echo_current_diagnostic "${title}"
 
-    OLD_IFS="$IFS"
+    OLD_IFS="${IFS}"
     IFS=$'\r\n'
     local entries=()
     mapfile -t entries < <(\
@@ -1034,7 +1034,7 @@ show_db_entries() {
         log_write "   ${line}"
     done
 
-    IFS="$OLD_IFS"
+    IFS="${OLD_IFS}"
 }
 
 show_FTL_db_entries() {
@@ -1044,7 +1044,7 @@ show_FTL_db_entries() {
 
     echo_current_diagnostic "${title}"
 
-    OLD_IFS="$IFS"
+    OLD_IFS="${IFS}"
     IFS=$'\r\n'
     local entries=()
     mapfile -t entries < <(\
@@ -1059,13 +1059,13 @@ show_FTL_db_entries() {
         log_write "   ${line}"
     done
 
-    IFS="$OLD_IFS"
+    IFS="${OLD_IFS}"
 }
 
 check_dhcp_servers() {
     echo_current_diagnostic "Discovering active DHCP servers (takes 6 seconds)"
 
-    OLD_IFS="$IFS"
+    OLD_IFS="${IFS}"
     IFS=$'\n'
     local entries=()
     mapfile -t entries < <(pihole-FTL dhcp-discover & spinner)
@@ -1074,7 +1074,7 @@ check_dhcp_servers() {
         log_write "   ${line}"
     done
 
-    IFS="$OLD_IFS"
+    IFS="${OLD_IFS}"
 }
 
 show_groups() {
@@ -1119,7 +1119,7 @@ analyze_gravity_list() {
     log_write "   Last gravity run finished at: ${COL_CYAN}${gravity_updated}${COL_NC}"
     log_write ""
 
-    OLD_IFS="$IFS"
+    OLD_IFS="${IFS}"
     IFS=$'\r\n'
     local gravity_sample=()
     mapfile -t gravity_sample < <(pihole-FTL sqlite3 -ni "${PIHOLE_GRAVITY_DB_FILE}" "SELECT domain FROM vw_gravity LIMIT 10")
@@ -1130,7 +1130,7 @@ analyze_gravity_list() {
     done
 
     log_write ""
-    IFS="$OLD_IFS"
+    IFS="${OLD_IFS}"
 }
 
 analyze_ftl_db() {
@@ -1249,7 +1249,7 @@ upload_to_tricorder() {
     local username="pihole"
     # Set the permissions and owner
     chmod 640 ${PIHOLE_DEBUG_LOG}
-    chown "$USER":"${username}" ${PIHOLE_DEBUG_LOG}
+    chown "${USER}":"${username}" ${PIHOLE_DEBUG_LOG}
 
     # Let the user know debugging is complete with something strikingly visual
     log_write ""

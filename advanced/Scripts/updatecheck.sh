@@ -75,13 +75,13 @@ fi
 
 # get Core versions
 
-CORE_VERSION="$(get_local_version "$PI_HOLE_GIT_DIR")"
+CORE_VERSION="$(get_local_version "${PI_HOLE_GIT_DIR}")"
 addOrEditKeyValPair "${VERSION_FILE}" "CORE_VERSION" "${CORE_VERSION}"
 
-CORE_BRANCH="$(get_local_branch "$PI_HOLE_GIT_DIR")"
+CORE_BRANCH="$(get_local_branch "${PI_HOLE_GIT_DIR}")"
 addOrEditKeyValPair "${VERSION_FILE}" "CORE_BRANCH" "${CORE_BRANCH}"
 
-CORE_HASH="$(get_local_hash "$PI_HOLE_GIT_DIR")"
+CORE_HASH="$(get_local_hash "${PI_HOLE_GIT_DIR}")"
 addOrEditKeyValPair "${VERSION_FILE}" "CORE_HASH" "${CORE_HASH}"
 
 GITHUB_CORE_VERSION="$(get_remote_version pi-hole "${CORE_BRANCH}")"
