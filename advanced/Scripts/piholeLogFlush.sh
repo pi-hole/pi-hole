@@ -8,6 +8,7 @@
 # This file is copyright under the latest version of the EUPL.
 # Please see LICENSE file for your rights under this license.
 
+readonly PI_HOLE_LOG_DIR="/var/log/pihole"
 readonly PI_HOLE_SCRIPT_DIR="/opt/pihole"
 readonly PI_HOLE_CONFIG_DIR="/etc/pihole"
 
@@ -31,15 +32,15 @@ fi
 # Determine log file location
 LOGFILE=$(getFTLConfigValue "files.log.dnsmasq")
 if [ -z "$LOGFILE" ]; then
-    LOGFILE="/var/log/pihole/pihole.log"
+    LOGFILE="${PI_HOLE_LOG_DIR}/pihole.log"
 fi
 FTLFILE=$(getFTLConfigValue "files.log.ftl")
 if [ -z "$FTLFILE" ]; then
-    FTLFILE="/var/log/pihole/FTL.log"
+    FTLFILE="${PI_HOLE_LOG_DIR}/FTL.log"
 fi
 WEBFILE=$(getFTLConfigValue "files.log.webserver")
 if [ -z "$WEBFILE" ]; then
-    WEBFILE="/var/log/pihole/webserver.log"
+    WEBFILE="${PI_HOLE_LOG_DIR}/webserver.log"
 fi
 
 # Helper function to handle log rotation for a single file

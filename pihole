@@ -12,6 +12,7 @@
 PI_HOLE_SCRIPT_DIR="/opt/pihole"
 PI_HOLE_GIT_DIR="/etc/.pihole"
 PI_HOLE_CONFIG_DIR="/etc/pihole"
+PI_HOLE_LOG_DIR="/var/log/pihole"
 
 # PI_HOLE_BIN_DIR is not readonly here because in some functions (checkout),
 # they might get set again when the installer is sourced. This causes an
@@ -288,9 +289,9 @@ Example: 'pihole logging on'
 Specify whether the Pi-hole log should be used
 
 Options:
-  on                  Enable the Pi-hole log at /var/log/pihole/pihole.log
-  off                 Disable and flush the Pi-hole log at /var/log/pihole/pihole.log
-  off noflush         Disable the Pi-hole log at /var/log/pihole/pihole.log"
+  on                  Enable the Pi-hole log at ${PI_HOLE_LOG_DIR}/pihole.log
+  off                 Disable and flush the Pi-hole log at ${PI_HOLE_LOG_DIR}/pihole.log
+  off noflush         Disable the Pi-hole log at ${PI_HOLE_LOG_DIR}/pihole.log"
     exit 0
   elif [[ "${1}" == "off" ]]; then
     # Disable logging

@@ -71,6 +71,7 @@ PI_HOLE_SCRIPT_DIR="/opt/pihole"
 PI_HOLE_CONFIG_DIR="/etc/pihole"
 PI_HOLE_GIT_DIR="/etc/.pihole"
 PI_HOLE_BIN_DIR="/usr/local/bin"
+PI_HOLE_LOG_DIR="/var/log/pihole"
 
 # shellcheck source="./advanced/Scripts/COL_TABLE"
 source "${PI_HOLE_SCRIPT_DIR}/COL_TABLE" || {
@@ -1503,18 +1504,18 @@ installLogrotate() {
     printf "\\n  %b %s..." "${INFO}" "${str}"
     if [[ -f ${target} ]]; then
 
-        # Account for changed logfile paths from /var/log -> /var/log/pihole/ made in core v5.11.
+        # Account for changed logfile paths from /var/log -> /var/log/pihole made in core v5.11.
         if grep -q "/var/log/pihole.log" ${target} || grep -q "/var/log/pihole-FTL.log" ${target}; then
-            sed -i 's/\/var\/log\/pihole.log/\/var\/log\/pihole\/pihole.log/g' ${target}
-            sed -i 's/\/var\/log\/pihole-FTL.log/\/var\/log\/pihole\/FTL.log/g' ${target}
+            sed -i "s:/var/log/pihole.log:${PI_HOLE_LOG_DIR}/pihole.log:g" ${target}
+            sed -i "s:/var/log/pihole-FTL.log:${PI_HOLE_LOG_DIR}/FTL.log:g" ${target}
 
             printf "\\n\\t%b Old log file paths updated in existing logrotate file. \\n" "${INFO}"
             logfileUpdate=true
         fi
 
         # Account for added webserver.log in v6.0
-        if ! grep -q "/var/log/pihole/webserver.log" ${target}; then
-            echo "/var/log/pihole/webserver.log {
+        if ! grep -q "${PI_HOLE_LOG_DIR}/webserver.log" ${target}; then
+            echo "${PI_HOLE_LOG_DIR}/webserver.log {
 # su #
 weekly
 copytruncate

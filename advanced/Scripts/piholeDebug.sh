@@ -65,10 +65,10 @@ FORUMS_URL="${COL_CYAN}https://discourse.pi-hole.net${COL_NC}"
 # Directories required by Pi-hole
 # https://discourse.pi-hole.net/t/what-files-does-pi-hole-use/1684
 PI_HOLE_GIT_DIR="/etc/.pihole"
+PI_HOLE_LOG_DIR="/var/log/pihole"
 CRON_D_DIRECTORY="/etc/cron.d"
 DNSMASQ_D_DIRECTORY="/etc/dnsmasq.d"
 PI_HOLE_BIN_DIR="/usr/local/bin"
-LOG_DIRECTORY="/var/log/pihole"
 HTML_DIRECTORY="$(get_ftl_conf_value "webserver.paths.webroot")"
 WEBHOME_PATH="$(get_ftl_conf_value "webserver.paths.webhome")"
 WEB_GIT_DIRECTORY="${HTML_DIRECTORY}${WEBHOME_PATH}"
@@ -94,9 +94,9 @@ PIHOLE_COMMAND="${PI_HOLE_BIN_DIR}/pihole"
 
 FTL_PID="$(get_ftl_conf_value "files.pid")"
 
-PIHOLE_LOG="${LOG_DIRECTORY}/pihole.log"
-PIHOLE_LOG_GZIPS="${LOG_DIRECTORY}/pihole.log.[0-9].*"
-PIHOLE_DEBUG_LOG="${LOG_DIRECTORY}/pihole_debug.log"
+PIHOLE_LOG="${PI_HOLE_LOG_DIR}/pihole.log"
+PIHOLE_LOG_GZIPS="${PI_HOLE_LOG_DIR}/pihole.log.[0-9].*"
+PIHOLE_DEBUG_LOG="${PI_HOLE_LOG_DIR}/pihole_debug.log"
 PIHOLE_FTL_LOG="$(get_ftl_conf_value "files.log.ftl")"
 PIHOLE_WEBSERVER_LOG="$(get_ftl_conf_value "files.log.webserver")"
 
@@ -979,7 +979,7 @@ show_content_of_pihole_files() {
     show_content_of_files_in_dir "${PI_HOLE_CONFIG_DIR}"
     show_content_of_files_in_dir "${DNSMASQ_D_DIRECTORY}"
     show_content_of_files_in_dir "${CRON_D_DIRECTORY}"
-    show_content_of_files_in_dir "${LOG_DIRECTORY}"
+    show_content_of_files_in_dir "${PI_HOLE_LOG_DIR}"
     show_content_of_files_in_dir "${SHM_DIRECTORY}"
     show_content_of_files_in_dir "${ETC}"
 }
