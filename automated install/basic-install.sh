@@ -580,7 +580,10 @@ Do you wish to continue with an IPv6-only installation?\\n\\n" \
 # Get available interfaces that are UP
 get_available_interfaces() {
     # There may be more than one so it's all stored in a variable
-    availableInterfaces=$(ip --oneline link show up | awk '{print $2}' |  grep -v "^lo" | cut -d':' -f1 | cut -d'@' -f1)
+    # The ip command list all interfaces that are in the up state
+    # The awk command filters out any interfaces that have the LOOPBACK flag set
+    # while using the characters ": " or "@" as a field separator for awk
+    availableInterfaces=$(ip --oneline link show up | awk -F ': |@' '!/<.*LOOPBACK.*>/ {print $2}')
 }
 
 # A function for displaying the dialogs the user sees when first running the installer
