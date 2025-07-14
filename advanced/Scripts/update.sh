@@ -47,7 +47,7 @@ GitCheckUpdateAvail() {
 
     # Fetch latest changes in this repo
     if ! git fetch --quiet origin ; then
-        echo -e "\\n  ${COL_LIGHT_RED}Error: Unable to update local repository. Contact Pi-hole Support.${COL_NC}"
+        echo -e "\\n  ${COL_RED}Error: Unable to update local repository. Contact Pi-hole Support.${COL_NC}"
         exit 1
     fi
 
@@ -76,13 +76,13 @@ GitCheckUpdateAvail() {
 
 
     if [[ "${#LOCAL}" == 0 ]]; then
-        echo -e "\\n  ${COL_LIGHT_RED}Error: Local revision could not be obtained, please contact Pi-hole Support"
+        echo -e "\\n  ${COL_RED}Error: Local revision could not be obtained, please contact Pi-hole Support"
         echo -e "  Additional debugging output:${COL_NC}"
         git status
         exit 1
     fi
     if [[ "${#REMOTE}" == 0 ]]; then
-        echo -e "\\n  ${COL_LIGHT_RED}Error: Remote revision could not be obtained, please contact Pi-hole Support"
+        echo -e "\\n  ${COL_RED}Error: Remote revision could not be obtained, please contact Pi-hole Support"
         echo -e "  Additional debugging output:${COL_NC}"
         git status
         exit 1
@@ -103,7 +103,7 @@ GitCheckUpdateAvail() {
 }
 
 main() {
-    local basicError="\\n  ${COL_LIGHT_RED}Unable to complete update, please contact Pi-hole Support${COL_NC}"
+    local basicError="\\n  ${COL_RED}Unable to complete update, please contact Pi-hole Support${COL_NC}"
     local core_update
     local web_update
     local FTL_update
@@ -120,7 +120,7 @@ main() {
 
     # This is unlikely
     if ! is_repo "${PI_HOLE_FILES_DIR}" ; then
-        echo -e "\\n  ${COL_LIGHT_RED}Error: Core Pi-hole repo is missing from system!"
+        echo -e "\\n  ${COL_RED}Error: Core Pi-hole repo is missing from system!"
         echo -e "  Please re-run install script from https://pi-hole.net${COL_NC}"
         exit 1;
     fi
@@ -132,11 +132,11 @@ main() {
         echo -e "  ${INFO} Pi-hole Core:\\t${COL_YELLOW}update available${COL_NC}"
     else
         core_update=false
-        echo -e "  ${INFO} Pi-hole Core:\\t${COL_LIGHT_GREEN}up to date${COL_NC}"
+        echo -e "  ${INFO} Pi-hole Core:\\t${COL_GREEN}up to date${COL_NC}"
     fi
 
     if ! is_repo "${ADMIN_INTERFACE_DIR}" ; then
-        echo -e "\\n  ${COL_LIGHT_RED}Error: Web Admin repo is missing from system!"
+        echo -e "\\n  ${COL_RED}Error: Web Admin repo is missing from system!"
         echo -e "  Please re-run install script from https://pi-hole.net${COL_NC}"
         exit 1;
     fi
@@ -146,7 +146,7 @@ main() {
         echo -e "  ${INFO} Web Interface:\\t${COL_YELLOW}update available${COL_NC}"
     else
         web_update=false
-        echo -e "  ${INFO} Web Interface:\\t${COL_LIGHT_GREEN}up to date${COL_NC}"
+        echo -e "  ${INFO} Web Interface:\\t${COL_GREEN}up to date${COL_NC}"
     fi
 
     local funcOutput
@@ -160,17 +160,18 @@ main() {
     else
         case $? in
             1)
-                echo -e "  ${INFO} FTL:\\t\\t${COL_LIGHT_GREEN}up to date${COL_NC}"
+                echo -e "  ${INFO} FTL:\\t\\t${COL_GREEN}up to date${COL_NC}"
                 ;;
             2)
-                echo -e "  ${INFO} FTL:\\t\\t${COL_LIGHT_RED}Branch is not available.${COL_NC}\\n\\t\\t\\tUse ${COL_LIGHT_GREEN}pihole checkout ftl [branchname]${COL_NC} to switch to a valid branch."
+                echo -e "  ${INFO} FTL:\\t\\t${COL_RED}Branch is not available.${COL_NC}\\n\\t\\t\\tUse ${COL_GREEN}pihole checkout ftl [branchname]${COL_NC} to switch to a valid branch."
+                exit 1
                 ;;
             3)
-                echo -e "  ${INFO} FTL:\\t\\t${COL_LIGHT_RED}Something has gone wrong, cannot reach download server${COL_NC}"
+                echo -e "  ${INFO} FTL:\\t\\t${COL_RED}Something has gone wrong, cannot reach download server${COL_NC}"
                 exit 1
                 ;;
             *)
-                echo -e "  ${INFO} FTL:\\t\\t${COL_LIGHT_RED}Something has gone wrong, contact support${COL_NC}"
+                echo -e "  ${INFO} FTL:\\t\\t${COL_RED}Something has gone wrong, contact support${COL_NC}"
                 exit 1
         esac
         FTL_update=false
@@ -187,7 +188,7 @@ main() {
     if [[ ! "${ftlBranch}" == "master" && ! "${ftlBranch}" == "development" ]]; then
         # Notify user that they are on a custom branch which might mean they they are lost
         # behind if a branch was merged to development and got abandoned
-        printf "  %b %bWarning:%b You are using FTL from a custom branch (%s) and might be missing future releases.\\n" "${INFO}" "${COL_LIGHT_RED}" "${COL_NC}" "${ftlBranch}"
+        printf "  %b %bWarning:%b You are using FTL from a custom branch (%s) and might be missing future releases.\\n" "${INFO}" "${COL_RED}" "${COL_NC}" "${ftlBranch}"
     fi
 
     if [[ "${core_update}" == false && "${web_update}" == false && "${FTL_update}" == false ]]; then

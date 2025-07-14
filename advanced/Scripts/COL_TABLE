@@ -1,11 +1,12 @@
 #!/usr/bin/env sh
+# shellcheck disable=SC2034  # Disable warning about unused variables
+
 # Determine if terminal is capable of showing colors
-if [ -t 1 ] && [ "$(tput colors)" -ge 8 ]; then
+# When COL_TABLE is sourced via gravity invoked by FTL, FORCE_COLOR is set to true
+if { [ -t 1 ] && [ "$(tput colors)" -ge 8 ]; } || [ "${FORCE_COLOR}" ]; then
   # Bold and underline may not show up on all clients
   # If something MUST be emphasized, use both
   COL_BOLD='[1m'
-  COL_ULINE='[4m'
-
   COL_NC='[0m'
   COL_GRAY='[90m'
   COL_RED='[91m'
@@ -17,8 +18,6 @@ if [ -t 1 ] && [ "$(tput colors)" -ge 8 ]; then
 else
   # Provide empty variables for `set -u`
   COL_BOLD=""
-  COL_ULINE=""
-
   COL_NC=""
   COL_GRAY=""
   COL_RED=""
@@ -29,22 +28,8 @@ else
   COL_CYAN=""
 fi
 
-# Deprecated variables
-COL_WHITE="${COL_BOLD}"
-COL_BLACK="${COL_NC}"
-COL_LIGHT_BLUE="${COL_BLUE}"
-COL_LIGHT_GREEN="${COL_GREEN}"
-COL_LIGHT_CYAN="${COL_CYAN}"
-COL_LIGHT_RED="${COL_RED}"
-COL_URG_RED="${COL_RED}${COL_BOLD}${COL_ULINE}"
-COL_LIGHT_PURPLE="${COL_PURPLE}"
-COL_BROWN="${COL_YELLOW}"
-COL_LIGHT_GRAY="${COL_GRAY}"
-COL_DARK_GRAY="${COL_GRAY}"
-
 TICK="[${COL_GREEN}✓${COL_NC}]"
 CROSS="[${COL_RED}✗${COL_NC}]"
 INFO="[i]"
 QST="[?]"
-DONE="${COL_GREEN} done!${COL_NC}"
 OVER="\\r[K"
