@@ -9,7 +9,7 @@
 # This file is copyright under the latest version of the EUPL.
 # Please see LICENSE file for your rights under this license.
 
-readonly PI_HOLE_SCRIPT_DIR="/opt/pihole"
+PI_HOLE_SCRIPT_DIR="/opt/pihole"
 
 # PI_HOLE_BIN_DIR is not readonly here because in some functions (checkout),
 # they might get set again when the installer is sourced. This causes an
@@ -20,7 +20,7 @@ readonly colfile="${PI_HOLE_SCRIPT_DIR}/COL_TABLE"
 # shellcheck source=./advanced/Scripts/COL_TABLE
 source "${colfile}"
 
-readonly utilsfile="${PI_HOLE_SCRIPT_DIR}/utils.sh"
+utilsfile="${PI_HOLE_SCRIPT_DIR}/utils.sh"
 # shellcheck source=./advanced/Scripts/utils.sh
 source "${utilsfile}"
 
@@ -552,7 +552,7 @@ case "${1}" in
   "enable"                        ) need_root=0;;
   "disable"                       ) need_root=0;;
   "-d" | "debug"                  ) ;;
-  "-g" | "updateGravity"          ) ;;
+  "-g" | "updateGravity"          ) need_root=0;;
   "reloaddns"                     ) ;;
   "reloadlists"                   ) ;;
   "setpassword"                   ) ;;
