@@ -1496,6 +1496,15 @@ installCron() {
     # Randomize update checker time
     sed -i "s/59 17/$((1 + RANDOM % 58)) $((12 + RANDOM % 8))/" /etc/cron.d/pihole
     printf "%b  %b %s\\n" "${OVER}" "${TICK}" "${str}"
+
+    # Switch off of busybox cron on alpine
+    if is_command openrc; then
+        printf "  %b Switching from busybox crond to cronie...\\n" "${INFO}"
+        stop_service crond
+        disable_service crond
+        enable_service cronie
+        restart_service cronie
+    fi
 }
 
 # Gravity is a very important script as it aggregates all of the domains into a single HOSTS formatted list,
