@@ -552,7 +552,7 @@ case "${1}" in
   "enable"                        ) need_root=0;;
   "disable"                       ) need_root=0;;
   "-d" | "debug"                  ) ;;
-  "-g" | "updateGravity"          ) ;;
+  "-g" | "updateGravity"          ) need_root=0;;
   "reloaddns"                     ) ;;
   "reloadlists"                   ) ;;
   "setpassword"                   ) ;;
