@@ -8,14 +8,13 @@
 # This file is copyright under the latest version of the EUPL.
 # Please see LICENSE file for your rights under this license.
 
-colfile="/opt/pihole/COL_TABLE"
-# shellcheck source="./advanced/Scripts/COL_TABLE"
-source ${colfile}
-
+readonly PI_HOLE_LOG_DIR="/var/log/pihole"
 readonly PI_HOLE_SCRIPT_DIR="/opt/pihole"
-utilsfile="${PI_HOLE_SCRIPT_DIR}/utils.sh"
 # shellcheck source="./advanced/Scripts/utils.sh"
-source "${utilsfile}"
+source "${PI_HOLE_SCRIPT_DIR}/utils.sh"
+
+# shellcheck source="./advanced/Scripts/COL_TABLE"
+source "${PI_HOLE_SCRIPT_DIR}/COL_TABLE"
 
 # In case we're running at the same time as a system logrotate, use a
 # separate logrotate state file to prevent stepping on each other's
@@ -24,22 +23,22 @@ STATEFILE="/var/lib/logrotate/pihole"
 
 # Determine database location
 DBFILE=$(getFTLConfigValue "files.database")
-if [ -z "$DBFILE" ]; then
+if [ -z "${DBFILE}" ]; then
     DBFILE="/etc/pihole/pihole-FTL.db"
 fi
 
 # Determine log file location
 LOGFILE=$(getFTLConfigValue "files.log.dnsmasq")
-if [ -z "$LOGFILE" ]; then
-    LOGFILE="/var/log/pihole/pihole.log"
+if [ -z "${LOGFILE}" ]; then
+    LOGFILE="${PI_HOLE_LOG_DIR}/pihole.log"
 fi
 FTLFILE=$(getFTLConfigValue "files.log.ftl")
-if [ -z "$FTLFILE" ]; then
-    FTLFILE="/var/log/pihole/FTL.log"
+if [ -z "${FTLFILE}" ]; then
+    FTLFILE="${PI_HOLE_LOG_DIR}/FTL.log"
 fi
 WEBFILE=$(getFTLConfigValue "files.log.webserver")
-if [ -z "$WEBFILE" ]; then
-    WEBFILE="/var/log/pihole/webserver.log"
+if [ -z "${WEBFILE}" ]; then
+    WEBFILE="${PI_HOLE_LOG_DIR}/webserver.log"
 fi
 
 # Helper function to handle log rotation for a single file
@@ -115,4 +114,3 @@ else
         echo -e "${OVER}  ${TICK} Deleted ${deleted} queries from long-term query database"
     fi
 fi
-

@@ -21,8 +21,9 @@ set -o pipefail
 ######## GLOBAL VARS ########
 # These variables would normally be next to the other files
 # but we need them to be first in order to get the colors needed for the script output
-PIHOLE_SCRIPTS_DIRECTORY="/opt/pihole"
-PIHOLE_COLTABLE_FILE="${PIHOLE_SCRIPTS_DIRECTORY}/COL_TABLE"
+PI_HOLE_CONFIG_DIR="/etc/pihole"
+PI_HOLE_SCRIPT_DIR="/opt/pihole"
+PIHOLE_COLTABLE_FILE="${PI_HOLE_SCRIPT_DIR}/COL_TABLE"
 
 # These provide the colors we need for making the log more readable
 if [[ -f ${PIHOLE_COLTABLE_FILE} ]]; then
@@ -42,7 +43,7 @@ else
 fi
 
 # shellcheck source=/dev/null
-. /etc/pihole/versions
+source "${PI_HOLE_CONFIG_DIR}/versions"
 
 # Read the value of an FTL config key. The value is printed to stdout.
 get_ftl_conf_value() {
@@ -63,13 +64,11 @@ FORUMS_URL="${COL_CYAN}https://discourse.pi-hole.net${COL_NC}"
 
 # Directories required by Pi-hole
 # https://discourse.pi-hole.net/t/what-files-does-pi-hole-use/1684
-CORE_GIT_DIRECTORY="/etc/.pihole"
+PI_HOLE_GIT_DIR="/etc/.pihole"
+PI_HOLE_LOG_DIR="/var/log/pihole"
 CRON_D_DIRECTORY="/etc/cron.d"
 DNSMASQ_D_DIRECTORY="/etc/dnsmasq.d"
-PIHOLE_DIRECTORY="/etc/pihole"
-PIHOLE_SCRIPTS_DIRECTORY="/opt/pihole"
 BIN_DIRECTORY="/usr/local/bin"
-LOG_DIRECTORY="/var/log/pihole"
 HTML_DIRECTORY="$(get_ftl_conf_value "webserver.paths.webroot")"
 WEBHOME_PATH="$(get_ftl_conf_value "webserver.paths.webhome")"
 WEB_GIT_DIRECTORY="${HTML_DIRECTORY}${WEBHOME_PATH}"
@@ -80,12 +79,12 @@ ETC="/etc"
 # https://discourse.pi-hole.net/t/what-files-does-pi-hole-use/1684
 PIHOLE_CRON_FILE="${CRON_D_DIRECTORY}/pihole"
 
-PIHOLE_INSTALL_LOG_FILE="${PIHOLE_DIRECTORY}/install.log"
-PIHOLE_RAW_BLOCKLIST_FILES="${PIHOLE_DIRECTORY}/list.*"
-PIHOLE_LOGROTATE_FILE="${PIHOLE_DIRECTORY}/logrotate"
-PIHOLE_FTL_CONF_FILE="${PIHOLE_DIRECTORY}/pihole.toml"
-PIHOLE_DNSMASQ_CONF_FILE="${PIHOLE_DIRECTORY}/dnsmasq.conf"
-PIHOLE_VERSIONS_FILE="${PIHOLE_DIRECTORY}/versions"
+PIHOLE_INSTALL_LOG_FILE="${PI_HOLE_CONFIG_DIR}/install.log"
+PIHOLE_RAW_BLOCKLIST_FILES="${PI_HOLE_CONFIG_DIR}/list.*"
+PIHOLE_LOGROTATE_FILE="${PI_HOLE_CONFIG_DIR}/logrotate"
+PIHOLE_FTL_CONF_FILE="${PI_HOLE_CONFIG_DIR}/pihole.toml"
+PIHOLE_DNSMASQ_CONF_FILE="${PI_HOLE_CONFIG_DIR}/dnsmasq.conf"
+PIHOLE_VERSIONS_FILE="${PI_HOLE_CONFIG_DIR}/versions"
 
 PIHOLE_GRAVITY_DB_FILE="$(get_ftl_conf_value "files.gravity")"
 
@@ -96,9 +95,9 @@ PIHOLE_COLTABLE_FILE="${BIN_DIRECTORY}/COL_TABLE"
 
 FTL_PID="$(get_ftl_conf_value "files.pid")"
 
-PIHOLE_LOG="${LOG_DIRECTORY}/pihole.log"
-PIHOLE_LOG_GZIPS="${LOG_DIRECTORY}/pihole.log.[0-9].*"
-PIHOLE_DEBUG_LOG="${LOG_DIRECTORY}/pihole_debug.log"
+PIHOLE_LOG="${PI_HOLE_LOG_DIR}/pihole.log"
+PIHOLE_LOG_GZIPS="${PI_HOLE_LOG_DIR}/pihole.log.[0-9].*"
+PIHOLE_DEBUG_LOG="${PI_HOLE_LOG_DIR}/pihole_debug.log"
 PIHOLE_FTL_LOG="$(get_ftl_conf_value "files.log.ftl")"
 PIHOLE_WEBSERVER_LOG="$(get_ftl_conf_value "files.log.webserver")"
 
@@ -144,11 +143,11 @@ make_temporary_log() {
     TEMPLOG=$(mktemp /tmp/pihole_temp.XXXXXX)
     # Open handle 3 for templog
     # https://stackoverflow.com/questions/18460186/writing-outputs-to-log-file-and-console
-    exec 3>"$TEMPLOG"
+    exec 3>"${TEMPLOG}"
     # Delete templog, but allow for addressing via file handle
     # This lets us write to the log without having a temporary file on the drive, which
     # is meant to be a security measure so there is not a lingering file on the drive during the debug process
-    rm "$TEMPLOG"
+    rm "${TEMPLOG}"
 }
 
 log_write() {
@@ -198,7 +197,7 @@ compare_local_version_to_git_version() {
         # move into it
         cd "${git_dir}" || \
         # If not, show an error
-        log_write "${COL_RED}Could not cd into ${git_dir}$COL_NC"
+        log_write "${COL_RED}Could not cd into ${git_dir}${COL_NC}"
         if git status &> /dev/null; then
             # The current version the user is on
             local local_version
@@ -289,7 +288,7 @@ check_ftl_version() {
 # Checks the core version of the Pi-hole codebase
 check_component_versions() {
     # Check the Web version, branch, and commit
-    compare_local_version_to_git_version "${CORE_GIT_DIRECTORY}" "Core"
+    compare_local_version_to_git_version "${PI_HOLE_GIT_DIR}" "Core"
     # Check the Web version, branch, and commit
     compare_local_version_to_git_version "${WEB_GIT_DIRECTORY}" "Web"
     # Check the FTL version
@@ -305,7 +304,7 @@ diagnose_operating_system() {
     # Display the current test that is running
     echo_current_diagnostic "Operating system"
 
-    # If DOCKER_VERSION is set (Sourced from /etc/pihole/versions at start of script), include this information in the debug output
+    # If DOCKER_VERSION is set (Sourced from $PI_HOLE_CONFIG_DIR/versions at start of script), include this information in the debug output
     [ -n "${DOCKER_VERSION}" ] && log_write "${INFO} Pi-hole Docker Container: ${DOCKER_VERSION}"
 
     # If there is a /etc/*release file, it's probably a supported operating system, so we can
@@ -332,20 +331,20 @@ check_selinux() {
         DEFAULT_SELINUX=$(awk -F= '/^SELINUX=/ {print $2}' /etc/selinux/config)
         case "${DEFAULT_SELINUX,,}" in
             enforcing)
-                log_write "${CROSS} ${COL_RED}Default SELinux: $DEFAULT_SELINUX${COL_NC}"
+                log_write "${CROSS} ${COL_RED}Default SELinux: ${DEFAULT_SELINUX}${COL_NC}"
                 ;;
             *)  # 'permissive' and 'disabled'
-                log_write "${TICK} ${COL_GREEN}Default SELinux: $DEFAULT_SELINUX${COL_NC}";
+                log_write "${TICK} ${COL_GREEN}Default SELinux: ${DEFAULT_SELINUX}${COL_NC}";
                 ;;
         esac
         # Check the current state of SELinux
         CURRENT_SELINUX=$(getenforce)
         case "${CURRENT_SELINUX,,}" in
             enforcing)
-                log_write "${CROSS} ${COL_RED}Current SELinux: $CURRENT_SELINUX${COL_NC}"
+                log_write "${CROSS} ${COL_RED}Current SELinux: ${CURRENT_SELINUX}${COL_NC}"
                 ;;
             *)  # 'permissive' and 'disabled'
-                log_write "${TICK} ${COL_GREEN}Current SELinux: $CURRENT_SELINUX${COL_NC}";
+                log_write "${TICK} ${COL_GREEN}Current SELinux: ${CURRENT_SELINUX}${COL_NC}";
                 ;;
         esac
     else
@@ -523,7 +522,7 @@ ping_gateway() {
         # If pinging the gateway is not successful,
         if ! ${cmd} -c 1 -W 2 -n "${gateway}" >/dev/null; then
             # let the user know
-            log_write "${CROSS} ${COL_RED}Gateway did not respond.${COL_NC} ($FAQ_GATEWAY)\\n"
+            log_write "${CROSS} ${COL_RED}Gateway did not respond.${COL_NC} (${FAQ_GATEWAY})\\n"
             # and return an error code
             return 1
         # Otherwise,
@@ -581,7 +580,7 @@ check_required_ports() {
     ports_in_use=()
     # Sort the addresses and remove duplicates
     while IFS= read -r line; do
-        ports_in_use+=( "$line" )
+        ports_in_use+=( "${line}" )
     done < <( ss --listening --numeric --tcp --udp --processes --no-header )
 
     local ports_configured
@@ -858,13 +857,13 @@ parse_file() {
     # Set the first argument passed to this function as a named variable for better readability
     local filename="${1}"
     # Put the current Internal Field Separator into another variable so it can be restored later
-    OLD_IFS="$IFS"
+    OLD_IFS="${IFS}"
     # Get the lines that are in the file(s) and store them in an array for parsing later
     local file_info
-    if [[ -f "$filename" ]]; then
+    if [[ -f "${filename}" ]]; then
         IFS=$'\r\n' command eval 'file_info=( $(cat "${filename}") )'
     else
-        read -r -a file_info <<< "$filename"
+        read -r -a file_info <<< "${filename}"
     fi
     # Set a named variable for better readability
     local file_lines
@@ -880,7 +879,7 @@ parse_file() {
         fi
     done
     # Set the IFS back to what it was
-    IFS="$OLD_IFS"
+    IFS="${OLD_IFS}"
 }
 
 check_name_resolution() {
@@ -978,10 +977,10 @@ show_content_of_files_in_dir() {
 
 show_content_of_pihole_files() {
     # Show the content of the files in each of Pi-hole's folders
-    show_content_of_files_in_dir "${PIHOLE_DIRECTORY}"
+    show_content_of_files_in_dir "${PI_HOLE_CONFIG_DIR}"
     show_content_of_files_in_dir "${DNSMASQ_D_DIRECTORY}"
     show_content_of_files_in_dir "${CRON_D_DIRECTORY}"
-    show_content_of_files_in_dir "${LOG_DIRECTORY}"
+    show_content_of_files_in_dir "${PI_HOLE_LOG_DIR}"
     show_content_of_files_in_dir "${SHM_DIRECTORY}"
     show_content_of_files_in_dir "${ETC}"
 }
@@ -994,7 +993,7 @@ head_tail_log() {
     local head_line
     local tail_line
     # Put the current Internal Field Separator into another variable so it can be restored later
-    OLD_IFS="$IFS"
+    OLD_IFS="${IFS}"
     # Get the lines that are in the file(s) and store them in an array for parsing later
     IFS=$'\r\n'
     local log_head=()
@@ -1011,7 +1010,7 @@ head_tail_log() {
         log_write "   ${tail_line}"
     done
     # Set the IFS back to what it was
-    IFS="$OLD_IFS"
+    IFS="${OLD_IFS}"
 }
 
 show_db_entries() {
@@ -1021,7 +1020,7 @@ show_db_entries() {
 
     echo_current_diagnostic "${title}"
 
-    OLD_IFS="$IFS"
+    OLD_IFS="${IFS}"
     IFS=$'\r\n'
     local entries=()
     mapfile -t entries < <(\
@@ -1036,7 +1035,7 @@ show_db_entries() {
         log_write "   ${line}"
     done
 
-    IFS="$OLD_IFS"
+    IFS="${OLD_IFS}"
 }
 
 show_FTL_db_entries() {
@@ -1046,7 +1045,7 @@ show_FTL_db_entries() {
 
     echo_current_diagnostic "${title}"
 
-    OLD_IFS="$IFS"
+    OLD_IFS="${IFS}"
     IFS=$'\r\n'
     local entries=()
     mapfile -t entries < <(\
@@ -1061,13 +1060,13 @@ show_FTL_db_entries() {
         log_write "   ${line}"
     done
 
-    IFS="$OLD_IFS"
+    IFS="${OLD_IFS}"
 }
 
 check_dhcp_servers() {
     echo_current_diagnostic "Discovering active DHCP servers (takes 6 seconds)"
 
-    OLD_IFS="$IFS"
+    OLD_IFS="${IFS}"
     IFS=$'\n'
     local entries=()
     mapfile -t entries < <(pihole-FTL dhcp-discover & spinner)
@@ -1076,7 +1075,7 @@ check_dhcp_servers() {
         log_write "   ${line}"
     done
 
-    IFS="$OLD_IFS"
+    IFS="${OLD_IFS}"
 }
 
 show_groups() {
@@ -1121,7 +1120,7 @@ analyze_gravity_list() {
     log_write "   Last gravity run finished at: ${COL_CYAN}${gravity_updated}${COL_NC}"
     log_write ""
 
-    OLD_IFS="$IFS"
+    OLD_IFS="${IFS}"
     IFS=$'\r\n'
     local gravity_sample=()
     mapfile -t gravity_sample < <(pihole-FTL sqlite3 -ni "${PIHOLE_GRAVITY_DB_FILE}" "SELECT domain FROM vw_gravity LIMIT 10")
@@ -1132,7 +1131,7 @@ analyze_gravity_list() {
     done
 
     log_write ""
-    IFS="$OLD_IFS"
+    IFS="${OLD_IFS}"
 }
 
 analyze_ftl_db() {
@@ -1162,15 +1161,15 @@ database_integrity_check(){
       else
         log_write "${CROSS} ${COL_RED}Foreign key errors in ${database} found.${COL_NC}"
         while IFS= read -r line ; do
-            log_write "    $line"
-        done <<< "$result"
+            log_write "    ${line}"
+        done <<< "${result}"
       fi
 
     else
       log_write "${CROSS} ${COL_RED}Integrity errors in ${database} found.\n${COL_NC}"
       while IFS= read -r line ; do
-        log_write "    $line"
-      done <<< "$result"
+        log_write "    ${line}"
+      done <<< "${result}"
     fi
 
 }
@@ -1198,7 +1197,7 @@ spinner(){
         while [ -d /proc/$_PID ]; do
             _elapsed=$(( $(date +%s) - _start ))
             # use hours only if needed
-            if [ "$_elapsed" -lt 3600 ]; then
+            if [ "${_elapsed}" -lt 3600 ]; then
                 printf "\r${_spin:_i++%${#_spin}:1} %02d:%02d" $((_elapsed/60)) $((_elapsed%60)) >"$(tty)"
             else
                 printf "\r${_spin:_i++%${#_spin}:1} %02d:%02d:%02d" $((_elapsed/3600)) $(((_elapsed/60)%60)) $((_elapsed%60)) >"$(tty)"
@@ -1251,7 +1250,7 @@ upload_to_tricorder() {
     local username="pihole"
     # Set the permissions and owner
     chmod 640 ${PIHOLE_DEBUG_LOG}
-    chown "$USER":"${username}" ${PIHOLE_DEBUG_LOG}
+    chown "${USER}":"${username}" ${PIHOLE_DEBUG_LOG}
 
     # Let the user know debugging is complete with something strikingly visual
     log_write ""
