@@ -22,6 +22,7 @@ def test_supported_package_manager(host):
     # break supported package managers
     host.run("rm -rf /usr/bin/apt-get")
     host.run("rm -rf /usr/bin/rpm")
+    host.run("rm -rf /sbin/apk")
     package_manager_detect = host.run(
         """
     source /opt/pihole/basic-install.sh
@@ -77,10 +78,21 @@ def test_installPihole_fresh_install_readableFiles(host):
         },
         host,
     )
+    mock_command_2(
+        "rc-service",
+        {
+            "rc-service pihole-FTL enable": ("", "0"),
+            "rc-service pihole-FTL restart": ("", "0"),
+            "rc-service pihole-FTL start": ("", "0"),
+            "*": ('echo "rc-service call with $@"', "0"),
+        },
+        host,
+    )
     # try to install man
     host.run("command -v apt-get > /dev/null && apt-get install -qq man")
     host.run("command -v dnf > /dev/null && dnf install -y man")
     host.run("command -v yum > /dev/null && yum install -y man")
+    host.run("command -v apk > /dev/null && apk add mandoc man-pages")
     # Workaround to get FTLv6 installed until it reaches master branch
     host.run('echo "' + FTL_BRANCH + '" > /etc/pihole/ftlbranch')
     install = host.run(
@@ -103,7 +115,7 @@ def test_installPihole_fresh_install_readableFiles(host):
         maninstalled = False
     piholeuser = "pihole"
     exit_status_success = 0
-    test_cmd = 'su --shell /bin/bash --command "test -{0} {1}" -p {2}'
+    test_cmd = 'su -s /bin/bash -c "test -{0} {1}" -p {2}'
     # check files in /etc/pihole for read, write and execute permission
     check_etc = test_cmd.format("r", "/etc/pihole", piholeuser)
     actual_rc = host.run(check_etc).rc
