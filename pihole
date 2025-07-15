@@ -96,8 +96,18 @@ flushFunc() {
   exit 0
 }
 
+# Deprecated function, should be removed in the future
+# use networkFlush instead
 arpFunc() {
-  "${PI_HOLE_SCRIPT_DIR}"/piholeARPTable.sh "$@"
+  shift
+  echo -e "  ${INFO} The 'arpflush' command is deprecated, use 'networkflush' instead"
+  "${PI_HOLE_SCRIPT_DIR}"/piholeNetworkFlush.sh "$@"
+  exit 0
+}
+
+networkFlush() {
+  shift
+  "${PI_HOLE_SCRIPT_DIR}"/piholeNetworkFlush.sh "$@"
   exit 0
 }
 
@@ -519,7 +529,8 @@ Options:
   reloadlists         Update the lists WITHOUT flushing the cache or restarting the DNS server
   checkout            Switch Pi-hole subsystems to a different GitHub branch
                         Add '-h' for more info on checkout usage
-  arpflush            Flush information stored in Pi-hole's network tables";
+  networkflush        Flush information stored in Pi-hole's network tables
+                        Add '--arp' to additionally flush the ARP table ";
   exit 0
 }
 
@@ -558,7 +569,8 @@ case "${1}" in
   "setpassword"                   ) ;;
   "checkout"                      ) ;;
   "updatechecker"                 ) ;;
-  "arpflush"                      ) ;;
+  "arpflush"                      ) ;; # Deprecated, use networkflush instead
+  "networkflush"                  ) ;;
   "-t" | "tail"                   ) ;;
   "api"                           ) need_root=0;;
   *                               ) helpFunc;;
@@ -600,7 +612,8 @@ case "${1}" in
   "setpassword"                   ) SetWebPassword "$@";;
   "checkout"                      ) piholeCheckoutFunc "$@";;
   "updatechecker"                 ) shift; updateCheckFunc "$@";;
-  "arpflush"                      ) arpFunc "$@";;
+  "arpflush"                      ) arpFunc "$@";; # Deprecated, use networkflush instead
+  "networkflush"                  ) networkFlush "$@";;
   "-t" | "tail"                   ) tailFunc "$2";;
   "api"                           ) shift; apiFunc "$@";;
   *                               ) helpFunc;;
