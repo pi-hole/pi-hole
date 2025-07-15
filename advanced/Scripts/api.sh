@@ -183,13 +183,20 @@ Authentication() {
         echo "No response from FTL server. Please check connectivity"
         exit 1
     fi
-    # obtain validity, session ID and sessionMessage from session response
-    validSession=$(echo "${sessionResponse}"| jq .session.valid 2>/dev/null)
-    SID=$(echo "${sessionResponse}"| jq --raw-output .session.sid 2>/dev/null)
-    sessionMessage=$(echo "${sessionResponse}"| jq --raw-output .session.message 2>/dev/null)
 
-    # obtain the error message from the session response
-    sessionError=$(echo "${sessionResponse}"| jq --raw-output .error.message 2>/dev/null)
+    # obtain validity, session ID, sessionMessage and error message from
+    # session response, apply default values if none returned
+    result=$(echo "${sessionResponse}" | jq -r '
+        (.session.valid // false),
+        (.session.sid // null),
+        (.session.message // null),
+        (.error.message // null)
+    ' 2>/dev/null)
+
+    validSession=$(echo "${result}" | sed -n '1p')
+    SID=$(echo "${result}" | sed -n '2p')
+    sessionMessage=$(echo "${result}" | sed -n '3p')
+    sessionError=$(echo "${result}" | sed -n '4p')
 
     if [ "${1}" = "verbose" ]; then
         if [ "${validSession}" = true ]; then
@@ -353,12 +360,9 @@ apiFunc() {
   if [ "${verbosity}" = "verbose" ]; then
     echo "Data:"
   fi
-
-  if command -v jq >/dev/null && echo "${data}" | jq . >/dev/null 2>&1; then
-    echo "${data}" | jq .
-  else
-    echo "${data}"
-  fi
+  # Attempt to print the data with jq, if it is not valid JSON, or not installed
+  # then print the plain text.
+  echo "${data}" | jq . 2>/dev/null || echo "${data}"
 
   # Delete the session
   LogoutAPI "${verbosity}"
