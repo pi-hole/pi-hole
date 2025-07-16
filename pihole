@@ -572,7 +572,8 @@ fi
 
 # Check if the current user is not root and if the command
 # requires root. If so, exit with an error message.
-if [[ $EUID -ne 0 && need_root -eq 1 ]];then
+# Add an exception for the user "pihole" to allow the webserver running gravity
+if [[ $EUID -ne 0 && ${USER} != "pihole" && need_root -eq 1 ]];then
   echo -e "  ${CROSS} The Pi-hole command requires root privileges, try:"
   echo -e "      ${COL_GREEN}sudo pihole $*${COL_NC}"
   exit 1
