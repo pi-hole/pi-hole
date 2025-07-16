@@ -87,8 +87,12 @@ getFTLConfigValue(){
 #######################
 setFTLConfigValue(){
   pihole-FTL --config "${1}" "${2}" >/dev/null
-  if [ $? -eq 5 ]; then
+  local ret=$?
+  if [ ${ret} = 5 ]; then
     printf "  %s %s set by environment variable. Please unset it to use this function\n" "${CROSS}" "${1}"
     exit 5
+  elif [ ${ret} != 0 ]; then
+    printf "  %s Failed to set %s. Try with sudo power\n" "${CROSS}" "${1}"
+    exit 1
   fi
 }
