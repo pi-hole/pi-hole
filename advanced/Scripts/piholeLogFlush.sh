@@ -17,6 +17,10 @@ utilsfile="${PI_HOLE_SCRIPT_DIR}/utils.sh"
 # shellcheck source="./advanced/Scripts/utils.sh"
 source "${utilsfile}"
 
+apifile="${PI_HOLE_SCRIPT_DIR}/api.sh"
+# shellcheck source="./advanced/Scripts/api.sh"
+source "${apifile}"
+
 # In case we're running at the same time as a system logrotate, use a
 # separate logrotate state file to prevent stepping on each other's
 # toes.
@@ -92,6 +96,41 @@ if [[ "$*" == *"once"* ]]; then
         rotate_log "${LOGFILE}"
         rotate_log "${FTLFILE}"
         rotate_log "${WEBFILE}"
+    fi
+elif [ -f "/pihole.docker.tag" ]; then
+    # If we are running in docker image, then 'service' is not available, there is
+    # no way to stop pihole-FTL and restart, so flush logs via the API
+
+    flush_log "${LOGFILE}"
+    flush_log "${FTLFILE}"
+    flush_log "${WEBFILE}"
+
+    if [[ "$*" != *"quiet"* ]]; then
+        echo -ne "  ${INFO} Docker detected, attempting flush FTL's database via API ..."
+    fi
+    if TestAPIAvailability && LoginAPI; then
+        APISUCCESS="$(PostFTLData "action/flush/logs" 2>&1)"
+        LogoutAPI
+        case "$APISUCCESS" in
+            *destruct*)
+                if [[ "$*" != *"quiet"* ]]; then
+                    echo -e "${OVER}  ${CROSS} Unable to flush FTL's database via API (destructive access disabled)"
+                fi
+                exit 1;;
+            *error*)
+                if [[ "$*" != *"quiet"* ]]; then
+                    echo -e "${OVER}  ${CROSS} Unable to flush FTL's database via API"
+                fi
+                exit 1;;
+        esac
+    else
+        if [[ "$*" != *"quiet"* ]]; then
+            echo -e "{OVER}  ${CROSS} Unable to flush FTL's database via API (unable to authenticate)"
+            exit 1
+        fi
+    fi
+    if [[ "$*" != *"quiet"* ]]; then
+        echo -e "${OVER}  ${TICK} Deleted recent queries from long-term query database"
     fi
 else
     # Manual flushing
