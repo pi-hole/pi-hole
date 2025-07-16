@@ -528,7 +528,7 @@ if [[ $# = 0 ]]; then
 fi
 
 # functions that do not require sudo power
-need_root=1
+need_root=true
 case "${1}" in
   "-h" | "help" | "--help"        ) helpFunc;;
   "-v" | "version"                ) versionFunc;;
@@ -538,21 +538,21 @@ case "${1}" in
   "tricorder"                     ) tricorderFunc;;
 
   # we need to add all arguments that require sudo power to not trigger the * argument
-  "allow" | "allowlist"           ) need_root=0;;
-  "deny" | "denylist"             ) need_root=0;;
-  "--wild" | "wildcard"           ) need_root=0;;
-  "--regex" | "regex"             ) need_root=0;;
-  "--allow-regex" | "allow-regex" ) need_root=0;;
-  "--allow-wild" | "allow-wild"   ) need_root=0;;
+  "allow" | "allowlist"           ) need_root=false;;
+  "deny" | "denylist"             ) need_root=false;;
+  "--wild" | "wildcard"           ) need_root=false;;
+  "--regex" | "regex"             ) need_root=false;;
+  "--allow-regex" | "allow-regex" ) need_root=false;;
+  "--allow-wild" | "allow-wild"   ) need_root=false;;
   "-f" | "flush"                  ) ;;
   "-up" | "updatePihole"          ) ;;
   "-r"  | "repair"                ) ;;
   "-l" | "logging"                ) ;;
   "uninstall"                     ) ;;
-  "enable"                        ) need_root=0;;
-  "disable"                       ) need_root=0;;
+  "enable"                        ) need_root=false;;
+  "disable"                       ) need_root=false;;
   "-d" | "debug"                  ) ;;
-  "-g" | "updateGravity"          ) need_root=0;;
+  "-g" | "updateGravity"          ) need_root=false;;
   "reloaddns"                     ) ;;
   "reloadlists"                   ) ;;
   "setpassword"                   ) ;;
@@ -560,7 +560,7 @@ case "${1}" in
   "updatechecker"                 ) ;;
   "arpflush"                      ) ;;
   "-t" | "tail"                   ) ;;
-  "api"                           ) need_root=0;;
+  "api"                           ) need_root=false;;
   *                               ) helpFunc;;
 esac
 
@@ -572,8 +572,8 @@ fi
 
 # Check if the current user is not root and if the command
 # requires root. If so, exit with an error message.
-if [[ $EUID -ne 0 && need_root -eq 1 ]];then
-  echo -e "  ${CROSS} The Pi-hole command requires root privileges, try:"
+if [[ $EUID -ne 0 && ${need_root} = "true" ]];then
+  echo -e "  ${CROSS} This Pi-hole command requires root privileges, try:"
   echo -e "      ${COL_GREEN}sudo pihole $*${COL_NC}"
   exit 1
 fi
