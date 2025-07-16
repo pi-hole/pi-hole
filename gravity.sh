@@ -808,6 +808,10 @@ gravity_DownloadBlocklistFromUrl() {
       fix_owner_permissions "${saveLocation}"
       # Compare lists if they are identical
       compareLists "${adlistID}" "${saveLocation}"
+      # Set permissions for the *.etag file
+      if [[ -f "${saveLocation}.etag" ]]; then
+          fix_owner_permissions "${saveLocation}.etag"
+      fi
       # Add domains to database table file
       pihole-FTL "${gravity_type}" parseList "${saveLocation}" "${gravityTEMPfile}" "${adlistID}"
       done="true"
