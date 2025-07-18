@@ -150,7 +150,7 @@ versionFunc() {
 }
 
 reloadDNS() {
-  local svcOption svc str output status pid icon FTL_PID_FILE
+  local svcOption svc str output status pid icon FTL_PID_FILE sigrtmin
   svcOption="${1:-reload}"
 
   # get the current path to the pihole-FTL.pid
@@ -169,7 +169,10 @@ reloadDNS() {
       str="FTL is not running"
       icon="${INFO}"
     else
-      svc="kill -RTMIN ${pid}"
+      sigrtmin="$(pihole-FTL sigrtmin 2>/dev/null)"
+      # Make sure sigrtmin is a number, otherwise fallback to RTMIN
+      [[ "${sigrtmin}" =~ ^[0-9]+$ ]] || unset sigrtmin
+      svc="kill -${sigrtmin:-RTMIN} ${pid}"
       str="Reloading DNS lists"
       icon="${TICK}"
     fi
