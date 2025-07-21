@@ -156,14 +156,13 @@ EOM
 # The runUnattended flag is one example of this
 repair=false
 runUnattended=false
-if [ -z "$PIHOLE_SKIP_FTL_CHECK" ]; then
-    PIHOLE_SKIP_FTL_CHECK=false
-fi
+skipFTL=false
 # Check arguments for the undocumented flags
 for var in "$@"; do
     case "$var" in
     "--repair") repair=true ;;
     "--unattended") runUnattended=true ;;
+    "--skipFTL") skipFTL=true ;;
     esac
 done
 
@@ -2228,7 +2227,7 @@ main() {
     # Check if there is a usable FTL binary available on this architecture - do
     # this early on as FTL is a hard dependency for Pi-hole
     # Allow the user to skip this check if they are using a self-compiled FTL binary from an unsupported architecture
-    if [ "${PIHOLE_SKIP_FTL_CHECK}" != true ]; then
+    if [ "${skipFTL}" != true ]; then
         # Get the binary name for the current architecture
         local funcOutput
         funcOutput=$(get_binary_name) #Store output of get_binary_name here
@@ -2238,7 +2237,7 @@ main() {
             exit 1
         fi
     else
-        printf "  %b %bPIHOLE_SKIP_FTL_CHECK env variable set to true - skipping architecture check%b\\n" "${INFO}" "${COL_YELLOW}" "${COL_NC}"
+        printf "  %b %b--skipFTL set - skipping architecture check%b\\n" "${INFO}" "${COL_YELLOW}" "${COL_NC}"
     fi
 
     if [[ "${fresh_install}" == false ]]; then
@@ -2281,7 +2280,7 @@ main() {
 
     # Download and install FTL
     # Allow the user to skip this check if they are using a self-compiled FTL binary from an unsupported architecture
-    if [ "${PIHOLE_SKIP_FTL_CHECK}" != true ]; then
+    if [ "${skipFTL}" != true ]; then
         local binary
         binary="pihole-FTL${funcOutput##*pihole-FTL}" #binary name will be the last line of the output of get_binary_name (it always begins with pihole-FTL)
         local theRest
@@ -2291,7 +2290,7 @@ main() {
             exit 1
         fi
     else
-        printf "  %b %bPIHOLE_SKIP_FTL_CHECK env variable set to true - skipping FTL binary installation%b\\n" "${INFO}" "${COL_YELLOW}" "${COL_NC}"
+        printf "  %b %b--skipFTL set - skipping FTL binary installation%b\\n" "${INFO}" "${COL_YELLOW}" "${COL_NC}"
     fi
 
     # Install and log everything to a file

@@ -150,7 +150,7 @@ main() {
     fi
 
     # Allow the user to skip this check if they are using a self-compiled FTL binary from an unsupported architecture
-    if [ "${PIHOLE_SKIP_FTL_CHECK}" != true ]; then
+    if [ "${skipFTL}" != true ]; then
         local funcOutput
         funcOutput=$(get_binary_name) #Store output of get_binary_name here
         local binary
@@ -179,7 +179,7 @@ main() {
             FTL_update=false
         fi
     else
-        echo -e "  ${INFO} FTL:\\t\\t${COL_YELLOW}PIHOLE_SKIP_FTL_CHECK env variable set to true - update check skipped${COL_NC}"
+        echo -e "  ${INFO} FTL:\\t\\t${COL_YELLOW}--skipFTL set - update check skipped${COL_NC}"
         FTL_update=false
     fi
 
@@ -228,7 +228,14 @@ main() {
     fi
 
     if [[ "${FTL_update}" == true || "${core_update}" == true ]]; then
-        ${PI_HOLE_FILES_DIR}/automated\ install/basic-install.sh --repair --unattended || \
+        local addionalFlag
+
+        if [[ ${skipFTL} == true ]]; then
+             addionalFlag="--skipFTL"
+        else
+             addionalFlag=""
+        fi
+        ${PI_HOLE_FILES_DIR}/automated\ install/basic-install.sh --repair --unattended ${addionalFlag} || \
             echo -e "${basicError}" && exit 1
     fi
 
@@ -248,8 +255,15 @@ main() {
     exit 0
 }
 
-if [[ "$1" == "--check-only" ]]; then
-    CHECK_ONLY=true
-fi
+CHECK_ONLY=false
+skipFTL=false
+
+# Check arguments
+for var in "$@"; do
+    case "$var" in
+    "--check-only") CHECK_ONLY=true ;;
+    "--skipFTL") skipFTL=true ;;
+    esac
+done
 
 main
