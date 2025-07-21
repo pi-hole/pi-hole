@@ -150,7 +150,6 @@ LoginAPI() {
 
     # Try to login again until the session is valid
     while [ ! "${validSession}" = true ]  ; do
-        echo "Authentication failed. Please enter your Pi-hole password"
 
         # Print the error message if there is one
         if  [ ! "${sessionError}" = "null"  ] && [ "${1}" = "verbose" ]; then
@@ -159,6 +158,14 @@ LoginAPI() {
         # Print the session message if there is one
         if  [ ! "${sessionMessage}" = "null" ] && [ "${1}" = "verbose" ]; then
             echo "Error: ${sessionMessage}"
+        fi
+
+        if  [ "${1}" = "verbose" ]; then
+            # If we are not in verbose mode, no need to print the error message again
+            echo "Please enter your Pi-hole password"
+        else
+
+            echo "Authentication failed. Please enter your Pi-hole password"
         fi
 
         # secretly read the password
