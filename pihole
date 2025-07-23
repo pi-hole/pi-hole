@@ -157,6 +157,7 @@ uninstallFunc() {
 
 versionFunc() {
   exec "${PI_HOLE_SCRIPT_DIR}"/version.sh
+  exit 0
 }
 
 reloadDNS() {
@@ -277,6 +278,7 @@ Time:
   LogoutAPI
 
   echo -e "${OVER}  ${TICK} ${str}"
+  exit 0
 }
 
 piholeLogging() {
@@ -550,21 +552,22 @@ case "${1}" in
   "-q" | "query"                  ) queryFunc "$@";;
   "status"                        ) statusFunc "$2";;
   "tricorder"                     ) tricorderFunc;;
+  "allow" | "allowlist"           ) listFunc "$@";;
+  "deny" | "denylist"             ) listFunc "$@";;
+  "--wild" | "wildcard"           ) listFunc "$@";;
+  "--regex" | "regex"             ) listFunc "$@";;
+  "--allow-regex" | "allow-regex" ) listFunc "$@";;
+  "--allow-wild" | "allow-wild"   ) listFunc "$@";;
+  "enable"                        ) piholeEnable true "$2";;
+  "disable"                       ) piholeEnable false "$2";;
+  "api"                           ) shift; apiFunc "$@"; exit 0;;
 
   # we need to add all arguments that require sudo power to not trigger the * argument
-  "allow" | "allowlist"           ) ;;
-  "deny" | "denylist"             ) ;;
-  "--wild" | "wildcard"           ) ;;
-  "--regex" | "regex"             ) ;;
-  "--allow-regex" | "allow-regex" ) ;;
-  "--allow-wild" | "allow-wild"   ) ;;
   "-f" | "flush"                  ) need_root=true;;
   "-up" | "updatePihole"          ) need_root=true;;
   "-r"  | "repair"                ) need_root=true;;
   "-l" | "logging"                ) need_root=true;;
   "uninstall"                     ) need_root=true;;
-  "enable"                        ) ;;
-  "disable"                       ) ;;
   "-d" | "debug"                  ) need_root=true;;
   "-g" | "updateGravity"          ) need_root=true;;
   "reloaddns"                     ) need_root=true;;
@@ -575,7 +578,6 @@ case "${1}" in
   "arpflush"                      ) need_root=true;; # Deprecated, use networkflush instead
   "networkflush"                  ) need_root=true;;
   "-t" | "tail"                   ) need_root=true;;
-  "api"                           ) ;;
   *                               ) helpFunc;;
 esac
 
@@ -596,12 +598,6 @@ fi
 
 # Handle redirecting to specific functions based on arguments
 case "${1}" in
-  "allow" | "allowlist"           ) listFunc "$@";;
-  "deny" | "denylist"             ) listFunc "$@";;
-  "--wild" | "wildcard"           ) listFunc "$@";;
-  "--regex" | "regex"             ) listFunc "$@";;
-  "--allow-regex" | "allow-regex" ) listFunc "$@";;
-  "--allow-wild" | "allow-wild"   ) listFunc "$@";;
   "-d" | "debug"                  ) debugFunc "$@";;
   "-f" | "flush"                  ) flushFunc "$@";;
   "-up" | "updatePihole"          ) updatePiholeFunc "$@";;
@@ -609,8 +605,6 @@ case "${1}" in
   "-g" | "updateGravity"          ) updateGravityFunc "$@";;
   "-l" | "logging"                ) piholeLogging "$@";;
   "uninstall"                     ) uninstallFunc;;
-  "enable"                        ) piholeEnable true "$2";;
-  "disable"                       ) piholeEnable false "$2";;
   "reloaddns"                     ) reloadDNS "reload";;
   "reloadlists"                   ) reloadDNS "reload-lists";;
   "setpassword"                   ) SetWebPassword "$@";;
@@ -619,6 +613,5 @@ case "${1}" in
   "arpflush"                      ) arpFunc "$@";; # Deprecated, use networkflush instead
   "networkflush"                  ) networkFlush "$@";;
   "-t" | "tail"                   ) tailFunc "$2";;
-  "api"                           ) shift; apiFunc "$@";;
   *                               ) helpFunc;;
 esac
