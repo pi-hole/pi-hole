@@ -55,7 +55,7 @@ TestAPIAvailability() {
         API_URL="${API_URL#\"}"
 
         # Test if the API is available at this URL, include delimiter for ease in splitting payload
-        authResponse=$(curl --connect-timeout 2 -skS -w ">>%{http_code}" "${API_URL}auth")
+        authResponse=$(curl --connect-timeout 2 -skS -H "Connection: keep-alive" -w ">>%{http_code}" "${API_URL}auth")
 
         # authStatus is the response http_code, eg. 200, 401.
         # Shell parameter expansion, remove everything up to and including the >> delim
@@ -184,7 +184,7 @@ LoginAPI() {
 }
 
 Authentication() {
-    sessionResponse="$(curl --connect-timeout 2 -skS -X POST "${API_URL}auth" --user-agent "Pi-hole cli" --data "{\"password\":\"${password}\", \"totp\":${totp:-null}}" )"
+    sessionResponse=$(curl --connect-timeout 2 -skS -H "Connection: keep-alive" -X POST "${API_URL}auth" --user-agent "Pi-hole cli" --data "{\"password\":\"${password}\", \"totp\":${totp:-null}}")
 
     if [ -z "${sessionResponse}" ]; then
         echo "No response from FTL server. Please check connectivity"
@@ -219,7 +219,7 @@ LogoutAPI() {
     # SID is not null (successful Authentication only), delete the session
     if [ "${validSession}" = true ] && [ ! "${SID}" = null ]; then
         # Try to delete the session. Omit the output, but get the http status code
-        deleteResponse=$(curl -skS -o /dev/null -w "%{http_code}" -X DELETE "${API_URL}auth"  -H "Accept: application/json" -H "sid: ${SID}")
+        deleteResponse=$(curl -skS -o /dev/null -w "%{http_code}" -X DELETE "${API_URL}auth" -H "Accept: application/json" -H "sid: ${SID}" -H "Connection: keep-alive")
 
         case "${deleteResponse}" in
             "401") echo "Logout attempt without a valid session. Unauthorized!";;
@@ -233,7 +233,7 @@ LogoutAPI() {
 GetFTLData() {
   local data response status
   # get the data from querying the API as well as the http status code
-  response=$(curl -skS -w "%{http_code}" -X GET "${API_URL}$1" -H "Accept: application/json" -H "sid: ${SID}" )
+  response=$(curl -skS -w "%{http_code}" -X GET "${API_URL}$1" -H "Accept: application/json" -H "sid: ${SID}" -H "Connection: keep-alive")
 
   if [ "${2}" = "raw" ]; then
     # return the raw response
@@ -260,7 +260,7 @@ GetFTLData() {
 PostFTLData() {
   local data response status
   # send the data to the API
-  response=$(curl -skS -w "%{http_code}" -X POST "${API_URL}$1" --data-raw "$2" -H "Accept: application/json" -H "sid: ${SID}" )
+  response=$(curl -skS -w "%{http_code}" -X POST "${API_URL}$1" --data-raw "$2" -H "Accept: application/json" -H "sid: ${SID}" -H "Connection: keep-alive")
   # data is everything from response without the last 3 characters
   if [ "${3}" = "status" ]; then
     # Keep the status code appended if requested
