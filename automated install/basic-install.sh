@@ -1796,7 +1796,7 @@ FTLinstall() {
 
 
             # If the binary already exists in /usr/bin, then we need to stop the service
-            # If the binary does not exist, then we can skip this step.
+            # If the binary does not exist (fresh installs), then we can skip this step.
             if [[ -f /usr/bin/pihole-FTL ]]; then
                 stop_service pihole-FTL >/dev/null
             fi
