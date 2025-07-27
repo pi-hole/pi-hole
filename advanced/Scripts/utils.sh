@@ -73,7 +73,9 @@ getFTLPID() {
 # Example getFTLConfigValue dns.piholePTR
 #######################
 getFTLConfigValue(){
-  pihole-FTL --config -q "${1}"
+  # Pipe to cat to avoid pihole-FTL assuming this is an interactive command
+  # returning colored output.
+  pihole-FTL --config -q "${1}" | cat
 }
 
 #######################
