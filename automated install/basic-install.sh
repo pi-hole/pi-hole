@@ -1794,8 +1794,12 @@ FTLinstall() {
             # Before stopping FTL, we download the macvendor database
             curl -sSL "https://ftl.pi-hole.net/macvendor.db" -o "${PI_HOLE_CONFIG_DIR}/macvendor.db" || true
 
-            # Stop pihole-FTL service if available
-            stop_service pihole-FTL >/dev/null
+
+            # If the binary already exists in /usr/bin, then we need to stop the service
+            # If the binary does not exist (fresh installs), then we can skip this step.
+            if [[ -f /usr/bin/pihole-FTL ]]; then
+                stop_service pihole-FTL >/dev/null
+            fi
 
             # Install the new version with the correct permissions
             install -T -m 0755 "${binary}" /usr/bin/pihole-FTL
