@@ -1554,7 +1554,7 @@ create_pihole_user() {
             # then create and add her to the pihole group
             local str="Creating user 'pihole'"
             printf "%b  %b %s..." "${OVER}" "${INFO}" "${str}"
-            if useradd -r --no-user-group -g pihole -s /usr/sbin/nologin pihole; then
+            if useradd -r --no-user-group -g pihole -s "$(command -v nologin)" pihole; then
                 printf "%b  %b %s\\n" "${OVER}" "${TICK}" "${str}"
             else
                 printf "%b  %b %s\\n" "${OVER}" "${CROSS}" "${str}"
@@ -1569,7 +1569,7 @@ create_pihole_user() {
                 # create and add pihole user to the pihole group
                 local str="Creating user 'pihole'"
                 printf "%b  %b %s..." "${OVER}" "${INFO}" "${str}"
-                if useradd -r --no-user-group -g pihole -s /usr/sbin/nologin pihole; then
+                if useradd -r --no-user-group -g pihole -s "$(command -v nologin)" pihole; then
                     printf "%b  %b %s\\n" "${OVER}" "${TICK}" "${str}"
                 else
                     printf "%b  %b %s\\n" "${OVER}" "${CROSS}" "${str}"
