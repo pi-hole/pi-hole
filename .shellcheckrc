@@ -1,2 +1,6 @@
 external-sources=true # allow shellcheck to read external sources
 disable=SC3043 #disable SC3043: In POSIX sh, local is undefined.
+enable=useless-use-of-cat # disabled by default as of shellcheck 0.11.0
+enable=avoid-negated-conditions # avoid-negated-conditions is optional as of shellcheck 0.11.0
+enable=require-variable-braces
+enable=deprecate-which
