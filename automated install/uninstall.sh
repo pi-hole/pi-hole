@@ -89,6 +89,7 @@ removePiholeFiles() {
     ${SUDO} rm -rf /opt/pihole/ &> /dev/null
     ${SUDO} rm -f /usr/local/bin/pihole &> /dev/null
     ${SUDO} rm -f /etc/bash_completion.d/pihole &> /dev/null
+    ${SUDO} rm -f /etc/bash_completion.d/pihole-FTL &> /dev/null
     ${SUDO} rm -f /etc/sudoers.d/pihole &> /dev/null
     echo -e "  ${TICK} Removed config files"
 
