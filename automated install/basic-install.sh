@@ -94,8 +94,8 @@ fresh_install=true
 
 adlistFile="/etc/pihole/adlists.list"
 # Pi-hole needs an IP address; to begin, these variables are empty since we don't know what the IP is until this script can run
-IPV4_ADDRESS=${IPV4_ADDRESS}
-IPV6_ADDRESS=${IPV6_ADDRESS}
+IPV4_ADDRESS=
+IPV6_ADDRESS=
 # Give settings their default values. These may be changed by prompts later in the script.
 QUERY_LOGGING=
 PRIVACY_LEVEL=
@@ -161,7 +161,7 @@ repair=false
 runUnattended=false
 # Check arguments for the undocumented flags
 for var in "$@"; do
-    case "$var" in
+    case "${var}" in
     "--repair") repair=true ;;
     "--unattended") runUnattended=true ;;
     esac
@@ -576,7 +576,7 @@ Do you wish to continue with an IPv6-only installation?\\n\\n" \
     ;;
     esac
 
-    DNS_SERVERS="$DNS_SERVERS_IPV6_ONLY"
+    DNS_SERVERS="${DNS_SERVERS_IPV6_ONLY}"
     printf "  %b Proceeding with IPv6 only installation.\\n" "${INFO}"
 }
 
@@ -652,7 +652,7 @@ chooseInterface() {
         PIHOLE_INTERFACE=$(dialog --no-shadow --keep-tite --output-fd 1 \
             --cancel-label "Exit" --ok-label "Select" \
             --radiolist "Choose An Interface (press space to toggle selection)" \
-            ${r} ${c} "${interfaceCount}" ${interfacesList})
+            ${r} ${c} "${interfaceCount}" "${interfacesList}")
 
         result=$?
         case ${result} in
@@ -674,9 +674,9 @@ testIPv6() {
     # first will contain fda2 (ULA)
     printf -v first "%s" "${1%%:*}"
     # value1 will contain 253 which is the decimal value corresponding to 0xFD
-    value1=$(((0x$first) / 256))
+    value1=$(((0x${first}) / 256))
     # value2 will contain 162 which is the decimal value corresponding to 0xA2
-    value2=$(((0x$first) % 256))
+    value2=$(((0x${first}) % 256))
     # the ULA test is testing for fc00::/7 according to RFC 4193
     if (((value1 & 254) == 252)); then
         # echoing result to calling function as return value
@@ -701,7 +701,7 @@ find_IPv6_information() {
     # For each address in the array above, determine the type of IPv6 address it is
     for i in "${IPV6_ADDRESSES[@]}"; do
         # Check if it's ULA, GUA, or LL by using the function created earlier
-        result=$(testIPv6 "$i")
+        result=$(testIPv6 "${i}")
         # If it's a ULA address, use it and store it as a global variable
         [[ "${result}" == "ULA" ]] && ULA_ADDRESS="${i%/*}"
         # If it's a GUA address, use it and store it as a global variable
@@ -736,7 +736,7 @@ collect_v4andv6_information() {
     printf "  %b IPv4 address: %s\\n" "${INFO}" "${IPV4_ADDRESS}"
     find_IPv6_information
     printf "  %b IPv6 address: %s\\n" "${INFO}" "${IPV6_ADDRESS}"
-    if [ "$IPV4_ADDRESS" == "" ] && [ "$IPV6_ADDRESS" != "" ]; then
+    if [ "${IPV4_ADDRESS}" == "" ] && [ "${IPV6_ADDRESS}" != "" ]; then
         confirm_ipv6_only
     fi
 }
@@ -756,7 +756,7 @@ valid_ip() {
     local regex="^${ipv4elem}\\.${ipv4elem}\\.${ipv4elem}\\.${ipv4elem}${portelem}$"
 
     # Evaluate the regex, and return the result
-    [[ $ip =~ ${regex} ]]
+    [[ ${ip} =~ ${regex} ]]
 
     stat=$?
     return "${stat}"
@@ -791,7 +791,7 @@ setDNS() {
     DNSChooseOptions=()
     local DNSServerCount=0
     # Save the old Internal Field Separator in a variable,
-    OIFS=$IFS
+    OIFS=${IFS}
     # and set the new one to newline
     IFS=$'\n'
     # Put the DNS Servers into an array
@@ -859,7 +859,7 @@ If you want to specify a port other than 53, separate it with a hash.\
             esac
 
             # Clean user input and replace whitespace with comma.
-            piholeDNS=$(sed 's/[, \t]\+/,/g' <<<"${piholeDNS}")
+            piholeDNS="${piholeDNS//[[:blank:]]/,}"
 
             # Separate the user input into the two DNS values (separated by a comma)
             printf -v PIHOLE_DNS_1 "%s" "${piholeDNS%%,*}"
@@ -915,7 +915,7 @@ If you want to specify a port other than 53, separate it with a hash.\
         done
     else
         # Save the old Internal Field Separator in a variable,
-        OIFS=$IFS
+        OIFS=${IFS}
         # and set the new one to newline
         IFS=$'\n'
         for DNSServer in ${DNS_SERVERS}; do
@@ -1636,9 +1636,9 @@ check_download_exists() {
     status=$(curl --head --silent "https://ftl.pi-hole.net/${1}" | head -n 1)
 
     # Check the status code
-    if grep -q "200" <<<"$status"; then
+    if grep -q "200" <<<"${status}"; then
         return 0
-    elif grep -q "404" <<<"$status"; then
+    elif grep -q "404" <<<"${status}"; then
         return 1
     fi
 
@@ -1671,7 +1671,7 @@ get_available_branches() {
     # Get reachable remote branches, but store STDERR as STDOUT variable
     output=$({ git ls-remote --heads --quiet | cut -d'/' -f3- -; } 2>&1)
     # echo status for calling function to capture
-    echo "$output"
+    echo "${output}"
     return
 }
 
@@ -1704,9 +1704,9 @@ checkout_pull_branch() {
     oldbranch="$(git symbolic-ref HEAD)"
 
     str="Switching to branch: '${branch}' from '${oldbranch}'"
-    printf "  %b %s" "${INFO}" "$str"
+    printf "  %b %s" "${INFO}" "${str}"
     git checkout "${branch}" --quiet || return 1
-    printf "%b  %b %s\\n" "${OVER}" "${TICK}" "$str"
+    printf "%b  %b %s\\n" "${OVER}" "${TICK}" "${str}"
     # Data in the repositories is public anyway so we can make it readable by everyone (+r to keep executable permission if already set by git)
     chmod -R a+rX "${directory}"
 
@@ -1913,7 +1913,7 @@ get_binary_name() {
         l_binary="pihole-FTL-riscv64"
     else
         # Something else - we try to use 32bit executable and warn the user
-        if [[ ! "${machine}" == "i686" ]]; then
+        if [[ "${machine}" != "i686" ]]; then
             printf "%b  %b %s...\\n" "${OVER}" "${CROSS}" "${str}"
             printf "  %b %bNot able to detect architecture (unknown: %s), trying x86 (32bit) executable%b\\n" "${INFO}" "${COL_RED}" "${machine}" "${COL_NC}"
             printf "  %b Contact Pi-hole Support if you experience issues (e.g: FTL not running)\\n" "${INFO}"
@@ -1947,14 +1947,14 @@ FTLcheckUpdate() {
     local remoteSha1
     local localSha1
 
-    if [[ ! "${ftlBranch}" == "master" ]]; then
+    if [[ "${ftlBranch}" != "master" ]]; then
         # This is not the master branch
         local path
         path="${ftlBranch}/${binary}"
 
         # Check whether or not the binary for this FTL branch actually exists. If not, then there is no update!
         local status
-        if ! check_download_exists "$path"; then
+        if ! check_download_exists "${path}"; then
             status=$?
             if [ "${status}" -eq 1 ]; then
                 printf "  %b Branch \"%s\" is not available.\\n" "${INFO}" "${ftlBranch}"
@@ -2057,11 +2057,11 @@ make_temporary_log() {
     TEMPLOG=$(mktemp /tmp/pihole_temp.XXXXXX)
     # Open handle 3 for templog
     # https://stackoverflow.com/questions/18460186/writing-outputs-to-log-file-and-console
-    exec 3>"$TEMPLOG"
+    exec 3>"${TEMPLOG}"
     # Delete templog, but allow for addressing via file handle
     # This lets us write to the log without having a temporary file on the drive, which
     # is meant to be a security measure so there is not a lingering file on the drive during the install process
-    rm "$TEMPLOG"
+    rm "${TEMPLOG}"
 }
 
 copy_to_install_log() {
@@ -2351,7 +2351,7 @@ main() {
         if [ -n "${PIHOLE_DNS_1}" ]; then
             local string="\"${PIHOLE_DNS_1}\""
             [ -n "${PIHOLE_DNS_2}" ] && string+=", \"${PIHOLE_DNS_2}\""
-            setFTLConfigValue "dns.upstreams" "[ $string ]"
+            setFTLConfigValue "dns.upstreams" "[ ${string} ]"
         fi
 
         if [ -n "${QUERY_LOGGING}" ]; then
