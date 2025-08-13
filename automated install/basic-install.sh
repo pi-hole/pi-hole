@@ -232,6 +232,12 @@ is_command() {
     command -v "${check_command}" >/dev/null 2>&1
 }
 
+# converts a given version string e.g. v3.7.1 to 3007001000 to allow for easier comparison of multi digit version numbers
+# credits https://apple.stackexchange.com/a/123408
+VersionConverter() {
+  echo "$@" | tr -d '[:alpha:]' | awk -F. '{ printf("%d%03d%03d%03d\n", $1,$2,$3,$4); }';
+}
+
 check_fresh_install() {
     # in case of an update (can be a v5 -> v6 or v6 -> v6 update) or repair
     if [[ -f "${PI_HOLE_V6_CONFIG}" ]] || [[ -f "/etc/pihole/setupVars.conf" ]]; then
