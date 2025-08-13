@@ -380,6 +380,94 @@ build_dependency_package(){
     rm -rf "${tempdir}"
 }
 
+# A function for checking if pihole-meta package is installed
+# Returns 0 if pihole-meta package is found/not-upgradeable |OR| 1 if pihole-meta package is not-found/is-upgradable.
+check_for_meta_package(){
+
+    local installed_version version_to_be_installed
+
+    local str="Checking for Pi-hole dependency package"
+    printf "  %b %s..." "${INFO}" "${str}"
+
+    if is_command apt-get; then
+        # Debian/Ubuntu check for pihole-meta package
+        if [[ $(dpkg -s pihole-meta 2> /dev/null) ]]; then
+            # we can check $META_PACKAGE_CHECK to know if we are coming from update.sh
+            # and can exit early as the meta package hasn't change yet
+            if [[ "${META_PACKAGE_CHECK}" == true ]]; then
+                printf " found.\n"
+                return 0
+            fi
+
+            installed_version=$(dpkg -s pihole-meta 2> /dev/null | grep '^Version:' | cut -d' ' -f2)
+            version_to_be_installed=$(echo "${PIHOLE_META_PACKAGE_CONTROL_APT}" | grep '^Version:' | cut -d' ' -f2)
+        else
+            # install the pihole-meta package as it is likely a fresh install or removed inadvertently by user
+            printf " not installed.\n"
+            return 1
+        fi
+
+    elif is_command rpm; then
+        # Fedora/CentOS check for pihole-meta package
+        if [[ $(rpm -q pihole-meta 2>/dev/null) ]]; then
+
+            if [[ "${META_PACKAGE_CHECK}" == true ]]; then
+                printf " found.\n"
+                return 0
+            fi
+
+            installed_version=$(rpm -q pihole-meta 2> /dev/null | grep '^Version:' | cut -d' ' -f2)
+            version_to_be_installed=$(echo "${PIHOLE_META_PACKAGE_CONTROL_RPM}" | grep '^Version:' | cut -d' ' -f2)
+        else
+            # install the pihole-meta package as it is likely a fresh install or removed inadvertently by user
+            printf " not installed."
+            return 1
+        fi
+
+    # If neither apt-get or yum/dnf package managers were found
+    else
+        # we cannot install the dependency package
+        printf "  %b No supported package manager found.\\n" "${CROSS}"
+        # so exit the installer
+        exit 1
+    fi
+
+    local installed_version_number version_number_to_be_installed
+
+    # convert version number so it is easier to compare
+    installed_version_number="$(VersionConverter "${installed_version}")"
+    version_number_to_be_installed="$(VersionConverter "${version_to_be_installed}")"
+
+    # If we make it here, pihole-meta package is installed so we should check to make
+    # sure we aren't installing the same version again needlessly during an update
+    if [[ version_number_to_be_installed -eq installed_version_number ]]; then
+        # do nothing as the newest available pihole-meta package is installed
+        printf " already installed and up to date.\n"
+        return 0
+
+    elif [[ version_number_to_be_installed -gt installed_version_number ]]; then
+        # install the new pihole-meta package
+        printf " needs to be upgraded.\n"
+        return 1
+
+    # We should also check for a lower version number as there is potential
+    # to end up here when going from Development branch back to Master branch
+    elif [[ version_number_to_be_installed -lt installed_version_number ]]; then
+
+        printf " needs to be downgraded.\n"
+        # Setup package manager commands so we can downgrade meta package
+        package_manager_detect
+
+        # remove currently installed meta package as version is lower than what is to soon be installed
+        local downgrade_str="Removing previously installed Pi-hole dependency package"
+        printf "  %b %s..." "${INFO}" "${downgrade_str}"
+        eval "${PKG_REMOVE}" "pihole-meta" &>/dev/null
+        printf "done.\n"
+        # install the new pihole-meta package
+        return 1
+    fi
+}
+
 # A function for checking if a directory is a git repository
 is_repo() {
     # Use a named, local variable instead of the vague $1, which is the first argument passed to this function
@@ -2220,23 +2308,26 @@ main() {
     # Check if this is a fresh install or an update/repair
     check_fresh_install
 
-    # Check for supported package managers so that we may install dependencies
-    package_manager_detect
+    # Check if pihole-meta is installed
+    if ! check_for_meta_package; then
 
-    # Update package cache only on apt based systems
-    if is_command apt-get; then
+        # Check for supported package managers so that we may install dependencies
+        package_manager_detect
+
+        # Update package cache on debian based systems before installing OR exit if fail
+        if is_command apt-get; then
             update_package_cache || exit 1
+        fi
+
+        # Notify user of package availability
+        notify_package_updates_available
+
+        # Build dependency package
+        build_dependency_package
+
+        # Install Pi-hole dependencies
+        install_dependent_packages
     fi
-
-    # Notify user of package availability
-    notify_package_updates_available
-
-    # Build dependency package
-    build_dependency_package
-
-    # Install Pi-hole dependencies
-    install_dependent_packages
-
 
     # Check if there is a usable FTL binary available on this architecture - do
     # this early on as FTL is a hard dependency for Pi-hole
