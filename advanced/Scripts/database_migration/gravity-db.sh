@@ -150,4 +150,10 @@ upgrade_gravityDB(){
         pihole-FTL sqlite3 -ni "${database}" < "${scriptPath}/18_to_19.sql"
         version=19
     fi
+    if [[ "$version" == "19" ]]; then
+        # Update views to use new allowlist/denylist names
+        echo -e "  ${INFO} Upgrading gravity database from version 19 to 20"
+        pihole-FTL sqlite3 -ni "${database}" < "${scriptPath}/19_to_20.sql"
+        version=20
+    fi
 }
