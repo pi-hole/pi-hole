@@ -399,8 +399,8 @@ check_for_meta_package(){
                 return 0
             fi
 
-            installed_version=$(dpkg -s pihole-meta 2> /dev/null | grep '^Version:' | cut -d' ' -f2)
-            version_to_be_installed=$(echo "${PIHOLE_META_PACKAGE_CONTROL_APT}" | grep '^Version:' | cut -d' ' -f2)
+            installed_version=$(dpkg -s pihole-meta 2> /dev/null | grep -oP 'Version\s*:\s*\K.*')
+            version_to_be_installed=$(echo "${PIHOLE_META_PACKAGE_CONTROL_APT}" | grep -oP 'Version\s*:\s*\K.*')
         else
             # install the pihole-meta package as it is likely a fresh install or removed inadvertently by user
             printf " not installed.\n"
@@ -416,8 +416,8 @@ check_for_meta_package(){
                 return 0
             fi
 
-            installed_version=$(rpm -q pihole-meta 2> /dev/null | grep '^Version:' | cut -d' ' -f2)
-            version_to_be_installed=$(echo "${PIHOLE_META_PACKAGE_CONTROL_RPM}" | grep '^Version:' | cut -d' ' -f2)
+            installed_version=$(rpm -qi pihole-meta | grep -oP 'Version\s*:\s*\K.*')
+            version_to_be_installed=$(echo "${PIHOLE_META_PACKAGE_CONTROL_RPM}" | grep -oP 'Version\s*:\s*\K.*')
         else
             # install the pihole-meta package as it is likely a fresh install or removed inadvertently by user
             printf " not installed."
@@ -455,9 +455,6 @@ check_for_meta_package(){
     elif [[ version_number_to_be_installed -lt installed_version_number ]]; then
 
         printf " needs to be downgraded.\n"
-        # Setup package manager commands so we can downgrade meta package
-        package_manager_detect
-
         # remove currently installed meta package as version is lower than what is to soon be installed
         local downgrade_str="Removing previously installed Pi-hole dependency package"
         printf "  %b %s..." "${INFO}" "${downgrade_str}"
@@ -2308,11 +2305,11 @@ main() {
     # Check if this is a fresh install or an update/repair
     check_fresh_install
 
+    # Check for supported package managers so that we may install dependencies
+    package_manager_detect
+
     # Check if pihole-meta is installed
     if ! check_for_meta_package; then
-
-        # Check for supported package managers so that we may install dependencies
-        package_manager_detect
 
         # Update package cache on debian based systems before installing OR exit if fail
         if is_command apt-get; then

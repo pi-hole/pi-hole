@@ -116,10 +116,11 @@ main() {
     # used as a signal to exit check_for_meta_package() early so it can be used as a quick dependency check
     META_PACKAGE_CHECK=true
 
+    # Check for supported package managers so that we may install dependencies
+    package_manager_detect
+
     # Check if pihole-meta is installed
     if ! check_for_meta_package; then
-        # Check for supported package managers so that we may install dependencies
-        package_manager_detect
         # Update package cache on debian based systems before installing OR exit if fail
         if is_command apt-get; then
             update_package_cache || exit 1
