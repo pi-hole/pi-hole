@@ -266,11 +266,11 @@ package_manager_detect() {
         fi
 
         # These variable names match the ones for apt-get. See above for an explanation of what they are for.
-        PKG_INSTALL="${PKG_MANAGER} install -y -q"
+        PKG_INSTALL="${PKG_MANAGER} install -y"
         # CentOS package manager returns 100 when there are packages to update so we need to || true to prevent the script from exiting.
         PKG_COUNT="${PKG_MANAGER} check-update -q | grep -E '(.i686|.x86|.noarch|.arm|.src|.riscv64)' | wc -l || true"
         # The command we will use to remove packages (used in the uninstaller)
-        PKG_REMOVE="${PKG_MANAGER} remove -y -q"
+        PKG_REMOVE="${PKG_MANAGER} remove -y"
     # If neither apt-get or yum/dnf package managers were found
     else
         # we cannot install required packages
@@ -336,7 +336,7 @@ build_dependency_package(){
         # check if we need to install the build dependencies
         if ! is_command rpmbuild; then
             local REMOVE_RPM_BUILD=true
-            eval "${PKG_INSTALL}" "rpm-build"
+            eval "${PKG_INSTALL}" "rpm-build" &>/dev/null
         fi
 
         # Build the package
@@ -356,7 +356,7 @@ build_dependency_package(){
 
         # Remove the build dependencies when we've installed them
         if [ -n "${REMOVE_RPM_BUILD}" ]; then
-            eval "${PKG_REMOVE}" "rpm-build"
+            eval "${PKG_REMOVE}" "rpm-build" &>/dev/null
         fi
 
         # Move back into the directory the user started in
