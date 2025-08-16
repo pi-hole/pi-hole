@@ -266,11 +266,11 @@ package_manager_detect() {
         fi
 
         # These variable names match the ones for apt-get. See above for an explanation of what they are for.
-        PKG_INSTALL="${PKG_MANAGER} install -y"
+        PKG_INSTALL="${PKG_MANAGER} install -y -q"
         # CentOS package manager returns 100 when there are packages to update so we need to || true to prevent the script from exiting.
-        PKG_COUNT="${PKG_MANAGER} check-update | grep -E '(.i686|.x86|.noarch|.arm|.src|.riscv64)' | wc -l || true"
+        PKG_COUNT="${PKG_MANAGER} check-update -q | grep -E '(.i686|.x86|.noarch|.arm|.src|.riscv64)' | wc -l || true"
         # The command we will use to remove packages (used in the uninstaller)
-        PKG_REMOVE="${PKG_MANAGER} remove -y"
+        PKG_REMOVE="${PKG_MANAGER} remove -y -q"
     # If neither apt-get or yum/dnf package managers were found
     else
         # we cannot install required packages
