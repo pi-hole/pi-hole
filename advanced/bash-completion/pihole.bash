@@ -1,3 +1,7 @@
+#!/bin/bash
+#
+# Bash completion script for pihole
+#
 _pihole() {
     local cur prev opts opts_lists opts_checkout opts_debug opts_logging opts_query opts_update opts_networkflush
     COMPREPLY=()
@@ -8,40 +12,40 @@ _pihole() {
     case "${prev}" in
         "pihole")
             opts="allow allow-regex allow-wild deny checkout debug disable enable flush help logging query repair regex reloaddns reloadlists setpassword status tail uninstall updateGravity updatePihole version wildcard networkflush api"
-            COMPREPLY=( $(compgen -W "${opts}" -- ${cur}) )
+            mapfile -t COMPREPLY < <(compgen -W "${opts}" -- "${cur}")
         ;;
         "allow"|"deny"|"wildcard"|"regex"|"allow-regex"|"allow-wild")
             opts_lists="\not \--delmode \--quiet \--list \--help"
-            COMPREPLY=( $(compgen -W "${opts_lists}" -- ${cur}) )
+            mapfile -t COMPREPLY < <(compgen -W "${opts_lists}" -- "${cur}")
         ;;
         "checkout")
             opts_checkout="core ftl web master dev"
-            COMPREPLY=( $(compgen -W "${opts_checkout}" -- ${cur}) )
+            mapfile -t COMPREPLY < <(compgen -W "${opts_checkout}" -- "${cur}")
         ;;
         "debug")
             opts_debug="-a"
-            COMPREPLY=( $(compgen -W "${opts_debug}" -- ${cur}) )
+            mapfile -t COMPREPLY < <(compgen -W "${opts_debug}" -- "${cur}")
         ;;
         "logging")
             opts_logging="on off 'off noflush'"
-            COMPREPLY=( $(compgen -W "${opts_logging}" -- ${cur}) )
+            mapfile -t COMPREPLY < <(compgen -W "${opts_logging}" -- "${cur}")
         ;;
         "query")
             opts_query="--partial --all"
-            COMPREPLY=( $(compgen -W "${opts_query}" -- ${cur}) )
+            mapfile -t COMPREPLY < <(compgen -W "${opts_query}" -- "${cur}")
         ;;
         "updatePihole"|"-up")
             opts_update="--check-only"
-            COMPREPLY=( $(compgen -W "${opts_update}" -- ${cur}) )
+            mapfile -t COMPREPLY < <(compgen -W "${opts_update}" -- "${cur}")
         ;;
         "networkflush")
             opts_networkflush="--arp"
-            COMPREPLY=( $(compgen -W "${opts_networkflush}" -- ${cur}) )
+            mapfile -t COMPREPLY < <(compgen -W "${opts_networkflush}" -- "${cur}")
         ;;
         "core"|"web"|"ftl")
             if [[ "$prev2" == "checkout" ]]; then
                 opts_checkout="master development"
-                COMPREPLY=( $(compgen -W "${opts_checkout}" -- ${cur}) )
+                mapfile -t COMPREPLY < <(compgen -W "${opts_checkout}" -- "${cur}")
             else
                 return 1
             fi
