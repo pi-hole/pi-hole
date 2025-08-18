@@ -92,8 +92,12 @@ debugFunc() {
 }
 
 flushFunc() {
-  "${PI_HOLE_SCRIPT_DIR}"/piholeLogFlush.sh "$@"
-  exit 0
+    if [ -n "${DOCKER_VERSION}" ]; then
+        unsupportedFunc
+    else
+        "${PI_HOLE_SCRIPT_DIR}"/piholeLogFlush.sh "$@"
+        exit 0
+    fi
 }
 
 # Deprecated function, should be removed in the future
