@@ -1333,9 +1333,10 @@ disable_service() {
     # If systemctl exists,
     if is_command systemctl; then
         # use that to disable the service
-        systemctl -q disable "${1}"
+        systemctl -q disable --now "${1}"
     elif is_command openrc; then
         rc-update del "${1}" "${2:-default}" &> /dev/null
+
     else
         # Otherwise, use update-rc.d to accomplish this
         update-rc.d "${1}" disable >/dev/null
