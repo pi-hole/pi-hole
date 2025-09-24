@@ -2488,7 +2488,7 @@ main() {
 \\n\\nIPv4:	${IPV4_ADDRESS%/*}\
 \\nIPv6:	${IPV6_ADDRESS:-"Not Configured"}\
 \\nIf you have not done so already, the above IP should be set to static.\
-\\nView the web interface at http://pi.hole/admin:${WEBPORT} or http://${IPV4_ADDRESS%/*}:${WEBPORT}/admin\\n\\nYour Admin Webpage login password is ${pw}\
+\\nView the web interface at http://pi.hole:${WEBPORT}/admin or http://${IPV4_ADDRESS%/*}:${WEBPORT}/admin\\n\\nYour Admin Webpage login password is ${pw}\
 \\n
 \\n
 \\nTo allow your user to use all CLI functions without authentication,\
