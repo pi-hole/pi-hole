@@ -1,6 +1,6 @@
-pyyaml == 6.0.2
-pytest == 8.4.1
+pyyaml == 6.0.3
+pytest == 8.4.2
 pytest-xdist == 3.8.0
 pytest-testinfra == 10.2.2
-tox == 4.28.4
+tox == 4.30.3
 pytest-clarity == 1.0.1
