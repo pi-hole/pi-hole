@@ -18,7 +18,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v5.0.0
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 #v5.0.0
         with:
           fetch-depth: 0 # Differential ShellCheck requires full git history
 
@@ -31,25 +31,25 @@ jobs:
           [[ $FAIL == 1 ]] && exit 1 || echo "Scripts are executable!"
 
       - name: Differential ShellCheck
-        uses: redhat-plumbers-in-action/differential-shellcheck@v5
+        uses: redhat-plumbers-in-action/differential-shellcheck@0d9e5b29625f871e6a4215380486d6f1a7cb6cdd #v5.5.5
         with:
           severity: warning
           display-engine: sarif-fmt
 
 
       - name: Spell-Checking
-        uses: codespell-project/actions-codespell@master
+        uses: codespell-project/actions-codespell@406322ec52dd7b488e48c1c4b82e2a8b3a1bf630 #v2.1
         with:
           ignore_words_file: .codespellignore
 
       - name: Get editorconfig-checker
-        uses: editorconfig-checker/action-editorconfig-checker@main # tag v1.0.0 is really out of date
+        uses: editorconfig-checker/action-editorconfig-checker@f40bac9e7d9e7d298fbe36b83e1eff8f0de13fb8 # tag v2. is really out of date
 
       - name: Run editorconfig-checker
         run: editorconfig-checker
 
       - name: Check python code formatting with black
-        uses: psf/black@stable
+        uses: psf/black@8a737e727ac5ab2f1d4cf5876720ed276dc8dc4b #25.1.0
         with:
           src: "./test"
           options: "--check --diff --color"
@@ -81,10 +81,10 @@ jobs:
       DISTRO: ${{matrix.distro}}
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v5.0.0
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 #v5.0.0
 
       - name: Set up Python
-        uses: actions/setup-python@v5.6.0
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 #v5.6.0
         with:
           python-version: "3.13"
 
