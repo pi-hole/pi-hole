@@ -854,7 +854,7 @@ gravity_Table_Count() {
   fi
 }
 
-# Output count of blacklisted domains and regex filters
+# Output count of denied and allowed domains and regex filters
 gravity_ShowCount() {
   # Here we use the table "gravity" instead of the view "vw_gravity" for speed.
   # It's safe to replace it here, because right after a gravity run both will show the exactly same number of domains.
