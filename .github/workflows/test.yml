@@ -43,7 +43,7 @@ jobs:
           ignore_words_file: .codespellignore
 
       - name: Get editorconfig-checker
-        uses: editorconfig-checker/action-editorconfig-checker@f40bac9e7d9e7d298fbe36b83e1eff8f0de13fb8 # tag v2. is really out of date
+        uses: editorconfig-checker/action-editorconfig-checker@1a41284d59c6fe7f1b21ddc4a2b36400a33dc1b4 # tag v2. is really out of date
 
       - name: Run editorconfig-checker
         run: editorconfig-checker
