@@ -3,7 +3,7 @@
 # Bash completion script for pihole
 #
 _pihole() {
-    local cur prev opts opts_lists opts_checkout opts_debug opts_logging opts_query opts_update opts_networkflush
+    local cur prev prev2 opts opts_lists opts_checkout opts_debug opts_logging opts_query opts_update opts_networkflush
     COMPREPLY=()
     cur="${COMP_WORDS[COMP_CWORD]}"
     prev="${COMP_WORDS[COMP_CWORD-1]}"
