@@ -755,7 +755,7 @@ gravity_DownloadBlocklistFromUrl() {
   fi
 
   if [[ "${download}" == true ]]; then
-    curlJson=$(curl --connect-timeout ${curl_connect_timeout} -s -L ${compression:+${compression}} ${customUpstreamResolver:+${customUpstreamResolver}} "${modifiedOptions[@]}" -w "%{json}" "${url}" -o "${listCurlBuffer}" 2>/dev/null)
+    curlJson=$(curl --connect-timeout ${curl_connect_timeout} -s -L ${compression:+${compression}} ${customUpstreamResolver:+${customUpstreamResolver}} "${modifiedOptions[@]}" -w "%{json}" "${url}" -o "${listCurlBuffer}")
   fi
 
   # Retrieve the HTTP code, exit code and error message returned by curl command
