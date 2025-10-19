@@ -794,7 +794,15 @@ gravity_DownloadBlocklistFromUrl() {
     "504") echo -e "${OVER}  ${CROSS} ${str} Connection Timed Out (Gateway)" ;;
     "521") echo -e "${OVER}  ${CROSS} ${str} Web Server Is Down (Cloudflare)" ;;
     "522") echo -e "${OVER}  ${CROSS} ${str} Connection Timed Out (Cloudflare)" ;;
-    *) echo -e "${OVER}  ${CROSS} ${str} ${url} (${httpCode})" ;;
+"403") echo -e "${OVER}  ${CROSS} ${str} Forbidden" ;;
+"404") echo -e "${OVER}  ${CROSS} ${str} Not found" ;;
+"408") echo -e "${OVER}  ${CROSS} ${str} Time-out" ;;
+"451") echo -e "${OVER}  ${CROSS} ${str} Unavailable For Legal Reasons" ;;
+"500") echo -e "${OVER}  ${CROSS} ${str} Internal Server Error" ;;
+"504") echo -e "${OVER}  ${CROSS} ${str} Connection Timed Out (Gateway)" ;;
+"521") echo -e "${OVER}  ${CROSS} ${str} Web Server Is Down (Cloudflare)" ;;
+"522") echo -e "${OVER}  ${CROSS} ${str} Connection Timed Out (Cloudflare)" ;;
+*) echo -e "${OVER}  ${CROSS} ${str} Failure (exit_code=${COL_RED}${curlExitCode}${COL_NC} Msg: ${COL_CYAN}${curlErrorMsg}${COL_NC})" ;;
     esac
     ;;
   esac
