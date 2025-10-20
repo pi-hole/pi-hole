@@ -1130,7 +1130,7 @@ fi
 
 if [[ "${forceDelete:-}" == true ]]; then
   str="Deleting existing list cache"
-  echo -ne "${INFO} ${str}..."
+  echo -ne "  ${INFO} ${str}..."
 
   rm "${listsCacheDir}/list.*" 2>/dev/null || true
   echo -e "${OVER}  ${TICK} ${str}"
