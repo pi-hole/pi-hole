@@ -750,7 +750,7 @@ gravity_DownloadBlocklistFromUrl() {
   # Check for allowed protocols
   if [[ $url != "http"* && $url != "https"* && $url != "file"* && $url != "ftp"* && $url != "ftps"* && $url != "sftp"* ]]; then
     echo -e "${OVER}  ${CROSS} ${str} Invalid protocol specified. Ignoring list."
-    echo -e "Ensure your URL starts with a valid protocol like http:// , https:// or file:// ."
+    echo -e "      Ensure your URL starts with a valid protocol like http:// , https:// or file:// ."
     download=false
   fi
 
@@ -1130,7 +1130,7 @@ fi
 
 if [[ "${forceDelete:-}" == true ]]; then
   str="Deleting existing list cache"
-  echo -ne "${INFO} ${str}..."
+  echo -ne "  ${INFO} ${str}..."
 
   rm "${listsCacheDir}/list.*" 2>/dev/null || true
   echo -e "${OVER}  ${TICK} ${str}"
