@@ -92,6 +92,7 @@ debugFunc() {
 }
 
 flushFunc() {
+    # unsupported in docker because it requires restarting FTL
     if [ -n "${DOCKER_VERSION}" ]; then
         unsupportedFunc
     else
@@ -107,6 +108,11 @@ arpFunc() {
   echo -e "  ${INFO} The 'arpflush' command is deprecated, use 'networkflush' instead"
   "${PI_HOLE_SCRIPT_DIR}"/piholeNetworkFlush.sh "$@"
   exit 0
+}
+
+logrotateFunc() {
+   "${PI_HOLE_SCRIPT_DIR}"/piholeLogRotate.sh "$@"
+    exit 0
 }
 
 networkFlush() {
@@ -506,7 +512,8 @@ Debugging Options:
   -d, debug           Start a debugging session
                         Add '-c' or '--check-database' to include a Pi-hole database integrity check
                         Add '-a' to automatically upload the log to tricorder.pi-hole.net
-  -f, flush           Flush the Pi-hole log
+  -f, flush           Flush the Pi-hole logs and last 24h from the query database
+                        Add 'quiet' to suppress output messages
   -r, repair          Repair Pi-hole subsystems
   -t, tail [arg]      View the live output of the Pi-hole log.
                       Add an optional argument to filter the log
@@ -539,7 +546,9 @@ Options:
   checkout            Switch Pi-hole subsystems to a different GitHub branch
                         Add '-h' for more info on checkout usage
   networkflush        Flush information stored in Pi-hole's network tables
-                        Add '--arp' to additionally flush the ARP table ";
+                        Add '--arp' to additionally flush the ARP table
+  logrotate          Rotate Pi-hole's log files
+                        Add 'quiet' to suppress output messages";
   exit 0
 }
 
@@ -582,6 +591,7 @@ case "${1}" in
   "arpflush"                      ) need_root=true;; # Deprecated, use networkflush instead
   "networkflush"                  ) need_root=true;;
   "-t" | "tail"                   ) need_root=true;;
+  "logrotate"                    ) need_root=true;;
   *                               ) helpFunc;;
 esac
 
@@ -617,5 +627,6 @@ case "${1}" in
   "arpflush"                      ) arpFunc "$@";; # Deprecated, use networkflush instead
   "networkflush"                  ) networkFlush "$@";;
   "-t" | "tail"                   ) tailFunc "$2";;
+  "logrotate"                     ) logrotateFunc "$@";;
   *                               ) helpFunc;;
 esac
