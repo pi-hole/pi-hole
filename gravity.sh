@@ -726,7 +726,7 @@ gravity_DownloadBlocklistFromUrl() {
     # to match the effective runtime user of FTL; otherwise, check the current user's read access
     # (e.g., in Docker or when invoked by a non-root user). The target must
     # resolve to a regular file and be readable by the evaluated user.
-  if [[ "${url}" == "file://"* ]]; then
+  if [[ "${url}" == "file:/"* ]]; then
     # Get the file path
     file_path=$(echo "${url}" | cut -d'/' -f3-)
     # Check if the file exists and is a regular file (i.e. not a socket, fifo, tty, block). Might still be a symlink.
