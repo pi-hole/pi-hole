@@ -736,9 +736,9 @@ gravity_DownloadBlocklistFromUrl() {
         download=false
     else
         if [ "$(id -un)" == "root" ]; then
-        # If we are root, we need to check if the pihole user has read permission
-        #  otherwise, we might read files that the pihole user should not be able to read
-      if sudo -u pihole test -r "${file_path}"; then
+            # If we are root, we need to check if the pihole user has read permission
+            #  otherwise, we might read files that the pihole user should not be able to read
+            if sudo -u pihole test -r "${file_path}"; then
                 echo -e "${OVER}  ${INFO} Using local file ${file_path}"
             else
                 echo -e "${OVER}  ${CROSS} Cannot read file (user 'pihole' lacks read permission)"
