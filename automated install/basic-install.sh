@@ -694,10 +694,11 @@ chooseInterface() {
             status="OFF"
         done
         # Disable check for double quote here as we are passing a string with spaces
+        # shellcheck disable=SC2086
         PIHOLE_INTERFACE=$(dialog --no-shadow --keep-tite --output-fd 1 \
             --cancel-label "Exit" --ok-label "Select" \
             --radiolist "Choose An Interface (press space to toggle selection)" \
-            ${r} ${c} "${interfaceCount}" "${interfacesList}")
+            ${r} ${c} "${interfaceCount}" ${interfacesList})
 
         result=$?
         case ${result} in
