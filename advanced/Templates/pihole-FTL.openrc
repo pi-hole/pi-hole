@@ -1,0 +1,40 @@
+#!/sbin/openrc-run
+# shellcheck shell=sh disable=SC2034
+
+: "${PI_HOLE_SCRIPT_DIR:=/opt/pihole}"
+
+command="/usr/bin/pihole-FTL"
+command_user="pihole:pihole"
+supervisor=supervise-daemon
+command_args_foreground="-f"
+command_background=true
+pidfile="/run/${RC_SVCNAME}_openrc.pid"
+extra_started_commands="reload"
+
+respawn_max=5
+respawn_period=60
+capabilities="^CAP_NET_BIND_SERVICE,CAP_NET_RAW,CAP_NET_ADMIN,CAP_SYS_NICE,CAP_IPC_LOCK,CAP_CHOWN,CAP_SYS_TIME"
+
+depend() {
+    want net
+    provide dns
+}
+
+checkconfig() {
+    $command -f test
+}
+
+start_pre() {
+    sh "${PI_HOLE_SCRIPT_DIR}/pihole-FTL-prestart.sh"
+}
+
+stop_post() {
+    sh "${PI_HOLE_SCRIPT_DIR}/pihole-FTL-poststop.sh"
+}
+
+reload() {
+    checkconfig || return $?
+    ebegin "Reloading ${RC_SVCNAME}"
+    start-stop-daemon --signal HUP --pidfile "${pidfile}"
+    eend $?
+}

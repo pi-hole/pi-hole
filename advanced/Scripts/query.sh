@@ -37,19 +37,16 @@ Options:
 }
 
 GenerateOutput() {
-    local data gravity_data lists_data num_gravity num_lists search_type_str
-    local gravity_data_csv lists_data_csv line current_domain url type color
+    local counts data num_gravity num_lists search_type_str
+    local gravity_data_csv lists_data_csv line url type color
     data="${1}"
 
-    # construct a new json for the list results where each object contains the domain and the related type
-    lists_data=$(printf %s "${data}" | jq '.search.domains | [.[] | {domain: .domain, type: .type}]')
-
-    # construct a new json for the gravity results where each object contains the adlist URL and the related domains
-    gravity_data=$(printf %s "${data}" | jq '.search.gravity  | group_by(.address,.type) | map({ address: (.[0].address), type: (.[0].type), domains: [.[] | .domain] })')
-
-    # number of objects in each json
-    num_gravity=$(printf %s "${gravity_data}" | jq length)
-    num_lists=$(printf %s "${lists_data}" | jq length)
+    # Get count of list and gravity matches
+    # Use JQ to count number of entries in lists and gravity
+    # (output is number of list matches then number of gravity matches)
+    counts=$(printf %s "${data}" | jq --raw-output '(.search.domains | length), (.search.gravity | group_by(.address,.type) | length)')
+    num_lists=$(echo "$counts" | sed -n '1p')
+    num_gravity=$(echo "$counts" | sed -n '2p')
 
     if [ "${partial}" = true ]; then
         search_type_str="partially"
@@ -62,7 +59,7 @@ GenerateOutput() {
     if [ "${num_lists}" -gt 0 ]; then
         # Convert the data to a csv, each line is a "domain,type" string
         # not using jq's @csv here as it quotes each value individually
-        lists_data_csv=$(printf %s "${lists_data}" | jq --raw-output '.[] | [.domain, .type] | join(",")')
+        lists_data_csv=$(printf %s "${data}" | jq --raw-output '.search.domains | map([.domain, .type] | join(",")) | join("\n")')
 
         # Generate output for each csv line, separating line in a domain and type substring at the ','
         echo "${lists_data_csv}" | while read -r line; do
@@ -71,11 +68,11 @@ GenerateOutput() {
     fi
 
     # Results from gravity
-    printf "%s\n\n" "Found ${num_gravity} adlists ${search_type_str} matching '${COL_BLUE}${domain}${COL_NC}'."
+    printf "%s\n\n" "Found ${num_gravity} lists ${search_type_str} matching '${COL_BLUE}${domain}${COL_NC}'."
     if [ "${num_gravity}" -gt 0 ]; then
-        # Convert the data to a csv, each line is a "URL,domain,domain,...." string
+        # Convert the data to a csv, each line is a "URL,type,domain,domain,...." string
         # not using jq's @csv here as it quotes each value individually
-        gravity_data_csv=$(printf %s "${gravity_data}" | jq --raw-output '.[] | [.address, .type, .domains[]] | join(",")')
+        gravity_data_csv=$(printf %s "${data}" | jq --raw-output '.search.gravity | group_by(.address,.type) | map([.[0].address, .[0].type, (.[] | .domain)] | join(",")) | join("\n")')
 
         # Generate line-by-line output for each csv line
         echo "${gravity_data_csv}" | while read -r line; do
@@ -97,15 +94,8 @@ GenerateOutput() {
 
             # cut off type, leaving "domain,domain,...."
             line=${line#*,}
-            # print each domain and remove it from the string until nothing is left
-            while [ ${#line} -gt 0 ]; do
-                current_domain=${line%%,*}
-                printf '    - %s\n' "${COL_GREEN}${current_domain}${COL_NC}"
-                # we need to remove the current_domain and the comma in two steps because
-                # the last domain won't have a trailing comma and the while loop wouldn't exit
-                line=${line#"${current_domain}"}
-                line=${line#,}
-            done
+            # Replace commas with newlines and format output
+            echo "${line}" | sed 's/,/\n/g' | sed "s/^/    - ${COL_GREEN}/" | sed "s/$/${COL_NC}/"
             printf "\n\n"
         done
     fi

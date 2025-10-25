@@ -94,8 +94,8 @@ fresh_install=true
 
 adlistFile="/etc/pihole/adlists.list"
 # Pi-hole needs an IP address; to begin, these variables are empty since we don't know what the IP is until this script can run
-IPV4_ADDRESS=${IPV4_ADDRESS}
-IPV6_ADDRESS=${IPV6_ADDRESS}
+IPV4_ADDRESS=
+IPV6_ADDRESS=
 # Give settings their default values. These may be changed by prompts later in the script.
 QUERY_LOGGING=
 PRIVACY_LEVEL=
@@ -116,11 +116,11 @@ c=70
 PIHOLE_META_PACKAGE_CONTROL_APT=$(
     cat <<EOM
 Package: pihole-meta
-Version: 0.4
+Version: 0.5
 Maintainer: Pi-hole team <adblock@pi-hole.net>
 Architecture: all
 Description: Pi-hole dependency meta package
-Depends: awk,bash-completion,binutils,ca-certificates,cron|cron-daemon,curl,dialog,dnsutils,dns-root-data,git,grep,iproute2,iputils-ping,jq,libcap2,libcap2-bin,lshw,netcat-openbsd,procps,psmisc,sudo,unzip
+Depends: awk,bash-completion,binutils,ca-certificates,cron|cron-daemon,curl,dialog,dnsutils,dns-root-data,git,grep,iproute2,iputils-ping,jq,libcap2,libcap2-bin,lshw,procps,psmisc,sudo,unzip
 Section: contrib/metapackages
 Priority: optional
 EOM
@@ -130,12 +130,12 @@ EOM
 PIHOLE_META_PACKAGE_CONTROL_RPM=$(
     cat <<EOM
 Name: pihole-meta
-Version: 0.2
+Version: 0.3
 Release: 1
 License: EUPL
 BuildArch: noarch
 Summary: Pi-hole dependency meta package
-Requires: bash-completion,bind-utils,binutils,ca-certificates,chkconfig,cronie,curl,dialog,findutils,gawk,git,grep,iproute,jq,libcap,lshw,nmap-ncat,procps-ng,psmisc,sudo,unzip
+Requires: bash-completion,bind-utils,binutils,ca-certificates,chkconfig,cronie,curl,dialog,findutils,gawk,git,grep,iproute,jq,libcap,lshw,procps-ng,psmisc,sudo,unzip
 %description
 Pi-hole dependency meta package
 %prep
@@ -143,12 +143,45 @@ Pi-hole dependency meta package
 %files
 %install
 %changelog
+* Mon Jul 14 2025 Pi-hole Team - 0.3
+- Remove nmap-ncat from the list of dependencies
+
 * Wed May 28 2025 Pi-hole Team - 0.2
 - Add gawk to the list of dependencies
 
 * Sun Sep 29 2024 Pi-hole Team - 0.1
 - First version being packaged
 EOM
+)
+
+# List of required packages on APK based systems
+PIHOLE_META_VERSION_APK=0.1
+PIHOLE_META_DEPS_APK=(
+    bash
+    bash-completion
+    bind-tools
+    binutils
+    coreutils
+    cronie
+    curl
+    dialog
+    git
+    grep
+    iproute2-minimal # piholeARPTable.sh
+    iproute2-ss # piholeDebug.sh
+    jq
+    libcap
+    logrotate
+    lscpu # piholeDebug.sh
+    lshw # piholeDebug.sh
+    ncurses
+    procps-ng
+    psmisc
+    shadow
+    sudo
+    tzdata
+    unzip
+    wget
 )
 
 ######## Undocumented Flags. Shhh ########
@@ -158,7 +191,7 @@ repair=false
 runUnattended=false
 # Check arguments for the undocumented flags
 for var in "$@"; do
-    case "$var" in
+    case "${var}" in
     "--repair") repair=true ;;
     "--unattended") runUnattended=true ;;
     esac
@@ -268,7 +301,15 @@ package_manager_detect() {
         PKG_COUNT="${PKG_MANAGER} check-update | grep -E '(.i686|.x86|.noarch|.arm|.src|.riscv64)' | wc -l || true"
         # The command we will use to remove packages (used in the uninstaller)
         PKG_REMOVE="${PKG_MANAGER} remove -y"
-    # If neither apt-get or yum/dnf package managers were found
+
+    # If neither apt-get or yum/dnf package managers were found, check for apk.
+    elif is_command apk; then
+        PKG_MANAGER="apk"
+        UPDATE_PKG_CACHE="${PKG_MANAGER} update"
+        PKG_INSTALL="${PKG_MANAGER} add"
+        PKG_COUNT="${PKG_MANAGER} list --upgradable -q | wc -l"
+        PKG_REMOVE="${PKG_MANAGER} del"
+
     else
         # we cannot install required packages
         printf "  %b No supported package manager found\\n" "${CROSS}"
@@ -279,13 +320,20 @@ package_manager_detect() {
 
 build_dependency_package(){
     # This function will build a package that contains all the dependencies needed for Pi-hole
+    if is_command apk ; then
+        local str="APK based system detected. Dependencies will be installed using a virtual package named pihole-meta"
+        printf "  %b %s...\\n" "${INFO}" "${str}"
+        return 0
+    fi
 
     # remove any leftover build directory that may exist
     rm -rf /tmp/pihole-meta_*
 
     # Create a fresh build directory with random name
+    # Busybox Compat: `mktemp` long flags unsupported
+    #   -d flag is short form of --directory
     local tempdir
-    tempdir="$(mktemp --directory /tmp/pihole-meta_XXXXX)"
+    tempdir="$(mktemp -d /tmp/pihole-meta_XXXXX)"
     chmod 0755 "${tempdir}"
 
     if is_command apt-get; then
@@ -573,7 +621,7 @@ Do you wish to continue with an IPv6-only installation?\\n\\n" \
     ;;
     esac
 
-    DNS_SERVERS="$DNS_SERVERS_IPV6_ONLY"
+    DNS_SERVERS="${DNS_SERVERS_IPV6_ONLY}"
     printf "  %b Proceeding with IPv6 only installation.\\n" "${INFO}"
 }
 
@@ -649,7 +697,7 @@ chooseInterface() {
         PIHOLE_INTERFACE=$(dialog --no-shadow --keep-tite --output-fd 1 \
             --cancel-label "Exit" --ok-label "Select" \
             --radiolist "Choose An Interface (press space to toggle selection)" \
-            ${r} ${c} "${interfaceCount}" ${interfacesList})
+            ${r} ${c} "${interfaceCount}" "${interfacesList}")
 
         result=$?
         case ${result} in
@@ -671,9 +719,9 @@ testIPv6() {
     # first will contain fda2 (ULA)
     printf -v first "%s" "${1%%:*}"
     # value1 will contain 253 which is the decimal value corresponding to 0xFD
-    value1=$(((0x$first) / 256))
+    value1=$(((0x${first}) / 256))
     # value2 will contain 162 which is the decimal value corresponding to 0xA2
-    value2=$(((0x$first) % 256))
+    value2=$(((0x${first}) % 256))
     # the ULA test is testing for fc00::/7 according to RFC 4193
     if (((value1 & 254) == 252)); then
         # echoing result to calling function as return value
@@ -698,7 +746,7 @@ find_IPv6_information() {
     # For each address in the array above, determine the type of IPv6 address it is
     for i in "${IPV6_ADDRESSES[@]}"; do
         # Check if it's ULA, GUA, or LL by using the function created earlier
-        result=$(testIPv6 "$i")
+        result=$(testIPv6 "${i}")
         # If it's a ULA address, use it and store it as a global variable
         [[ "${result}" == "ULA" ]] && ULA_ADDRESS="${i%/*}"
         # If it's a GUA address, use it and store it as a global variable
@@ -733,7 +781,7 @@ collect_v4andv6_information() {
     printf "  %b IPv4 address: %s\\n" "${INFO}" "${IPV4_ADDRESS}"
     find_IPv6_information
     printf "  %b IPv6 address: %s\\n" "${INFO}" "${IPV6_ADDRESS}"
-    if [ "$IPV4_ADDRESS" == "" ] && [ "$IPV6_ADDRESS" != "" ]; then
+    if [ "${IPV4_ADDRESS}" == "" ] && [ "${IPV6_ADDRESS}" != "" ]; then
         confirm_ipv6_only
     fi
 }
@@ -753,7 +801,7 @@ valid_ip() {
     local regex="^${ipv4elem}\\.${ipv4elem}\\.${ipv4elem}\\.${ipv4elem}${portelem}$"
 
     # Evaluate the regex, and return the result
-    [[ $ip =~ ${regex} ]]
+    [[ ${ip} =~ ${regex} ]]
 
     stat=$?
     return "${stat}"
@@ -788,7 +836,7 @@ setDNS() {
     DNSChooseOptions=()
     local DNSServerCount=0
     # Save the old Internal Field Separator in a variable,
-    OIFS=$IFS
+    OIFS=${IFS}
     # and set the new one to newline
     IFS=$'\n'
     # Put the DNS Servers into an array
@@ -856,7 +904,7 @@ If you want to specify a port other than 53, separate it with a hash.\
             esac
 
             # Clean user input and replace whitespace with comma.
-            piholeDNS=$(sed 's/[, \t]\+/,/g' <<<"${piholeDNS}")
+            piholeDNS="${piholeDNS//[[:blank:]]/,}"
 
             # Separate the user input into the two DNS values (separated by a comma)
             printf -v PIHOLE_DNS_1 "%s" "${piholeDNS%%,*}"
@@ -912,7 +960,7 @@ If you want to specify a port other than 53, separate it with a hash.\
         done
     else
         # Save the old Internal Field Separator in a variable,
-        OIFS=$IFS
+        OIFS=${IFS}
         # and set the new one to newline
         IFS=$'\n'
         for DNSServer in ${DNS_SERVERS}; do
@@ -1134,7 +1182,8 @@ installScripts() {
         install -o "${USER}" -Dm755 -t "${PI_HOLE_INSTALL_DIR}" ./automated\ install/uninstall.sh
         install -o "${USER}" -Dm755 -t "${PI_HOLE_INSTALL_DIR}" ./advanced/Scripts/COL_TABLE
         install -o "${USER}" -Dm755 -t "${PI_HOLE_BIN_DIR}" pihole
-        install -Dm644 ./advanced/bash-completion/pihole /etc/bash_completion.d/pihole
+        install -Dm644 ./advanced/bash-completion/pihole.bash /etc/bash_completion.d/pihole
+        install -Dm644 ./advanced/bash-completion/pihole-ftl.bash /etc/bash_completion.d/pihole-FTL
         printf "%b  %b %s\\n" "${OVER}" "${TICK}" "${str}"
 
     else
@@ -1173,7 +1222,12 @@ installConfigs() {
         # Load final service
         systemctl daemon-reload
     else
-        install -T -m 0755 "${PI_HOLE_LOCAL_REPO}/advanced/Templates/pihole-FTL.service" '/etc/init.d/pihole-FTL'
+        local INIT="service"
+        if is_command openrc; then
+            INIT="openrc"
+        fi
+
+        install -T -m 0755 "${PI_HOLE_LOCAL_REPO}/advanced/Templates/pihole-FTL.${INIT}" '/etc/init.d/pihole-FTL'
     fi
     install -T -m 0755 "${PI_HOLE_LOCAL_REPO}/advanced/Templates/pihole-FTL-prestart.sh" "${PI_HOLE_INSTALL_DIR}/pihole-FTL-prestart.sh"
     install -T -m 0755 "${PI_HOLE_LOCAL_REPO}/advanced/Templates/pihole-FTL-poststop.sh" "${PI_HOLE_INSTALL_DIR}/pihole-FTL-poststop.sh"
@@ -1262,6 +1316,8 @@ enable_service() {
     if is_command systemctl; then
         # use that to enable the service
         systemctl -q enable "${1}"
+    elif is_command openrc; then
+        rc-update add "${1}" "${2:-default}" &> /dev/null
     else
         #  Otherwise, use update-rc.d to accomplish this
         update-rc.d "${1}" defaults >/dev/null
@@ -1277,7 +1333,10 @@ disable_service() {
     # If systemctl exists,
     if is_command systemctl; then
         # use that to disable the service
-        systemctl -q disable "${1}"
+        systemctl -q disable --now "${1}"
+    elif is_command openrc; then
+        rc-update del "${1}" "${2:-default}" &> /dev/null
+
     else
         # Otherwise, use update-rc.d to accomplish this
         update-rc.d "${1}" disable >/dev/null
@@ -1290,6 +1349,8 @@ check_service_active() {
     if is_command systemctl; then
         # use that to check the status of the service
         systemctl -q is-enabled "${1}" 2>/dev/null
+    elif is_command openrc; then
+        rc-status default boot | grep -q "${1}"
     else
         # Otherwise, fall back to service command
         service "${1}" status &>/dev/null
@@ -1391,8 +1452,27 @@ install_dependent_packages() {
             printf "  %b Error: Unable to find Pi-hole dependency package.\\n" "${COL_RED}"
             return 1
         fi
+    # Install Alpine packages
+    elif is_command apk; then
+        local repo_str="Ensuring alpine 'community' repo is enabled."
+        printf "%b  %b %s" "${OVER}" "${INFO}" "${repo_str}"
 
-    # If neither apt-get or yum/dnf package managers were found
+        local pattern='^\s*#(.*/community/?)\s*$'
+        sed -Ei "s:${pattern}:\1:" /etc/apk/repositories
+        if grep -Eq "${pattern}" /etc/apk/repositories; then
+            # Repo still commented out = Failure
+            printf "%b  %b %s\\n" "${OVER}" "${CROSS}" "${repo_str}"
+        else
+            printf "%b  %b %s\\n" "${OVER}" "${TICK}" "${repo_str}"
+        fi
+        printf "  %b %s..." "${INFO}" "${str}"
+        if { ${PKG_INSTALL} -q -t "pihole-meta=${PIHOLE_META_VERSION_APK}" "${PIHOLE_META_DEPS_APK[@]}" &>/dev/null; }; then
+            printf "%b  %b %s\\n" "${OVER}" "${TICK}" "${str}"
+        else
+            printf "%b  %b %s\\n" "${OVER}" "${CROSS}" "${str}"
+            printf "  %b Error: Unable to install Pi-hole dependency package.\\n" "${COL_RED}"
+            return 1
+        fi
     else
         # we cannot install the dependency package
         printf "  %b No supported package manager found\\n" "${CROSS}"
@@ -1417,6 +1497,15 @@ installCron() {
     # Randomize update checker time
     sed -i "s/59 17/$((1 + RANDOM % 58)) $((12 + RANDOM % 8))/" /etc/cron.d/pihole
     printf "%b  %b %s\\n" "${OVER}" "${TICK}" "${str}"
+
+    # Switch off of busybox cron on alpine
+    if is_command openrc; then
+        printf "  %b Switching from busybox crond to cronie...\\n" "${INFO}"
+        stop_service crond
+        disable_service crond
+        enable_service cronie
+        restart_service cronie
+    fi
 }
 
 # Gravity is a very important script as it aggregates all of the domains into a single HOSTS formatted list,
@@ -1466,7 +1555,7 @@ create_pihole_user() {
             # then create and add her to the pihole group
             local str="Creating user 'pihole'"
             printf "%b  %b %s..." "${OVER}" "${INFO}" "${str}"
-            if useradd -r --no-user-group -g pihole -s /usr/sbin/nologin pihole; then
+            if useradd -r --no-user-group -g pihole -s "$(command -v nologin)" pihole; then
                 printf "%b  %b %s\\n" "${OVER}" "${TICK}" "${str}"
             else
                 printf "%b  %b %s\\n" "${OVER}" "${CROSS}" "${str}"
@@ -1481,7 +1570,7 @@ create_pihole_user() {
                 # create and add pihole user to the pihole group
                 local str="Creating user 'pihole'"
                 printf "%b  %b %s..." "${OVER}" "${INFO}" "${str}"
-                if useradd -r --no-user-group -g pihole -s /usr/sbin/nologin pihole; then
+                if useradd -r --no-user-group -g pihole -s "$(command -v nologin)" pihole; then
                     printf "%b  %b %s\\n" "${OVER}" "${TICK}" "${str}"
                 else
                     printf "%b  %b %s\\n" "${OVER}" "${CROSS}" "${str}"
@@ -1633,9 +1722,9 @@ check_download_exists() {
     status=$(curl --head --silent "https://ftl.pi-hole.net/${1}" | head -n 1)
 
     # Check the status code
-    if grep -q "200" <<<"$status"; then
+    if grep -q "200" <<<"${status}"; then
         return 0
-    elif grep -q "404" <<<"$status"; then
+    elif grep -q "404" <<<"${status}"; then
         return 1
     fi
 
@@ -1668,7 +1757,7 @@ get_available_branches() {
     # Get reachable remote branches, but store STDERR as STDOUT variable
     output=$({ git ls-remote --heads --quiet | cut -d'/' -f3- -; } 2>&1)
     # echo status for calling function to capture
-    echo "$output"
+    echo "${output}"
     return
 }
 
@@ -1701,9 +1790,9 @@ checkout_pull_branch() {
     oldbranch="$(git symbolic-ref HEAD)"
 
     str="Switching to branch: '${branch}' from '${oldbranch}'"
-    printf "  %b %s" "${INFO}" "$str"
+    printf "  %b %s" "${INFO}" "${str}"
     git checkout "${branch}" --quiet || return 1
-    printf "%b  %b %s\\n" "${OVER}" "${TICK}" "$str"
+    printf "%b  %b %s\\n" "${OVER}" "${TICK}" "${str}"
     # Data in the repositories is public anyway so we can make it readable by everyone (+r to keep executable permission if already set by git)
     chmod -R a+rX "${directory}"
 
@@ -1791,8 +1880,12 @@ FTLinstall() {
             # Before stopping FTL, we download the macvendor database
             curl -sSL "https://ftl.pi-hole.net/macvendor.db" -o "${PI_HOLE_CONFIG_DIR}/macvendor.db" || true
 
-            # Stop pihole-FTL service if available
-            stop_service pihole-FTL >/dev/null
+
+            # If the binary already exists in /usr/bin, then we need to stop the service
+            # If the binary does not exist (fresh installs), then we can skip this step.
+            if [[ -f /usr/bin/pihole-FTL ]]; then
+                stop_service pihole-FTL >/dev/null
+            fi
 
             # Install the new version with the correct permissions
             install -T -m 0755 "${binary}" /usr/bin/pihole-FTL
@@ -1906,7 +1999,7 @@ get_binary_name() {
         l_binary="pihole-FTL-riscv64"
     else
         # Something else - we try to use 32bit executable and warn the user
-        if [[ ! "${machine}" == "i686" ]]; then
+        if [[ "${machine}" != "i686" ]]; then
             printf "%b  %b %s...\\n" "${OVER}" "${CROSS}" "${str}"
             printf "  %b %bNot able to detect architecture (unknown: %s), trying x86 (32bit) executable%b\\n" "${INFO}" "${COL_RED}" "${machine}" "${COL_NC}"
             printf "  %b Contact Pi-hole Support if you experience issues (e.g: FTL not running)\\n" "${INFO}"
@@ -1940,14 +2033,14 @@ FTLcheckUpdate() {
     local remoteSha1
     local localSha1
 
-    if [[ ! "${ftlBranch}" == "master" ]]; then
+    if [[ "${ftlBranch}" != "master" ]]; then
         # This is not the master branch
         local path
         path="${ftlBranch}/${binary}"
 
         # Check whether or not the binary for this FTL branch actually exists. If not, then there is no update!
         local status
-        if ! check_download_exists "$path"; then
+        if ! check_download_exists "${path}"; then
             status=$?
             if [ "${status}" -eq 1 ]; then
                 printf "  %b Branch \"%s\" is not available.\\n" "${INFO}" "${ftlBranch}"
@@ -2050,11 +2143,11 @@ make_temporary_log() {
     TEMPLOG=$(mktemp /tmp/pihole_temp.XXXXXX)
     # Open handle 3 for templog
     # https://stackoverflow.com/questions/18460186/writing-outputs-to-log-file-and-console
-    exec 3>"$TEMPLOG"
+    exec 3>"${TEMPLOG}"
     # Delete templog, but allow for addressing via file handle
     # This lets us write to the log without having a temporary file on the drive, which
     # is meant to be a security measure so there is not a lingering file on the drive during the install process
-    rm "$TEMPLOG"
+    rm "${TEMPLOG}"
 }
 
 copy_to_install_log() {
@@ -2344,7 +2437,7 @@ main() {
         if [ -n "${PIHOLE_DNS_1}" ]; then
             local string="\"${PIHOLE_DNS_1}\""
             [ -n "${PIHOLE_DNS_2}" ] && string+=", \"${PIHOLE_DNS_2}\""
-            setFTLConfigValue "dns.upstreams" "[ $string ]"
+            setFTLConfigValue "dns.upstreams" "[ ${string} ]"
         fi
 
         if [ -n "${QUERY_LOGGING}" ]; then
@@ -2395,7 +2488,7 @@ main() {
 \\n\\nIPv4:	${IPV4_ADDRESS%/*}\
 \\nIPv6:	${IPV6_ADDRESS:-"Not Configured"}\
 \\nIf you have not done so already, the above IP should be set to static.\
-\\nView the web interface at http://pi.hole/admin:${WEBPORT} or http://${IPV4_ADDRESS%/*}:${WEBPORT}/admin\\n\\nYour Admin Webpage login password is ${pw}\
+\\nView the web interface at http://pi.hole:${WEBPORT}/admin or http://${IPV4_ADDRESS%/*}:${WEBPORT}/admin\\n\\nYour Admin Webpage login password is ${pw}\
 \\n
 \\n
 \\nTo allow your user to use all CLI functions without authentication,\

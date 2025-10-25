@@ -73,7 +73,9 @@ getFTLPID() {
 # Example getFTLConfigValue dns.piholePTR
 #######################
 getFTLConfigValue(){
-  pihole-FTL --config -q "${1}"
+  # Pipe to cat to avoid pihole-FTL assuming this is an interactive command
+  # returning colored output.
+  pihole-FTL --config -q "${1}" | cat
 }
 
 #######################
@@ -86,9 +88,17 @@ getFTLConfigValue(){
 # setFTLConfigValue dns.upstreams '[ "8.8.8.8" , "8.8.4.4" ]'
 #######################
 setFTLConfigValue(){
-  pihole-FTL --config "${1}" "${2}" >/dev/null
-  if [ $? -eq 5 ]; then
-    printf "  %s %s set by environment variable. Please unset it to use this function\n" "${CROSS}" "${1}"
-    exit 5
-  fi
+    local err
+    { pihole-FTL --config "${1}" "${2}" >/dev/null; err="$?"; } || true
+
+    case $err in
+    0) ;;
+    5)
+        # FTL returns 5 if the value was set by an environment variable and is therefore read-only
+        printf "  %s %s set by environment variable. Please unset it to use this function\n" "${CROSS}" "${1}";
+        exit 5;;
+    *)
+        printf "  %s Failed to set %s. Try with sudo power\n" "${CROSS}" "${1}"
+        exit 1
+    esac
 }

@@ -17,7 +17,7 @@ jobs:
       issues: write
 
     steps:
-      - uses: actions/stale@v9.1.0
+      - uses: actions/stale@5f858e3efba33a5ca4407a664cc011ad407f2008 #v10.1.0
         with:
           repo-token: ${{ secrets.GITHUB_TOKEN }}
           days-before-stale: 30
@@ -40,7 +40,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4.2.2
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 #v5.0.0
       - name: Remove 'stale' label
         run: gh issue edit ${{ github.event.issue.number }} --remove-label ${{ env.stale_label }}
         env:

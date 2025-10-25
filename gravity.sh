@@ -118,9 +118,12 @@ gravity_swap_databases() {
 
   # Swap databases and remove or conditionally rename old database
   # Number of available blocks on disk
-  availableBlocks=$(stat -f --format "%a" "${gravityDIR}")
+  # Busybox Compat: `stat` long flags unsupported
+  #   -f flag is short form of --file-system.
+  #   -c flag is short form of --format.
+  availableBlocks=$(stat -f -c "%a" "${gravityDIR}")
   # Number of blocks, used by gravity.db
-  gravityBlocks=$(stat --format "%b" "${gravityDBfile}")
+  gravityBlocks=$(stat -c "%b" "${gravityDBfile}")
   # Only keep the old database if available disk space is at least twice the size of the existing gravity.db.
   # Better be safe than sorry...
   oldAvail=false
@@ -747,7 +750,7 @@ gravity_DownloadBlocklistFromUrl() {
   # Check for allowed protocols
   if [[ $url != "http"* && $url != "https"* && $url != "file"* && $url != "ftp"* && $url != "ftps"* && $url != "sftp"* ]]; then
     echo -e "${OVER}  ${CROSS} ${str} Invalid protocol specified. Ignoring list."
-    echo -e "Ensure your URL starts with a valid protocol like http:// , https:// or file:// ."
+    echo -e "      Ensure your URL starts with a valid protocol like http:// , https:// or file:// ."
     download=false
   fi
 
@@ -851,7 +854,7 @@ gravity_Table_Count() {
   fi
 }
 
-# Output count of blacklisted domains and regex filters
+# Output count of denied and allowed domains and regex filters
 gravity_ShowCount() {
   # Here we use the table "gravity" instead of the view "vw_gravity" for speed.
   # It's safe to replace it here, because right after a gravity run both will show the exactly same number of domains.
@@ -1127,7 +1130,7 @@ fi
 
 if [[ "${forceDelete:-}" == true ]]; then
   str="Deleting existing list cache"
-  echo -ne "${INFO} ${str}..."
+  echo -ne "  ${INFO} ${str}..."
 
   rm "${listsCacheDir}/list.*" 2>/dev/null || true
   echo -e "${OVER}  ${TICK} ${str}"

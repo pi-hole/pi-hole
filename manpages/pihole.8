@@ -105,9 +105,9 @@ Available commands and options:
     Flush the Pi-hole log
 .br
 
-\fB-r, reconfigure\fR
+\fB-r, repair\fR
 .br
-    Reconfigure or Repair Pi-hole subsystems
+    Repair Pi-hole subsystems
 .br
 
 \fB-t, tail\fR [arg]
@@ -268,7 +268,7 @@ Allow-/denylist manipulation
 
 \fBpihole --regex "ad.*\\.example\\.com$"\fR
 .br
-    Adds "ad.*\\.example\\.com$" to the regex blacklist.
+    Adds "ad.*\\.example\\.com$" to the regex denylist.
     Would block all subdomains of example.com which start with "ad"
 .br
 
@@ -317,9 +317,10 @@ Switching Pi-hole subsystem branches
     Switch to core development branch
 .br
 
-\fBpihole arpflush\fR
+\fBpihole networkflush\fR
 .br
-    Flush information stored in Pi-hole's network tables
+    Flush information stored in Pi-hole's network table
+    Add '--arp' to additionally flush the ARP table
 .br
 
 \fBpihole api stats/summary\fR

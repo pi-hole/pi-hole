@@ -150,7 +150,6 @@ LoginAPI() {
 
     # Try to login again until the session is valid
     while [ ! "${validSession}" = true ]  ; do
-        echo "Authentication failed. Please enter your Pi-hole password"
 
         # Print the error message if there is one
         if  [ ! "${sessionError}" = "null"  ] && [ "${1}" = "verbose" ]; then
@@ -159,6 +158,14 @@ LoginAPI() {
         # Print the session message if there is one
         if  [ ! "${sessionMessage}" = "null" ] && [ "${1}" = "verbose" ]; then
             echo "Error: ${sessionMessage}"
+        fi
+
+        if  [ "${1}" = "verbose" ]; then
+            # If we are not in verbose mode, no need to print the error message again
+            echo "Please enter your Pi-hole password"
+        else
+
+            echo "Authentication failed. Please enter your Pi-hole password"
         fi
 
         # secretly read the password
@@ -183,13 +190,20 @@ Authentication() {
         echo "No response from FTL server. Please check connectivity"
         exit 1
     fi
-    # obtain validity, session ID and sessionMessage from session response
-    validSession=$(echo "${sessionResponse}"| jq .session.valid 2>/dev/null)
-    SID=$(echo "${sessionResponse}"| jq --raw-output .session.sid 2>/dev/null)
-    sessionMessage=$(echo "${sessionResponse}"| jq --raw-output .session.message 2>/dev/null)
 
-    # obtain the error message from the session response
-    sessionError=$(echo "${sessionResponse}"| jq --raw-output .error.message 2>/dev/null)
+    # obtain validity, session ID, sessionMessage and error message from
+    # session response, apply default values if none returned
+    result=$(echo "${sessionResponse}" | jq -r '
+        (.session.valid // false),
+        (.session.sid // null),
+        (.session.message // null),
+        (.error.message // null)
+    ' 2>/dev/null)
+
+    validSession=$(echo "${result}" | sed -n '1p')
+    SID=$(echo "${result}" | sed -n '2p')
+    sessionMessage=$(echo "${result}" | sed -n '3p')
+    sessionError=$(echo "${result}" | sed -n '4p')
 
     if [ "${1}" = "verbose" ]; then
         if [ "${validSession}" = true ]; then
@@ -353,12 +367,9 @@ apiFunc() {
   if [ "${verbosity}" = "verbose" ]; then
     echo "Data:"
   fi
-
-  if command -v jq >/dev/null && echo "${data}" | jq . >/dev/null 2>&1; then
-    echo "${data}" | jq .
-  else
-    echo "${data}"
-  fi
+  # Attempt to print the data with jq, if it is not valid JSON, or not installed
+  # then print the plain text.
+  echo "${data}" | jq . 2>/dev/null || echo "${data}"
 
   # Delete the session
   LogoutAPI "${verbosity}"

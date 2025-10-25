@@ -672,7 +672,7 @@ dig_at() {
         local record_type="A"
     fi
 
-    # Find a random blocked url that has not been whitelisted and is not ABP style.
+    # Find a random blocked url that has not been allowlisted and is not ABP style.
     # This helps emulate queries to different domains that a user might query
     # It will also give extra assurance that Pi-hole is correctly resolving and blocking domains
     local random_url
@@ -778,7 +778,7 @@ process_status(){
                 :
             else
             # non-Docker system
-                if service "${i}" status | grep -E 'is\srunning' &> /dev/null; then
+                if service "${i}" status | grep -q -E 'is\srunning|started'; then
                     status_of_process="active"
                 else
                     status_of_process="inactive"
@@ -1088,7 +1088,7 @@ show_adlists() {
 }
 
 show_domainlist() {
-    show_db_entries "Domainlist (0/1 = exact white-/blacklist, 2/3 = regex white-/blacklist)" "SELECT id,CASE type WHEN '0' THEN '0   ' WHEN '1' THEN ' 1  ' WHEN '2' THEN '  2 ' WHEN '3' THEN '   3' ELSE type END type,CASE enabled WHEN '0' THEN '   0' WHEN '1' THEN '      1' ELSE enabled END enabled,GROUP_CONCAT(domainlist_by_group.group_id) group_ids,domain,datetime(date_added,'unixepoch','localtime') date_added,datetime(date_modified,'unixepoch','localtime') date_modified,comment FROM domainlist LEFT JOIN domainlist_by_group ON domainlist.id = domainlist_by_group.domainlist_id GROUP BY id;" "5 4 7 12 100 19 19 50"
+    show_db_entries "Domainlist (0/1 = exact allow-/denylist, 2/3 = regex allow-/denylist)" "SELECT id,CASE type WHEN '0' THEN '0   ' WHEN '1' THEN ' 1  ' WHEN '2' THEN '  2 ' WHEN '3' THEN '   3' ELSE type END type,CASE enabled WHEN '0' THEN '   0' WHEN '1' THEN '      1' ELSE enabled END enabled,GROUP_CONCAT(domainlist_by_group.group_id) group_ids,domain,datetime(date_added,'unixepoch','localtime') date_added,datetime(date_modified,'unixepoch','localtime') date_modified,comment FROM domainlist LEFT JOIN domainlist_by_group ON domainlist.id = domainlist_by_group.domainlist_id GROUP BY id;" "5 4 7 12 100 19 19 50"
 }
 
 show_clients() {
