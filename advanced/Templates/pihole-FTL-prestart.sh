@@ -14,6 +14,7 @@ mkdir -p /var/log/pihole
 chown -R pihole:pihole /etc/pihole/ /var/log/pihole/
 
 # allow all users read version file (and use pihole -v)
+touch /etc/pihole/versions
 chmod 0644 /etc/pihole/versions
 
 # allow pihole to access subdirs in /etc/pihole (sets execution bit on dirs)
