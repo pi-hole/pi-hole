@@ -8,12 +8,20 @@ utilsfile="${PI_HOLE_SCRIPT_DIR}/utils.sh"
 
 # Get file paths
 FTL_PID_FILE="$(getFTLConfigValue files.pid)"
+FTL_LOG_FILE="$(getFTLConfigValue files.log.ftl)"
+PIHOLE_LOG_FILE="$(getFTLConfigValue files.log.dnsmasq)"
+WEBSERVER_LOG_FILE="$(getFTLConfigValue files.log.webserver)"
+FTL_PID_FILE="${FTL_PID_FILE:-/run/pihole-FTL.pid}"
+FTL_LOG_FILE="${FTL_LOG_FILE:-/var/log/pihole/FTL.log}"
+PIHOLE_LOG_FILE="${PIHOLE_LOG_FILE:-/var/log/pihole/pihole.log}"
+WEBSERVER_LOG_FILE="${WEBSERVER_LOG_FILE:-/var/log/pihole/webserver.log}"
 
 # Ensure that permissions are set so that pihole-FTL can edit all necessary files
 mkdir -p /var/log/pihole
 chown -R pihole:pihole /etc/pihole/ /var/log/pihole/
 
 # allow all users read version file (and use pihole -v)
+touch /etc/pihole/versions
 chmod 0644 /etc/pihole/versions
 
 # allow pihole to access subdirs in /etc/pihole (sets execution bit on dirs)
@@ -28,7 +36,7 @@ chown root:root /etc/pihole/logrotate
 
 # Touch files to ensure they exist (create if non-existing, preserve if existing)
 [ -f "${FTL_PID_FILE}" ] || install -D -m 644 -o pihole -g pihole /dev/null "${FTL_PID_FILE}"
-[ -f /var/log/pihole/FTL.log ] || install -m 640 -o pihole -g pihole /dev/null /var/log/pihole/FTL.log
-[ -f /var/log/pihole/pihole.log ] || install -m 640 -o pihole -g pihole /dev/null /var/log/pihole/pihole.log
-[ -f /var/log/pihole/webserver.log ] || install -m 640 -o pihole -g pihole /dev/null /var/log/pihole/webserver.log
+[ -f "${FTL_LOG_FILE}" ] || install -m 640 -o pihole -g pihole /dev/null "${FTL_LOG_FILE}"
+[ -f "${PIHOLE_LOG_FILE}" ] || install -m 640 -o pihole -g pihole /dev/null "${PIHOLE_LOG_FILE}"
+[ -f "${WEBSERVER_LOG_FILE}" ] || install -m 640 -o pihole -g pihole /dev/null "${WEBSERVER_LOG_FILE}"
 [ -f /etc/pihole/dhcp.leases ] || install -m 644 -o pihole -g pihole /dev/null /etc/pihole/dhcp.leases
