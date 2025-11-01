@@ -100,9 +100,12 @@ Available commands and options:
       -c                Include a Pi-hole database integrity check
 .br
 
-\fB-f, flush\fR
+\fB-f, flush\fR [quite]
 .br
-    Flush the Pi-hole log
+    Flush the Pi-hole log and last 24h from the query database
+.br
+
+      quite           Suppress output
 .br
 
 \fB-r, repair\fR
@@ -240,6 +243,14 @@ Available commands and options:
 .br
 
       verbose           Show authentication and status messages
+.br
+
+\fBlogrotate\fR [quite]
+.br
+    Rotate Pi-hole's log files
+.br
+
+      quite           Suppress output
 .br
 
 .SH "EXAMPLE"
