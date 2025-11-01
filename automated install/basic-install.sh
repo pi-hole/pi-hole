@@ -197,6 +197,17 @@ for var in "$@"; do
     esac
 done
 
+if [[ "${runUnattended}" == true ]]; then
+    # In order to run an unattended setup, a pre-seeded /etc/pihole/pihole.toml must exist
+    if [[ ! -f "${PI_HOLE_CONFIG_DIR}/pihole.toml" ]]; then
+        printf "  %b Error: \"%s\" not found. Cannot run unattended setup\\n" "${CROSS}" "${PI_HOLE_CONFIG_DIR}/pihole.toml"
+        exit 1
+    fi
+    printf "  %b Performing unattended setup, no dialogs will be displayed\\n" "${INFO}"
+    # also disable debconf-apt-progress dialogs
+    export DEBIAN_FRONTEND="noninteractive"
+fi
+
 # If the color table file exists,
 if [[ -f "${coltable}" ]]; then
     # source it
@@ -2327,15 +2338,6 @@ main() {
     if [[ "${funcOutput}" == "" ]]; then
         printf "  %b Upgrade/install aborted\\n" "${CROSS}" "${DISTRO_NAME}"
         exit 1
-    fi
-
-    if [[ "${fresh_install}" == false ]]; then
-        # if it's running unattended,
-        if [[ "${runUnattended}" == true ]]; then
-            printf "  %b Performing unattended setup, no dialogs will be displayed\\n" "${INFO}"
-            # also disable debconf-apt-progress dialogs
-            export DEBIAN_FRONTEND="noninteractive"
-        fi
     fi
 
     if [[ "${fresh_install}" == true ]]; then
