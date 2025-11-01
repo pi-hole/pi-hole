@@ -611,7 +611,7 @@ compareLists() {
 # Download specified URL and perform checks on HTTP status and file content
 gravity_DownloadBlocklistFromUrl() {
   local url="${1}" adlistID="${2}" saveLocation="${3}" compression="${4}" gravity_type="${5}" domain="${6}"
-  local listCurlBuffer str httpCode success="" ip customUpstreamResolver=""
+  local listCurlBuffer str curlJson httpCode curlErrorMsg="" curlExitCode="" success="" ip customUpstreamResolver=""
   local file_path permissions ip_addr port blocked=false download=true
   # modifiedOptions is an array to store all the options used to check if the adlist has been changed upstream
   local modifiedOptions=()
@@ -755,8 +755,13 @@ gravity_DownloadBlocklistFromUrl() {
   fi
 
   if [[ "${download}" == true ]]; then
-    httpCode=$(curl --connect-timeout ${curl_connect_timeout} -s -L ${compression:+${compression}} ${customUpstreamResolver:+${customUpstreamResolver}} "${modifiedOptions[@]}" -w "%{http_code}" "${url}" -o "${listCurlBuffer}" 2>/dev/null)
+    curlJson=$(curl --connect-timeout ${curl_connect_timeout} -s -L ${compression:+${compression}} ${customUpstreamResolver:+${customUpstreamResolver}} "${modifiedOptions[@]}" -w "%{json}" "${url}" -o "${listCurlBuffer}")
   fi
+
+  # Retrieve the HTTP code, exit code and error message returned by curl command
+  httpCode=$(echo "${curlJson}" | jq '.http_code')
+  curlErrorMsg=$(echo "${curlJson}" | jq '.errormsg')
+  curlExitCode=$(echo "${curlJson}" | jq '.exitcode')
 
   case $url in
   # Did we "download" a local file?
@@ -780,7 +785,6 @@ gravity_DownloadBlocklistFromUrl() {
       echo -e "${OVER}  ${TICK} ${str} No changes detected"
       success=true
       ;;
-    "000") echo -e "${OVER}  ${CROSS} ${str} Connection Refused" ;;
     "403") echo -e "${OVER}  ${CROSS} ${str} Forbidden" ;;
     "404") echo -e "${OVER}  ${CROSS} ${str} Not found" ;;
     "408") echo -e "${OVER}  ${CROSS} ${str} Time-out" ;;
@@ -789,7 +793,7 @@ gravity_DownloadBlocklistFromUrl() {
     "504") echo -e "${OVER}  ${CROSS} ${str} Connection Timed Out (Gateway)" ;;
     "521") echo -e "${OVER}  ${CROSS} ${str} Web Server Is Down (Cloudflare)" ;;
     "522") echo -e "${OVER}  ${CROSS} ${str} Connection Timed Out (Cloudflare)" ;;
-    *) echo -e "${OVER}  ${CROSS} ${str} ${url} (${httpCode})" ;;
+    *) echo -e "${OVER}  ${CROSS} ${str} Failure (exit_code=${COL_RED}${curlExitCode}${COL_NC} Msg: ${COL_CYAN}${curlErrorMsg}${COL_NC})" ;;
     esac
     ;;
   esac
