@@ -155,7 +155,7 @@ EOM
 )
 
 # List of required packages on APK based systems
-PIHOLE_META_VERSION_APK=0.1
+PIHOLE_META_VERSION_APK=0.2
 PIHOLE_META_DEPS_APK=(
     bash
     bash-completion
@@ -165,6 +165,8 @@ PIHOLE_META_DEPS_APK=(
     cronie
     curl
     dialog
+    doas # sudo replacement
+    doas-sudo-shim
     git
     grep
     iproute2-minimal # piholeARPTable.sh
@@ -178,7 +180,6 @@ PIHOLE_META_DEPS_APK=(
     procps-ng
     psmisc
     shadow
-    sudo
     tzdata
     unzip
     wget
