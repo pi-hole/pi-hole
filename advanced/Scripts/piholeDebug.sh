@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Pi-hole: A black hole for Internet advertisements
-# (c) 2017 Pi-hole, LLC (https://pi-hole.net)
+# © 2025 Pi-hole, LLC (https://pi-hole.net)
 # Network-wide ad blocking via your own hardware.
 #
 # Generates pihole_debug.log to be used for troubleshooting.
@@ -829,7 +829,7 @@ make_array_from_file() {
         # Otherwise, read the file line by line
         while IFS= read -r line;do
             # Otherwise, strip out comments and blank lines
-            new_line=$(echo "${line}" | sed -e 's/^\s*#.*$//' -e '/^$/d')
+            new_line=$(echo "${line}" | sed -e 's/^(\s|\\)*#.*$//' -e '/^$/d')
             # If the line still has content (a non-zero value)
             if [[ -n "${new_line}" ]]; then
 
