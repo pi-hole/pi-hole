@@ -155,7 +155,7 @@ EOM
 )
 
 # List of required packages on APK based systems
-PIHOLE_META_VERSION_APK=0.1
+PIHOLE_META_VERSION_APK=0.2
 PIHOLE_META_DEPS_APK=(
     bash
     bash-completion
@@ -165,6 +165,7 @@ PIHOLE_META_DEPS_APK=(
     cronie
     curl
     dialog
+    doas
     git
     grep
     iproute2-minimal # piholeARPTable.sh
@@ -178,7 +179,6 @@ PIHOLE_META_DEPS_APK=(
     procps-ng
     psmisc
     shadow
-    sudo
     tzdata
     unzip
     wget
@@ -1512,8 +1512,15 @@ installCron() {
 # Gravity is a very important script as it aggregates all of the domains into a single HOSTS formatted list,
 # which is what Pi-hole needs to begin blocking ads
 runGravity() {
+    # we should have sudo/doas installed by this point
+    if is_command sudo; then
+        SUDO=sudo
+    elif is_command doas; then
+        SUDO=doas
+    fi
+
     # Run gravity in the current shell as user pihole
-    { sudo -u pihole bash /opt/pihole/gravity.sh --force; }
+    $SUDO -u pihole bash /opt/pihole/gravity.sh --force;
 }
 
 # Check if the pihole user exists and create if it does not
@@ -2267,29 +2274,33 @@ main() {
         printf "      The Pi-hole requires elevated privileges to install and run\\n"
         printf "      Please check the installer for any concerns regarding this requirement\\n"
         printf "      Make sure to download this script from a trusted source\\n\\n"
-        printf "  %b Sudo utility check" "${INFO}"
+        printf "  %b Sudo/Doas utility check" "${INFO}"
 
-        # If the sudo command exists, try rerunning as admin
+        # If either the sudo or doas command exists, try rerunning as admin
         if is_command sudo; then
-            printf "%b  %b Sudo utility check\\n" "${OVER}" "${TICK}"
-
-            # when run via curl piping
-            if [[ "$0" == "bash" ]]; then
-                # Download the install script and run it with admin rights
-                exec curl -sSL https://install.pi-hole.net | sudo bash "$@"
-            else
-                # when run via calling local bash script
-                exec sudo bash "$0" "$@"
-            fi
-
-            exit $?
+            SUDO=sudo
+        elif is_command doas; then
+            SUDO=doas
         else
             # Otherwise, tell the user they need to run the script as root, and bail
-            printf "%b  %b Sudo utility check\\n" "${OVER}" "${CROSS}"
-            printf "  %b Sudo is needed for the Web Interface to run pihole commands\\n\\n" "${INFO}"
+            printf "%b  %b Sudo/Doas utility check\\n" "${OVER}" "${CROSS}"
+            printf "  %b Sudo or Doas are needed for the Web Interface to run pihole commands\\n\\n" "${INFO}"
             printf "  %b %bPlease re-run this installer as root${COL_NC}\\n" "${INFO}" "${COL_RED}"
             exit 1
         fi
+
+        printf "%b  %b Sudo/Doas utility check\\n" "${OVER}" "${TICK}"
+
+        # when run via curl piping
+        if [[ "$0" == "bash" ]]; then
+            # Download the install script and run it with admin rights
+            exec curl -sSL https://install.pi-hole.net | $SUDO bash "$@"
+        else
+            # when run via calling local bash script
+            exec $SUDO bash "$0" "$@"
+        fi
+
+        exit $?
     fi
 
     # Check if SELinux is Enforcing and exit before doing anything else
