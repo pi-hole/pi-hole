@@ -116,11 +116,11 @@ c=70
 PIHOLE_META_PACKAGE_CONTROL_APT=$(
     cat <<EOM
 Package: pihole-meta
-Version: 0.6
+Version: 0.7
 Maintainer: Pi-hole team <adblock@pi-hole.net>
 Architecture: all
 Description: Pi-hole dependency meta package
-Depends: awk,bash-completion,binutils,ca-certificates,cron|cron-daemon,curl,dialog,bind9-dnsutils|dnsutils,dns-root-data,git,grep,iproute2,iputils-ping,jq,libcap2,libcap2-bin,lshw,procps,psmisc,sudo,unzip
+Depends: awk,bash-completion,binutils,ca-certificates,cron|cron-daemon,curl,dialog,bind9-dnsutils|dnsutils,dns-root-data,git,grep,iproute2,iputils-ping,jq,libcap2,libcap2-bin,lshw,procps,psmisc,util-linux,unzip
 Section: contrib/metapackages
 Priority: optional
 EOM
@@ -130,12 +130,12 @@ EOM
 PIHOLE_META_PACKAGE_CONTROL_RPM=$(
     cat <<EOM
 Name: pihole-meta
-Version: 0.3
+Version: 0.4
 Release: 1
 License: EUPL
 BuildArch: noarch
 Summary: Pi-hole dependency meta package
-Requires: bash-completion,bind-utils,binutils,ca-certificates,chkconfig,cronie,curl,dialog,findutils,gawk,git,grep,iproute,jq,libcap,lshw,procps-ng,psmisc,sudo,unzip
+Requires: bash-completion,bind-utils,binutils,ca-certificates,chkconfig,cronie,curl,dialog,findutils,gawk,git,grep,iproute,jq,libcap,lshw,procps-ng,psmisc,util-linux,unzip
 %description
 Pi-hole dependency meta package
 %prep
@@ -143,6 +143,10 @@ Pi-hole dependency meta package
 %files
 %install
 %changelog
+* Wed Sep 12 2025 Pi-hole Team - 0.4
+- Remove sudo from the list of dependencies
+- Add util-linux to the list of dependencies
+
 * Mon Jul 14 2025 Pi-hole Team - 0.3
 - Remove nmap-ncat from the list of dependencies
 
@@ -155,7 +159,7 @@ EOM
 )
 
 # List of required packages on APK based systems
-PIHOLE_META_VERSION_APK=0.1
+PIHOLE_META_VERSION_APK=0.2
 PIHOLE_META_DEPS_APK=(
     bash
     bash-completion
@@ -177,8 +181,8 @@ PIHOLE_META_DEPS_APK=(
     ncurses
     procps-ng
     psmisc
+    runuser
     shadow
-    sudo
     tzdata
     unzip
     wget
@@ -1513,7 +1517,7 @@ installCron() {
 # which is what Pi-hole needs to begin blocking ads
 runGravity() {
     # Run gravity in the current shell as user pihole
-    { sudo -u pihole bash /opt/pihole/gravity.sh --force; }
+    { runuser -u pihole -- bash /opt/pihole/gravity.sh --force; }
 }
 
 # Check if the pihole user exists and create if it does not
@@ -2269,17 +2273,25 @@ main() {
         printf "      Make sure to download this script from a trusted source\\n\\n"
         printf "  %b Sudo utility check" "${INFO}"
 
-        # If the sudo command exists, try rerunning as admin
+        # Identify whether sudo or doas is present
+        local SUDO_COMMAND
         if is_command sudo; then
-            printf "%b  %b Sudo utility check\\n" "${OVER}" "${TICK}"
+            printf "%b  %b Sudo utility check - sudo present\\n" "${OVER}" "${TICK}"
+            SUDO_COMMAND="sudo"
+        elif is_command doas; then
+            printf "%b  %b Sudo utility check - doas present\\n" "${OVER}" "${TICK}"
+            SUDO_COMMAND="doas"
+        fi
 
+        # If the sudo/doas command exists, try rerunning as admin
+        if [ -n "${SUDO_COMMAND}" ]; then
             # when run via curl piping
             if [[ "$0" == "bash" ]]; then
                 # Download the install script and run it with admin rights
-                exec curl -sSL https://install.pi-hole.net | sudo bash "$@"
+                exec curl -sSL https://install.pi-hole.net | "${SUDO_COMMAND}" bash "$@"
             else
                 # when run via calling local bash script
-                exec sudo bash "$0" "$@"
+                exec "${SUDO_COMMAND}" "$0" "$@"
             fi
 
             exit $?
