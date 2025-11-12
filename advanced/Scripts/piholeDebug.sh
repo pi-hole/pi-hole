@@ -593,18 +593,21 @@ check_required_ports() {
     # Add port 53
     ports_configured+=("53")
 
+    local protocol_type port_number service_name
     # Now that we have the values stored,
     for i in "${!ports_in_use[@]}"; do
         # loop through them and assign some local variables
-        local service_name
-        service_name=$(echo "${ports_in_use[$i]}" | awk '{gsub(/users:\(\("/,"",$7);gsub(/".*/,"",$7);print $7}')
-        local protocol_type
-        protocol_type=$(echo "${ports_in_use[$i]}" | awk '{print $1}')
-        local port_number
-        port_number="$(echo "${ports_in_use[$i]}" | awk '{print $5}')" #  | awk '{gsub(/^.*:/,"",$5);print $5}')
+        read -r protocol_type port_number service_name <<< "$(
+            awk '{
+                p=$1; n=$5; s=$7
+                gsub(/users:\(\("/,"",s)
+                gsub(/".*/,"",s)
+                print p, n, s
+            }' <<< "${ports_in_use[$i]}"
+        )"
 
         # Check if the right services are using the right ports
-        if [[ ${ports_configured[*]} =~ $(echo "${port_number}" | rev | cut -d: -f1 | rev) ]]; then
+        if [[ ${ports_configured[*]} =~ ${port_number##*:} ]]; then
             compare_port_to_service_assigned  "${ftl}" "${service_name}" "${protocol_type}:${port_number}"
         else
             # If it's not a default port that Pi-hole needs, just print it out for the user to see
@@ -816,42 +819,27 @@ ftl_full_status(){
 
 make_array_from_file() {
     local filename="${1}"
+
+    # If the file is a directory do nothing since it cannot be parsed
+    [[ -d "${filename}" ]] && return
+
     # The second argument can put a limit on how many line should be read from the file
     # Since some of the files are so large, this is helpful to limit the output
     local limit=${2}
     # A local iterator for testing if we are at the limit above
     local i=0
-    # If the file is a directory
-    if [[ -d "${filename}" ]]; then
-        # do nothing since it cannot be parsed
-        :
-    else
-        # Otherwise, read the file line by line
-        while IFS= read -r line;do
-            # Otherwise, strip out comments and blank lines
-            new_line=$(echo "${line}" | sed -e 's/^\s*#.*$//' -e '/^$/d')
-            # If the line still has content (a non-zero value)
-            if [[ -n "${new_line}" ]]; then
 
-                # If the string contains "### CHANGED", highlight this part in red
-                if [[ "${new_line}" == *"### CHANGED"* ]]; then
-                    new_line="${new_line//### CHANGED/${COL_RED}### CHANGED${COL_NC}}"
-                fi
+    # Process the file, strip out comments and blank lines
+    local processed
+    processed=$(sed -e 's/^\s*#.*$//' -e '/^$/d' "${filename}")
 
-                # Finally, write this line to the log
-                log_write "   ${new_line}"
-            fi
-            # Increment the iterator +1
-            i=$((i+1))
-            # but if the limit of lines we want to see is exceeded
-            if [[ -z ${limit} ]]; then
-                # do nothing
-                :
-            elif [[ $i -eq ${limit} ]]; then
-                break
-            fi
-        done < "${filename}"
-    fi
+    while IFS= read -r line; do
+        # If the string contains "### CHANGED", highlight this part in red
+        log_write "   ${line//### CHANGED/${COL_RED}### CHANGED${COL_NC}}"
+        ((i++))
+        # if the limit of lines we want to see is exceeded do nothing
+        [[ -n ${limit} && $i -eq ${limit} ]] && break
+    done <<< "$processed"
 }
 
 parse_file() {
@@ -924,38 +912,38 @@ list_files_in_dir() {
     fi
 
     # Store the files found in an array
-    mapfile -t files_found < <(ls "${dir_to_parse}")
+    local files_found=("${dir_to_parse}"/*)
     # For each file in the array,
     for each_file in "${files_found[@]}"; do
-        if [[ -d "${dir_to_parse}/${each_file}" ]]; then
+        if [[ -d "${each_file}" ]]; then
             # If it's a directory, do nothing
             :
-        elif [[ "${dir_to_parse}/${each_file}" == "${PIHOLE_DEBUG_LOG}" ]] || \
-            [[ "${dir_to_parse}/${each_file}" == "${PIHOLE_RAW_BLOCKLIST_FILES}" ]] || \
-            [[ "${dir_to_parse}/${each_file}" == "${PIHOLE_INSTALL_LOG_FILE}" ]] || \
-            [[ "${dir_to_parse}/${each_file}" == "${PIHOLE_LOG}" ]] || \
-            [[ "${dir_to_parse}/${each_file}" == "${PIHOLE_LOG_GZIPS}" ]]; then
+        elif [[ "${each_file}" == "${PIHOLE_DEBUG_LOG}" ]] || \
+            [[ "${each_file}" == "${PIHOLE_RAW_BLOCKLIST_FILES}" ]] || \
+            [[ "${each_file}" == "${PIHOLE_INSTALL_LOG_FILE}" ]] || \
+            [[ "${each_file}" == "${PIHOLE_LOG}" ]] || \
+            [[ "${each_file}" == "${PIHOLE_LOG_GZIPS}" ]]; then
             :
         elif [[ "${dir_to_parse}" == "${DNSMASQ_D_DIRECTORY}" ]]; then
             # in case of the dnsmasq directory include all files in the debug output
-            log_write "\\n${COL_GREEN}$(ls -lhd "${dir_to_parse}"/"${each_file}")${COL_NC}"
-            make_array_from_file "${dir_to_parse}/${each_file}"
+            log_write "\\n${COL_GREEN}$(ls -lhd "${each_file}")${COL_NC}"
+            make_array_from_file "${each_file}"
         else
             # Then, parse the file's content into an array so each line can be analyzed if need be
             for i in "${!REQUIRED_FILES[@]}"; do
-                if [[ "${dir_to_parse}/${each_file}" == "${REQUIRED_FILES[$i]}" ]]; then
+                if [[ "${each_file}" == "${REQUIRED_FILES[$i]}" ]]; then
                     # display the filename
-                    log_write "\\n${COL_GREEN}$(ls -lhd "${dir_to_parse}"/"${each_file}")${COL_NC}"
+                    log_write "\\n${COL_GREEN}$(ls -lhd "${each_file}")${COL_NC}"
                     # Check if the file we want to view has a limit (because sometimes we just need a little bit of info from the file, not the entire thing)
-                    case "${dir_to_parse}/${each_file}" in
+                    case "${each_file}" in
                         # If it's Web server log, give the first and last 25 lines
-                        "${PIHOLE_WEBSERVER_LOG}") head_tail_log "${dir_to_parse}/${each_file}" 25
+                        "${PIHOLE_WEBSERVER_LOG}") head_tail_log "${each_file}" 25
                             ;;
                         # Same for the FTL log
-                        "${PIHOLE_FTL_LOG}") head_tail_log "${dir_to_parse}/${each_file}" 35
+                        "${PIHOLE_FTL_LOG}") head_tail_log "${each_file}" 35
                             ;;
                         # parse the file into an array in case we ever need to analyze it line-by-line
-                        *) make_array_from_file "${dir_to_parse}/${each_file}";
+                        *) make_array_from_file "${each_file}";
                     esac
                 else
                     # Otherwise, do nothing since it's not a file needed for Pi-hole so we don't care about it
@@ -991,6 +979,7 @@ head_tail_log() {
     local filename="${1}"
     # The number of lines to use for head and tail
     local qty="${2}"
+    local filebasename="${filename##*/}"
     local head_line
     local tail_line
     # Put the current Internal Field Separator into another variable so it can be restored later
@@ -999,14 +988,14 @@ head_tail_log() {
     IFS=$'\r\n'
     local log_head=()
     mapfile -t log_head < <(head -n "${qty}" "${filename}")
-    log_write "   ${COL_CYAN}-----head of $(basename "${filename}")------${COL_NC}"
+    log_write "   ${COL_CYAN}-----head of ${filebasename}------${COL_NC}"
     for head_line in "${log_head[@]}"; do
         log_write "   ${head_line}"
     done
     log_write ""
     local log_tail=()
     mapfile -t log_tail < <(tail -n "${qty}" "${filename}")
-    log_write "   ${COL_CYAN}-----tail of $(basename "${filename}")------${COL_NC}"
+    log_write "   ${COL_CYAN}-----tail of ${filebasename}------${COL_NC}"
     for tail_line in "${log_tail[@]}"; do
         log_write "   ${tail_line}"
     done
