@@ -725,7 +725,7 @@ dig_at() {
                 fi
 
               # Check if Pi-hole can use itself to block a domain
-                if local_dig="$(dig +tries=1 +time=2 -"${protocol}" "${random_url}" @"${local_address}" "${record_type}")"; then
+                if local_dig="$(dig +tries=1 +time=2 -"${protocol}" "${random_url}" @"${local_address}" "${record_type}" -p "$(get_ftl_conf_value "dns.port")")"; then
                     # If it can, show success
                     if [[ "${local_dig}" == *"status: NOERROR"* ]]; then
                         local_dig="NOERROR"
