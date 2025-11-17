@@ -24,7 +24,7 @@
 #          The flush script will use logrotate if available
 #          parameter "once": logrotate only once (default is twice)
 #          parameter "quiet": don't print messages
-00 00   * * *   root    PATH="$PATH:/usr/sbin:/usr/local/bin/" pihole flush once quiet
+00 00   * * *   root    PATH="$PATH:/usr/sbin:/usr/local/bin/" pihole logrotate quiet
 
 @reboot root /usr/sbin/logrotate --state /var/lib/logrotate/pihole /etc/pihole/logrotate
 
