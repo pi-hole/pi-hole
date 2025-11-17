@@ -125,7 +125,22 @@ repairPiholeFunc() {
   if [ -n "${DOCKER_VERSION}" ]; then
     unsupportedFunc
   else
-    /etc/.pihole/automated\ install/basic-install.sh --repair
+    local skipFTL additionalFlag
+    skipFTL=false
+    # Check arguments
+    for var in "$@"; do
+        case "$var" in
+            "--skipFTL") skipFTL=true ;;
+        esac
+    done
+
+    if [ "${skipFTL}" == true ]; then
+        additionalFlag="--skipFTL"
+    else
+        additionalFlag=""
+    fi
+
+    /etc/.pihole/automated\ install/basic-install.sh --repair ${additionalFlag}
     exit 0;
   fi
 }
@@ -601,7 +616,7 @@ case "${1}" in
   "-d" | "debug"                  ) debugFunc "$@";;
   "-f" | "flush"                  ) flushFunc "$@";;
   "-up" | "updatePihole"          ) updatePiholeFunc "$@";;
-  "-r"  | "repair"                ) repairPiholeFunc;;
+  "-r"  | "repair"                ) repairPiholeFunc "$@";;
   "-g" | "updateGravity"          ) updateGravityFunc "$@";;
   "-l" | "logging"                ) piholeLogging "$@";;
   "uninstall"                     ) uninstallFunc;;

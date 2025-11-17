@@ -189,11 +189,13 @@ PIHOLE_META_DEPS_APK=(
 # The runUnattended flag is one example of this
 repair=false
 runUnattended=false
+skipFTL=false
 # Check arguments for the undocumented flags
 for var in "$@"; do
     case "${var}" in
     "--repair") repair=true ;;
     "--unattended") runUnattended=true ;;
+    "--skipFTL") skipFTL=true ;;
     esac
 done
 
@@ -2321,12 +2323,18 @@ main() {
 
     # Check if there is a usable FTL binary available on this architecture - do
     # this early on as FTL is a hard dependency for Pi-hole
-    local funcOutput
-    funcOutput=$(get_binary_name) #Store output of get_binary_name here
-    # Abort early if this processor is not supported (get_binary_name returns empty string)
-    if [[ "${funcOutput}" == "" ]]; then
-        printf "  %b Upgrade/install aborted\\n" "${CROSS}" "${DISTRO_NAME}"
-        exit 1
+    # Allow the user to skip this check if they are using a self-compiled FTL binary from an unsupported architecture
+    if [ "${skipFTL}" != true ]; then
+        # Get the binary name for the current architecture
+        local funcOutput
+        funcOutput=$(get_binary_name) #Store output of get_binary_name here
+        # Abort early if this processor is not supported (get_binary_name returns empty string)
+        if [[ "${funcOutput}" == "" ]]; then
+            printf "  %b Upgrade/install aborted\\n" "${CROSS}" "${DISTRO_NAME}"
+            exit 1
+        fi
+    else
+        printf "  %b %b--skipFTL set - skipping architecture check%b\\n" "${INFO}" "${COL_YELLOW}" "${COL_NC}"
     fi
 
     if [[ "${fresh_install}" == false ]]; then
@@ -2368,13 +2376,18 @@ main() {
     create_pihole_user
 
     # Download and install FTL
-    local binary
-    binary="pihole-FTL${funcOutput##*pihole-FTL}" #binary name will be the last line of the output of get_binary_name (it always begins with pihole-FTL)
-    local theRest
-    theRest="${funcOutput%pihole-FTL*}" # Print the rest of get_binary_name's output to display (cut out from first instance of "pihole-FTL")
-    if ! FTLdetect "${binary}" "${theRest}"; then
-        printf "  %b FTL Engine not installed\\n" "${CROSS}"
-        exit 1
+    # Allow the user to skip this check if they are using a self-compiled FTL binary from an unsupported architecture
+    if [ "${skipFTL}" != true ]; then
+        local binary
+        binary="pihole-FTL${funcOutput##*pihole-FTL}" #binary name will be the last line of the output of get_binary_name (it always begins with pihole-FTL)
+        local theRest
+        theRest="${funcOutput%pihole-FTL*}" # Print the rest of get_binary_name's output to display (cut out from first instance of "pihole-FTL")
+        if ! FTLdetect "${binary}" "${theRest}"; then
+            printf "  %b FTL Engine not installed\\n" "${CROSS}"
+            exit 1
+        fi
+    else
+        printf "  %b %b--skipFTL set - skipping FTL binary installation%b\\n" "${INFO}" "${COL_YELLOW}" "${COL_NC}"
     fi
 
     # Install and log everything to a file
