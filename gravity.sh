@@ -612,7 +612,7 @@ compareLists() {
 gravity_DownloadBlocklistFromUrl() {
   local url="${1}" adlistID="${2}" saveLocation="${3}" compression="${4}" gravity_type="${5}" domain="${6}"
   local listCurlBuffer str httpCode success="" ip customUpstreamResolver=""
-  local file_path permissions ip_addr port blocked=false download=true
+  local file_path ip_addr port blocked=false download=true
   # modifiedOptions is an array to store all the options used to check if the adlist has been changed upstream
   local modifiedOptions=()
 
@@ -721,29 +721,40 @@ gravity_DownloadBlocklistFromUrl() {
     fi
   fi
 
-  # If we are going to "download" a local file, we first check if the target
-  # file has a+r permission. We explicitly check for all+read because we want
-  # to make sure that the file is readable by everyone and not just the user
-  # running the script.
-  if [[ $url == "file://"* ]]; then
+  # If we "download" a local file (file://), verify read access before using it.
+    # When running as root (e.g., via pihole -g), check that the 'pihole' user can read the file
+    # to match the effective runtime user of FTL; otherwise, check the current user's read access
+    # (e.g., in Docker or when invoked by a non-root user). The target must
+    # resolve to a regular file and be readable by the evaluated user.
+  if [[ "${url}" == "file:/"* ]]; then
     # Get the file path
-    file_path=$(echo "$url" | cut -d'/' -f3-)
+    file_path=$(echo "${url}" | cut -d'/' -f3-)
     # Check if the file exists and is a regular file (i.e. not a socket, fifo, tty, block). Might still be a symlink.
-    if [[ ! -f $file_path ]]; then
-      # Output that the file does not exist
-      echo -e "${OVER}  ${CROSS} ${file_path} does not exist"
-      download=false
-    else
-      # Check if the file or a file referenced by the symlink has a+r permissions
-      permissions=$(stat -L -c "%a" "$file_path")
-      if [[ $permissions == *4 || $permissions == *5 || $permissions == *6 || $permissions == *7 ]]; then
-        # Output that we are using the local file
-        echo -e "${OVER}  ${INFO} Using local file ${file_path}"
-      else
-        # Output that the file does not have the correct permissions
-        echo -e "${OVER}  ${CROSS} Cannot read file (file needs to have a+r permission)"
+    if [[ ! -f ${file_path} ]]; then
+        # Output that the file does not exist
+        echo -e "${OVER}  ${CROSS} ${file_path} does not exist"
         download=false
-      fi
+    else
+        if [ "$(id -un)" == "root" ]; then
+            # If we are root, we need to check if the pihole user has read permission
+            #  otherwise, we might read files that the pihole user should not be able to read
+            if sudo -u pihole test -r "${file_path}"; then
+                echo -e "${OVER}  ${INFO} Using local file ${file_path}"
+            else
+                echo -e "${OVER}  ${CROSS} Cannot read file (user 'pihole' lacks read permission)"
+                download=false
+            fi
+        else
+            # If we are not root, we just check if the current user has read permission
+            if [[ -r "${file_path}" ]]; then
+                # Output that we are using the local file
+                echo -e "${OVER}  ${INFO} Using local file ${file_path}"
+            else
+                # Output that the file is not readable by the current user
+                echo -e "${OVER}  ${CROSS} Cannot read file (current user '$(id -un)' lacks read permission)"
+                download=false
+            fi
+        fi
     fi
   fi
 
