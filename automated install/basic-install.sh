@@ -1808,6 +1808,12 @@ clone_or_reset_repos() {
     # If the user wants to repair/update,
     if [[ "${repair}" == true ]]; then
         printf "  %b Resetting local repos\\n" "${INFO}"
+
+        # import getFTLConfigValue from utils.sh
+        source "/opt/pihole/utils.sh"
+        # Use the configured Web repo location on repair/update
+        webInterfaceDir=$(getFTLConfigValue "webserver.paths.webroot")$(getFTLConfigValue "webserver.paths.webhome")
+
         # Reset the Core repo
         resetRepo ${PI_HOLE_LOCAL_REPO} ||
             {
