@@ -1084,7 +1084,7 @@ show_groups() {
 }
 
 show_adlists() {
-    show_db_entries "Adlists (type: 0 = blocklist, 1 = allowlist)" "SELECT id,CASE enabled WHEN '0' THEN '   0' WHEN '1' THEN '      1' ELSE enabled END enabled,GROUP_CONCAT(adlist_by_group.group_id) group_ids, CASE type WHEN '0' THEN '0' WHEN '1' THEN '   1' ELSE type END type, address,datetime(date_added,'unixepoch','localtime') date_added,datetime(date_modified,'unixepoch','localtime') date_modified,comment FROM adlist LEFT JOIN adlist_by_group ON adlist.id = adlist_by_group.adlist_id GROUP BY id;" "5 7 12 4 100 19 19 50"
+    show_db_entries "Adlists" "SELECT id,CASE enabled WHEN '0' THEN '   0' WHEN '1' THEN '      1' ELSE enabled END enabled,GROUP_CONCAT(adlist_by_group.group_id) group_ids, CASE type WHEN '0' THEN 'Block' WHEN '1' THEN 'Allow' ELSE type END type, address,datetime(date_added,'unixepoch','localtime') date_added,datetime(date_modified,'unixepoch','localtime') date_modified,comment FROM adlist LEFT JOIN adlist_by_group ON adlist.id = adlist_by_group.adlist_id GROUP BY id;" "5 7 12 5 100 19 19 50"
 }
 
 show_domainlist() {
