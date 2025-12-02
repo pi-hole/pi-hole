@@ -11,9 +11,8 @@
 # Please see LICENSE file for your rights under this license.
 
 # Variables
-readonly ADMIN_INTERFACE_GIT_URL="https://github.com/pi-hole/web.git"
-readonly PI_HOLE_GIT_URL="https://github.com/pi-hole/pi-hole.git"
-readonly PI_HOLE_FILES_DIR="/etc/.pihole"
+# Other PI_HOLE_* vars sourced from basic-install.sh
+PI_HOLE_GIT_DIR="/etc/.pihole"
 
 SKIP_INSTALL=true
 
@@ -21,11 +20,9 @@ SKIP_INSTALL=true
 CHECK_ONLY=false
 
 # shellcheck source="./automated install/basic-install.sh"
-source "${PI_HOLE_FILES_DIR}/automated install/basic-install.sh"
-# shellcheck source=./advanced/Scripts/COL_TABLE
-source "/opt/pihole/COL_TABLE"
+source "${PI_HOLE_GIT_DIR}/automated install/basic-install.sh"
 # shellcheck source="./advanced/Scripts/utils.sh"
-source "${PI_HOLE_INSTALL_DIR}/utils.sh"
+source "${PI_HOLE_SCRIPT_DIR}/utils.sh"
 
 # is_repo() sourced from basic-install.sh
 # make_repo() sourced from basic-install.sh
@@ -119,7 +116,7 @@ main() {
     install_dependent_packages
 
     # This is unlikely
-    if ! is_repo "${PI_HOLE_FILES_DIR}" ; then
+    if ! is_repo "${PI_HOLE_GIT_DIR}" ; then
         echo -e "\\n  ${COL_RED}Error: Core Pi-hole repo is missing from system!"
         echo -e "  Please re-run install script from https://pi-hole.net${COL_NC}"
         exit 1;
@@ -127,7 +124,7 @@ main() {
 
     echo -e "  ${INFO} Checking for updates..."
 
-    if GitCheckUpdateAvail "${PI_HOLE_FILES_DIR}" ; then
+    if GitCheckUpdateAvail "${PI_HOLE_GIT_DIR}" ; then
         core_update=true
         echo -e "  ${INFO} Pi-hole Core:\\t${COL_YELLOW}update available${COL_NC}"
     else
@@ -179,8 +176,8 @@ main() {
 
     # Determine FTL branch
     local ftlBranch
-    if [[ -f "/etc/pihole/ftlbranch" ]]; then
-        ftlBranch=$(</etc/pihole/ftlbranch)
+    if [[ -f "${PI_HOLE_CONFIG_DIR}/ftlbranch" ]]; then
+        ftlBranch=$(<${PI_HOLE_CONFIG_DIR}/ftlbranch)
     else
         ftlBranch="master"
     fi
@@ -205,14 +202,14 @@ main() {
     if [[ "${core_update}" == true ]]; then
         echo ""
         echo -e "  ${INFO} Pi-hole core files out of date, updating local repo."
-        getGitFiles "${PI_HOLE_FILES_DIR}" "${PI_HOLE_GIT_URL}"
+        getGitFiles "${PI_HOLE_GIT_DIR}" "${PI_HOLE_GIT_URL}"
         echo -e "  ${INFO} If you had made any changes in '/etc/.pihole/', they have been stashed using 'git stash'"
     fi
 
     if [[ "${web_update}" == true ]]; then
         echo ""
         echo -e "  ${INFO} Pi-hole Web Admin files out of date, updating local repo."
-        getGitFiles "${ADMIN_INTERFACE_DIR}" "${ADMIN_INTERFACE_GIT_URL}"
+        getGitFiles "${ADMIN_INTERFACE_DIR}" "${PI_HOLE_GIT_ADMIN_URL}"
         echo -e "  ${INFO} If you had made any changes in '${ADMIN_INTERFACE_DIR}', they have been stashed using 'git stash'"
     fi
 
@@ -222,13 +219,13 @@ main() {
     fi
 
     if [[ "${FTL_update}" == true || "${core_update}" == true ]]; then
-        ${PI_HOLE_FILES_DIR}/automated\ install/basic-install.sh --repair --unattended || \
+        ${PI_HOLE_GIT_DIR}/automated\ install/basic-install.sh --repair --unattended || \
             echo -e "${basicError}" && exit 1
     fi
 
     if [[ "${FTL_update}" == true || "${core_update}" == true || "${web_update}" == true ]]; then
         # Update local and remote versions via updatechecker
-        /opt/pihole/updatecheck.sh
+        "${PI_HOLE_SCRIPT_DIR}"/updatecheck.sh
         echo -e "  ${INFO} Local version file information updated."
     fi
 

@@ -9,16 +9,17 @@
 # Please see LICENSE file for your rights under this license.
 
 # Source the versions file populated by updatechecker.sh
-cachedVersions="/etc/pihole/versions"
+PI_HOLE_CONFIG_DIR="/etc/pihole"
+cachedVersions="${PI_HOLE_CONFIG_DIR}/versions"
 
-if [ -f ${cachedVersions} ]; then
+if [ -f "${cachedVersions}" ]; then
     # shellcheck source=/dev/null
-    . "$cachedVersions"
+    . "${cachedVersions}"
 else
-    echo "Could not find /etc/pihole/versions. Running update now."
+    echo "Could not find ${PI_HOLE_CONFIG_DIR}/versions. Running update now."
     pihole updatechecker
-     # shellcheck source=/dev/null
-    . "$cachedVersions"
+    # shellcheck source=/dev/null
+    . "${cachedVersions}"
 fi
 
 main() {

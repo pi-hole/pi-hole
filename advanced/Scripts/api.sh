@@ -22,10 +22,9 @@ TestAPIAvailability() {
     local chaos_api_list authResponse authStatus authData apiAvailable DNSport
 
     # as we are running locally, we can get the port value from FTL directly
-    PI_HOLE_SCRIPT_DIR="/opt/pihole"
-    utilsfile="${PI_HOLE_SCRIPT_DIR}/utils.sh"
+    : "${PI_HOLE_SCRIPT_DIR:=/opt/pihole}"
     # shellcheck source=./advanced/Scripts/utils.sh
-    . "${utilsfile}"
+    . "${PI_HOLE_SCRIPT_DIR}/utils.sh"
 
     DNSport=$(getFTLConfigValue dns.port)
 
@@ -118,8 +117,10 @@ LoginAPI() {
     fi
 
     # Try to read the CLI password (if enabled and readable by the current user)
-    if [ -r /etc/pihole/cli_pw ]; then
-        password=$(cat /etc/pihole/cli_pw)
+    : "${PI_HOLE_CONFIG_DIR:=/etc/pihole}"
+    local cli_pw="${PI_HOLE_CONFIG_DIR}/cli_pw"
+    if [ -r "${cli_pw}" ]; then
+        password=$(cat "${cli_pw}")
 
         if [ "${1}" = "verbose" ]; then
             echo "API Authentication: Trying to use CLI password"
@@ -314,7 +315,7 @@ secretRead() {
             # any other character
             charcount=$((charcount+1))
             printf '*'
-            password="$password$key"
+            password="${password}${key}"
         fi
     done
 

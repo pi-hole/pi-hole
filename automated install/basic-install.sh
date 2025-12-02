@@ -66,10 +66,28 @@ Cloudflare (DNSSEC);2606:4700:4700::1111;2606:4700:4700::1001
 EOM
 )
 
+# This directory is where the Pi-hole scripts will be installed
+PI_HOLE_SCRIPT_DIR="/opt/pihole"
+PI_HOLE_CONFIG_DIR="/etc/pihole"
+PI_HOLE_GIT_DIR="/etc/.pihole"
+PI_HOLE_BIN_DIR="/usr/local/bin"
+PI_HOLE_LOG_DIR="/var/log/pihole"
+
+# shellcheck source="./advanced/Scripts/COL_TABLE"
+source "${PI_HOLE_SCRIPT_DIR}/COL_TABLE" || {
+    # If the color table file doesn't exist,
+    # set these values so the installer can still run in color
+    COL_NC='\e[0m' # No Color
+    COL_GREEN='\e[1;32m'
+    COL_RED='\e[1;31m'
+    TICK="[${COL_GREEN}✓${COL_NC}]"
+    CROSS="[${COL_RED}✗${COL_NC}]"
+    INFO="[i]"
+    OVER="\\r\\033[K"
+}
+
 # Location for final installation log storage
-installLogLoc="/etc/pihole/install.log"
-# This is a file used for the colorized output
-coltable="/opt/pihole/COL_TABLE"
+installLogLoc="${PI_HOLE_CONFIG_DIR}/install.log"
 
 # Root of the web server
 webroot="/var/www/html"
@@ -77,22 +95,17 @@ webroot="/var/www/html"
 # We clone (or update) two git repositories during the install. This helps to make sure that we always have the latest versions of the relevant files.
 # web is used to set up the Web admin interface.
 # Pi-hole contains various setup scripts and files which are critical to the installation.
-# Search for "PI_HOLE_LOCAL_REPO" in this file to see all such scripts.
+# Search for "PI_HOLE_GIT_DIR" in this file to see all such scripts.
 # Two notable scripts are gravity.sh (used to generate the HOSTS file) and advanced/Scripts/webpage.sh (used to install the Web admin interface)
-webInterfaceGitUrl="https://github.com/pi-hole/web.git"
+PI_HOLE_GIT_ADMIN_URL="https://github.com/pi-hole/web.git"
 webInterfaceDir="${webroot}/admin"
-piholeGitUrl="https://github.com/pi-hole/pi-hole.git"
-PI_HOLE_LOCAL_REPO="/etc/.pihole"
+PI_HOLE_GIT_URL="https://github.com/pi-hole/pi-hole.git"
 # List of pihole scripts, stored in an array
 PI_HOLE_FILES=(list piholeDebug piholeLogFlush setupLCD update version gravity uninstall webpage)
-# This directory is where the Pi-hole scripts will be installed
-PI_HOLE_INSTALL_DIR="/opt/pihole"
-PI_HOLE_CONFIG_DIR="/etc/pihole"
-PI_HOLE_BIN_DIR="/usr/local/bin"
 PI_HOLE_V6_CONFIG="${PI_HOLE_CONFIG_DIR}/pihole.toml"
 fresh_install=true
 
-adlistFile="/etc/pihole/adlists.list"
+adlistFile="${PI_HOLE_CONFIG_DIR}/adlists.list"
 # Pi-hole needs an IP address; to begin, these variables are empty since we don't know what the IP is until this script can run
 IPV4_ADDRESS=
 IPV6_ADDRESS=
@@ -102,7 +115,7 @@ PRIVACY_LEVEL=
 PIHOLE_INTERFACE=
 
 # Where old configs go to if a v6 migration is performed
-V6_CONF_MIGRATION_DIR="/etc/pihole/migration_backup_v6"
+V6_CONF_MIGRATION_DIR="${PI_HOLE_CONFIG_DIR}/migration_backup_v6"
 
 if [ -z "${USER}" ]; then
     USER="$(id -un)"
@@ -196,23 +209,6 @@ for var in "$@"; do
     esac
 done
 
-# If the color table file exists,
-if [[ -f "${coltable}" ]]; then
-    # source it
-    # shellcheck source="./advanced/Scripts/COL_TABLE"
-    source "${coltable}"
-# Otherwise,
-else
-    # Set these values so the installer can still run in color
-    COL_NC='\e[0m' # No Color
-    COL_GREEN='\e[1;32m'
-    COL_RED='\e[1;31m'
-    TICK="[${COL_GREEN}✓${COL_NC}]"
-    CROSS="[${COL_RED}✗${COL_NC}]"
-    INFO="[i]"
-    OVER="\\r\\033[K"
-fi
-
 # A simple function that just echoes out our logo in ASCII format
 # This lets users know that it is a Pi-hole, LLC product
 show_ascii_berry() {
@@ -263,7 +259,7 @@ is_command() {
 
 check_fresh_install() {
     # in case of an update (can be a v5 -> v6 or v6 -> v6 update) or repair
-    if [[ -f "${PI_HOLE_V6_CONFIG}" ]] || [[ -f "/etc/pihole/setupVars.conf" ]]; then
+    if [[ -f "${PI_HOLE_V6_CONFIG}" ]] || [[ -f "${PI_HOLE_CONFIG_DIR}/setupVars.conf" ]]; then
         fresh_install=false
     fi
 }
@@ -1086,7 +1082,7 @@ installDefaultBlocklists() {
 }
 
 move_old_dnsmasq_ftl_configs() {
-    # Create migration directory /etc/pihole/migration_backup_v6
+    # Create migration directory ${PI_HOLE_CONFIG_DIR}/migration_backup_v6
     # and make it owned by pihole:pihole
     mkdir -p "${V6_CONF_MIGRATION_DIR}"
     chown pihole:pihole "${V6_CONF_MIGRATION_DIR}"
@@ -1160,27 +1156,27 @@ clean_existing() {
 # Install the scripts from repository to their various locations
 installScripts() {
     # Local, named variables
-    local str="Installing scripts from ${PI_HOLE_LOCAL_REPO}"
+    local str="Installing scripts from ${PI_HOLE_GIT_DIR}"
     printf "  %b %s..." "${INFO}" "${str}"
 
     # Clear out script files from Pi-hole scripts directory.
-    clean_existing "${PI_HOLE_INSTALL_DIR}" "${PI_HOLE_FILES[@]}"
+    clean_existing "${PI_HOLE_SCRIPT_DIR}" "${PI_HOLE_FILES[@]}"
 
     # Install files from local core repository
-    if is_repo "${PI_HOLE_LOCAL_REPO}"; then
+    if is_repo "${PI_HOLE_GIT_DIR}"; then
         # move into the directory
-        cd "${PI_HOLE_LOCAL_REPO}"
+        cd "${PI_HOLE_GIT_DIR}"
         # Install the scripts by:
         #  -o setting the owner to the user
         #  -Dm755 create all leading components of destination except the last, then copy the source to the destination and setting the permissions to 755
         #
         # This first one is the directory
-        install -o "${USER}" -Dm755 -d "${PI_HOLE_INSTALL_DIR}"
+        install -o "${USER}" -Dm755 -d "${PI_HOLE_SCRIPT_DIR}"
         # The rest are the scripts Pi-hole needs
-        install -o "${USER}" -Dm755 -t "${PI_HOLE_INSTALL_DIR}" gravity.sh
-        install -o "${USER}" -Dm755 -t "${PI_HOLE_INSTALL_DIR}" ./advanced/Scripts/*.sh
-        install -o "${USER}" -Dm755 -t "${PI_HOLE_INSTALL_DIR}" ./automated\ install/uninstall.sh
-        install -o "${USER}" -Dm755 -t "${PI_HOLE_INSTALL_DIR}" ./advanced/Scripts/COL_TABLE
+        install -o "${USER}" -Dm755 -t "${PI_HOLE_SCRIPT_DIR}" gravity.sh
+        install -o "${USER}" -Dm755 -t "${PI_HOLE_SCRIPT_DIR}" ./advanced/Scripts/*.sh
+        install -o "${USER}" -Dm755 -t "${PI_HOLE_SCRIPT_DIR}" ./automated\ install/uninstall.sh
+        install -o "${USER}" -Dm755 -t "${PI_HOLE_SCRIPT_DIR}" ./advanced/Scripts/COL_TABLE
         install -o "${USER}" -Dm755 -t "${PI_HOLE_BIN_DIR}" pihole
         install -Dm644 ./advanced/bash-completion/pihole.bash /etc/bash_completion.d/pihole
         install -Dm644 ./advanced/bash-completion/pihole-ftl.bash /etc/bash_completion.d/pihole-FTL
@@ -1189,17 +1185,17 @@ installScripts() {
     else
         # Otherwise, show an error and exit
         printf "%b  %b %s\\n" "${OVER}" "${CROSS}" "${str}"
-        printf "\\t\\t%bError: Local repo %s not found, exiting installer%b\\n" "${COL_RED}" "${PI_HOLE_LOCAL_REPO}" "${COL_NC}"
+        printf "\\t\\t%bError: Local repo %s not found, exiting installer%b\\n" "${COL_RED}" "${PI_HOLE_GIT_DIR}" "${COL_NC}"
         return 1
     fi
 }
 
-# Install the configs from PI_HOLE_LOCAL_REPO to their various locations
+# Install the configs from PI_HOLE_GIT_DIR to their various locations
 installConfigs() {
-    printf "\\n  %b Installing configs from %s...\\n" "${INFO}" "${PI_HOLE_LOCAL_REPO}"
+    printf "\\n  %b Installing configs from %s...\\n" "${INFO}" "${PI_HOLE_GIT_DIR}"
 
     # Ensure that permissions are correctly set
-    chown -R pihole:pihole /etc/pihole
+    chown -R pihole:pihole "${PI_HOLE_CONFIG_DIR}"
 
     # Install empty custom.list file if it does not exist
     if [[ ! -r "${PI_HOLE_CONFIG_DIR}/hosts/custom.list" ]]; then
@@ -1211,7 +1207,7 @@ installConfigs() {
 
     # Install pihole-FTL systemd or init.d service, based on whether systemd is the init system or not
     if ps -p 1 -o comm= | grep -q systemd; then
-        install -T -m 0644 "${PI_HOLE_LOCAL_REPO}/advanced/Templates/pihole-FTL.systemd" '/etc/systemd/system/pihole-FTL.service'
+        install -T -m 0644 "${PI_HOLE_GIT_DIR}/advanced/Templates/pihole-FTL.systemd" '/etc/systemd/system/pihole-FTL.service'
 
         # Remove init.d service if present
         if [[ -e '/etc/init.d/pihole-FTL' ]]; then
@@ -1226,11 +1222,10 @@ installConfigs() {
         if is_command openrc; then
             INIT="openrc"
         fi
-
         install -T -m 0755 "${PI_HOLE_LOCAL_REPO}/advanced/Templates/pihole-FTL.${INIT}" '/etc/init.d/pihole-FTL'
     fi
-    install -T -m 0755 "${PI_HOLE_LOCAL_REPO}/advanced/Templates/pihole-FTL-prestart.sh" "${PI_HOLE_INSTALL_DIR}/pihole-FTL-prestart.sh"
-    install -T -m 0755 "${PI_HOLE_LOCAL_REPO}/advanced/Templates/pihole-FTL-poststop.sh" "${PI_HOLE_INSTALL_DIR}/pihole-FTL-poststop.sh"
+    install -T -m 0755 "${PI_HOLE_GIT_DIR}/advanced/Templates/pihole-FTL-prestart.sh" "${PI_HOLE_SCRIPT_DIR}/pihole-FTL-prestart.sh"
+    install -T -m 0755 "${PI_HOLE_GIT_DIR}/advanced/Templates/pihole-FTL-poststop.sh" "${PI_HOLE_SCRIPT_DIR}/pihole-FTL-poststop.sh"
 }
 
 install_manpage() {
@@ -1256,7 +1251,7 @@ install_manpage() {
         install -d -m 755 /usr/local/share/man/man5
     fi
     # Testing complete, copy the files & update the man db
-    install -D -m 644 -T ${PI_HOLE_LOCAL_REPO}/manpages/pihole.8 /usr/local/share/man/man8/pihole.8
+    install -D -m 644 -T ${PI_HOLE_GIT_DIR}/manpages/pihole.8 /usr/local/share/man/man8/pihole.8
 
     # remove previously installed man pages
     if [[ -f "/usr/local/share/man/man5/pihole-FTL.conf.5" ]]; then
@@ -1491,7 +1486,7 @@ installCron() {
     printf "\\n  %b %s..." "${INFO}" "${str}"
     # Copy the cron file over from the local repo
     # File must not be world or group writeable and must be owned by root
-    install -D -m 644 -T -o root -g root ${PI_HOLE_LOCAL_REPO}/advanced/Templates/pihole.cron /etc/cron.d/pihole
+    install -D -m 644 -T -o root -g root ${PI_HOLE_GIT_DIR}/advanced/Templates/pihole.cron /etc/cron.d/pihole
     # Randomize gravity update time
     sed -i "s/59 1 /$((1 + RANDOM % 58)) $((3 + RANDOM % 2))/" /etc/cron.d/pihole
     # Randomize update checker time
@@ -1512,7 +1507,7 @@ installCron() {
 # which is what Pi-hole needs to begin blocking ads
 runGravity() {
     # Run gravity in the current shell as user pihole
-    { sudo -u pihole bash /opt/pihole/gravity.sh --force; }
+    { sudo -u pihole bash ${PI_HOLE_SCRIPT_DIR}/gravity.sh --force; }
 }
 
 # Check if the pihole user exists and create if it does not
@@ -1586,24 +1581,24 @@ create_pihole_user() {
 # Install the logrotate script
 installLogrotate() {
     local str="Installing latest logrotate script"
-    local target=/etc/pihole/logrotate
+    local target="${PI_HOLE_CONFIG_DIR}/logrotate"
     local logfileUpdate=false
 
     printf "\\n  %b %s..." "${INFO}" "${str}"
     if [[ -f ${target} ]]; then
 
-        # Account for changed logfile paths from /var/log -> /var/log/pihole/ made in core v5.11.
+        # Account for changed logfile paths from /var/log -> /var/log/pihole made in core v5.11.
         if grep -q "/var/log/pihole.log" ${target} || grep -q "/var/log/pihole-FTL.log" ${target}; then
-            sed -i 's/\/var\/log\/pihole.log/\/var\/log\/pihole\/pihole.log/g' ${target}
-            sed -i 's/\/var\/log\/pihole-FTL.log/\/var\/log\/pihole\/FTL.log/g' ${target}
+            sed -i "s:/var/log/pihole.log:${PI_HOLE_LOG_DIR}/pihole.log:g" ${target}
+            sed -i "s:/var/log/pihole-FTL.log:${PI_HOLE_LOG_DIR}/FTL.log:g" ${target}
 
             printf "\\n\\t%b Old log file paths updated in existing logrotate file. \\n" "${INFO}"
             logfileUpdate=true
         fi
 
         # Account for added webserver.log in v6.0
-        if ! grep -q "/var/log/pihole/webserver.log" ${target}; then
-            echo "/var/log/pihole/webserver.log {
+        if ! grep -q "${PI_HOLE_LOG_DIR}/webserver.log" ${target}; then
+            echo "${PI_HOLE_LOG_DIR}/webserver.log {
 # su #
 weekly
 copytruncate
@@ -1624,7 +1619,7 @@ nomail
     else
         # Copy the file over from the local repo
         # Logrotate config file must be owned by root and not writable by group or other
-        install -o root -g root -D -m 644 -T "${PI_HOLE_LOCAL_REPO}"/advanced/Templates/logrotate ${target}
+        install -o root -g root -D -m 644 -T "${PI_HOLE_GIT_DIR}"/advanced/Templates/logrotate ${target}
     fi
 
     # Different operating systems have different user / group
@@ -1808,9 +1803,9 @@ clone_or_reset_repos() {
     if [[ "${repair}" == true ]]; then
         printf "  %b Resetting local repos\\n" "${INFO}"
         # Reset the Core repo
-        resetRepo ${PI_HOLE_LOCAL_REPO} ||
+        resetRepo ${PI_HOLE_GIT_DIR} ||
             {
-                printf "  %b Unable to reset %s, exiting installer%b\\n" "${COL_RED}" "${PI_HOLE_LOCAL_REPO}" "${COL_NC}"
+                printf "  %b Unable to reset %s, exiting installer%b\\n" "${COL_RED}" "${PI_HOLE_GIT_DIR}" "${COL_NC}"
                 exit 1
             }
         # Reset the Web repo
@@ -1822,15 +1817,15 @@ clone_or_reset_repos() {
     # Otherwise, a fresh installation is happening
     else
         # so get git files for Core
-        getGitFiles ${PI_HOLE_LOCAL_REPO} ${piholeGitUrl} ||
+        getGitFiles ${PI_HOLE_GIT_DIR} ${PI_HOLE_GIT_URL} ||
             {
-                printf "  %b Unable to clone %s into %s, unable to continue%b\\n" "${COL_RED}" "${piholeGitUrl}" "${PI_HOLE_LOCAL_REPO}" "${COL_NC}"
+                printf "  %b Unable to clone %s into %s, unable to continue%b\\n" "${COL_RED}" "${PI_HOLE_GIT_URL}" "${PI_HOLE_GIT_DIR}" "${COL_NC}"
                 exit 1
             }
         # get the Web git files
-        getGitFiles ${webInterfaceDir} ${webInterfaceGitUrl} ||
+        getGitFiles ${webInterfaceDir} ${PI_HOLE_GIT_ADMIN_URL} ||
             {
-                printf "  %b Unable to clone %s into ${webInterfaceDir}, exiting installer%b\\n" "${COL_RED}" "${webInterfaceGitUrl}" "${COL_NC}"
+                printf "  %b Unable to clone %s into ${webInterfaceDir}, exiting installer%b\\n" "${COL_RED}" "${PI_HOLE_GIT_ADMIN_URL}" "${COL_NC}"
                 exit 1
             }
     fi
@@ -1851,16 +1846,14 @@ FTLinstall() {
     local tempdir
     tempdir="$(pwd)"
     local ftlBranch
-    local url
 
-    if [[ -f "/etc/pihole/ftlbranch" ]]; then
-        ftlBranch=$(</etc/pihole/ftlbranch)
+    if [[ -f "${PI_HOLE_CONFIG_DIR}/ftlbranch" ]]; then
+        ftlBranch=$(<"${PI_HOLE_CONFIG_DIR}/ftlbranch")
     else
         ftlBranch="master"
     fi
 
-    local binary
-    binary="${1}"
+    local binary="${1}"
 
     # Determine which version of FTL to download
     if [[ "${ftlBranch}" == "master" ]]; then
@@ -2010,7 +2003,7 @@ get_binary_name() {
     fi
 
     # Returning a string value via echo
-    echo ${l_binary}
+    echo "${l_binary}"
 }
 
 FTLcheckUpdate() {
@@ -2021,8 +2014,8 @@ FTLcheckUpdate() {
 
     local ftlBranch
 
-    if [[ -f "/etc/pihole/ftlbranch" ]]; then
-        ftlBranch=$(</etc/pihole/ftlbranch)
+    if [[ -f "${PI_HOLE_CONFIG_DIR}/ftlbranch" ]]; then
+        ftlBranch=$(<"${PI_HOLE_CONFIG_DIR}/ftlbranch")
     else
         ftlBranch="master"
     fi
@@ -2199,12 +2192,12 @@ disableLighttpd() {
 migrate_dnsmasq_configs() {
     # Previously, Pi-hole created a number of files in /etc/dnsmasq.d
     # During migration, their content is copied into the new single source of
-    # truth file /etc/pihole/pihole.toml and the old files are moved away to
+    # truth file ${PI_HOLE_CONFIG_DIR}/pihole.toml and the old files are moved away to
     # avoid conflicts with other services on this system
 
     # Exit early if this is already Pi-hole v6.0
-    # We decide this on the non-existence of the file /etc/pihole/setupVars.conf (either moved by previous migration or fresh install)
-    if [[ ! -f "/etc/pihole/setupVars.conf" ]]; then
+    # We decide this on the non-existence of the file ${PI_HOLE_CONFIG_DIR}/setupVars.conf (either moved by previous migration or fresh install)
+    if [[ ! -f "${PI_HOLE_CONFIG_DIR}/setupVars.conf" ]]; then
         return 0
     fi
 
@@ -2212,10 +2205,10 @@ migrate_dnsmasq_configs() {
     disableLighttpd
 
     # move_old_dnsmasq_ftl_configs() moved everything is in place,
-    # so we can create the new config file /etc/pihole/pihole.toml
+    # so we can create the new config file ${PI_HOLE_CONFIG_DIR}/pihole.toml
     # This file will be created with the default settings unless the user has
     # changed settings via setupVars.conf or the other dnsmasq files moved before
-    # During migration, setupVars.conf is moved to /etc/pihole/migration_backup_v6
+    # During migration, setupVars.conf is moved to ${PI_HOLE_CONFIG_DIR}/migration_backup_v6
     str="Migrating Pi-hole configuration to version 6"
     printf "  %b %s..." "${INFO}" "${str}"
     local FTLoutput FTLstatus
@@ -2340,7 +2333,7 @@ main() {
     if [[ "${fresh_install}" == true ]]; then
         # Display welcome dialogs
         welcomeDialogs
-        # Create directory for Pi-hole storage (/etc/pihole/)
+        # Create directory for Pi-hole storage
         install -d -m 755 "${PI_HOLE_CONFIG_DIR}"
         # Determine available interfaces
         get_available_interfaces
@@ -2379,12 +2372,12 @@ main() {
     # Install and log everything to a file
     installPihole | tee -a /proc/$$/fd/3
 
-    # /opt/pihole/utils.sh should be installed by installScripts now, so we can use it
-    if [ -f "${PI_HOLE_INSTALL_DIR}/utils.sh" ]; then
+    # ${PI_HOLE_SCRIPT_DIR}/utils.sh should be installed by installScripts now, so we can use it
+    if [ -f "${PI_HOLE_SCRIPT_DIR}/utils.sh" ]; then
         # shellcheck source="./advanced/Scripts/utils.sh"
-        source "${PI_HOLE_INSTALL_DIR}/utils.sh"
+        source "${PI_HOLE_SCRIPT_DIR}/utils.sh"
     else
-        printf "  %b Failure: /opt/pihole/utils.sh does not exist .\\n" "${CROSS}"
+        printf "  %b Failure: ${PI_HOLE_SCRIPT_DIR}/utils.sh does not exist .\\n" "${CROSS}"
         exit 1
     fi
 
@@ -2414,7 +2407,7 @@ main() {
         # gravity altogether. This may be a very long running task needlessly blocking
         # the update process.
         # Only do this on updates, not on fresh installs as the database does not exit yet
-        /opt/pihole/gravity.sh --upgrade
+        ${PI_HOLE_SCRIPT_DIR}/gravity.sh --upgrade
     fi
 
     printf "  %b Restarting services...\\n" "${INFO}"
@@ -2457,7 +2450,7 @@ main() {
     runGravity
 
     # Update local and remote versions via updatechecker
-    /opt/pihole/updatecheck.sh
+    ${PI_HOLE_SCRIPT_DIR}/updatecheck.sh
 
     if [[ "${fresh_install}" == true ]]; then
 

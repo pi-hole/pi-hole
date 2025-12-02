@@ -10,19 +10,18 @@
 # Please see LICENSE file for your rights under this license.
 
 # Globals
-PI_HOLE_INSTALL_DIR="/opt/pihole"
+PI_HOLE_SCRIPT_DIR="/opt/pihole"
 max_results="20"
 partial="false"
 domain=""
 
 # Source color table
-colfile="/opt/pihole/COL_TABLE"
 # shellcheck source="./advanced/Scripts/COL_TABLE"
-. "${colfile}"
+. "${PI_HOLE_SCRIPT_DIR}/COL_TABLE"
 
 # Source api functions
 # shellcheck source="./advanced/Scripts/api.sh"
-. "${PI_HOLE_INSTALL_DIR}/api.sh"
+. "${PI_HOLE_SCRIPT_DIR}/api.sh"
 
 Help() {
     echo "Usage: pihole -q [option] <domain>
@@ -45,8 +44,8 @@ GenerateOutput() {
     # Use JQ to count number of entries in lists and gravity
     # (output is number of list matches then number of gravity matches)
     counts=$(printf %s "${data}" | jq --raw-output '(.search.domains | length), (.search.gravity | group_by(.address,.type) | length)')
-    num_lists=$(echo "$counts" | sed -n '1p')
-    num_gravity=$(echo "$counts" | sed -n '2p')
+    num_lists=$(echo "${counts}" | sed -n '1p')
+    num_gravity=$(echo "${counts}" | sed -n '2p')
 
     if [ "${partial}" = true ]; then
         search_type_str="partially"
