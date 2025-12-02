@@ -1222,7 +1222,7 @@ installConfigs() {
         if is_command openrc; then
             INIT="openrc"
         fi
-        install -T -m 0755 "${PI_HOLE_LOCAL_REPO}/advanced/Templates/pihole-FTL.${INIT}" '/etc/init.d/pihole-FTL'
+        install -T -m 0755 "${PI_HOLE_GIT_DIR}/advanced/Templates/pihole-FTL.${INIT}" '/etc/init.d/pihole-FTL'
     fi
     install -T -m 0755 "${PI_HOLE_GIT_DIR}/advanced/Templates/pihole-FTL-prestart.sh" "${PI_HOLE_SCRIPT_DIR}/pihole-FTL-prestart.sh"
     install -T -m 0755 "${PI_HOLE_GIT_DIR}/advanced/Templates/pihole-FTL-poststop.sh" "${PI_HOLE_SCRIPT_DIR}/pihole-FTL-poststop.sh"
