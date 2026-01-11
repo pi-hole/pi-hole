@@ -945,7 +945,7 @@ database_recovery() {
   else
     echo -e "${OVER}  ${CROSS} ${str} - the following errors happened:"
     while IFS= read -r line; do echo "  - ${line}"; done <<<"${result}"
-    echo -e "  ${CROSS} Recovery failed. Try \"pihole -r recreate\" instead."
+    echo -e "  ${CROSS} Recovery failed. Try \"pihole -g -r recreate\" instead."
     exit 1
   fi
   echo ""

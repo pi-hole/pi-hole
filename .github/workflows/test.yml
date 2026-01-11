@@ -18,7 +18,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
-        uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3 #v6.0.0
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 #v6.0.1
         with:
           fetch-depth: 0 # Differential ShellCheck requires full git history
 
@@ -31,7 +31,7 @@ jobs:
           [[ $FAIL == 1 ]] && exit 1 || echo "Scripts are executable!"
 
       - name: Differential ShellCheck
-        uses: redhat-plumbers-in-action/differential-shellcheck@0d9e5b29625f871e6a4215380486d6f1a7cb6cdd #v5.5.5
+        uses: redhat-plumbers-in-action/differential-shellcheck@d965e66ec0b3b2f821f75c8eff9b12442d9a7d1e #v5.5.6
         with:
           severity: warning
           display-engine: sarif-fmt
@@ -49,7 +49,7 @@ jobs:
         run: editorconfig-checker
 
       - name: Check python code formatting with black
-        uses: psf/black@05f0a8ce1f71fbb36e1e032d3b518c7b945089a2 #25.11.0
+        uses: psf/black@782e5605c86aab56be6f905da10dcd3e463fd9c2 #25.12.0
         with:
           src: "./test"
           options: "--check --diff --color"
@@ -77,12 +77,13 @@ jobs:
             fedora_43,
             alpine_3_21,
             alpine_3_22,
+            alpine_3_23,
           ]
     env:
       DISTRO: ${{matrix.distro}}
     steps:
       - name: Checkout repository
-        uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3 #v6.0.0
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 #v6.0.1
 
       - name: Set up Python
         uses: actions/setup-python@83679a892e2d95755f2dac6acb0bfd1e9ac5d548 #v6.1.0
