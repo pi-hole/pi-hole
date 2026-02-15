@@ -607,12 +607,12 @@ confirm_ipv6_only() {
     # Confirm from user before IPv6 only install
 
     dialog --no-shadow --output-fd 1 \
---no-button "Exit" --yes-button "Install IPv6 ONLY" \
---yesno "\\n\\nWARNING - no valid IPv4 route detected.\\n\\n\
-This may be due to a temporary connectivity issue,\\n\
-or you may be installing on an IPv6 only system.\\n\\n\
-Do you wish to continue with an IPv6-only installation?\\n\\n" \
-        "${r}" "${c}" && result=0 || result="$?"
+        --no-button "Exit" --yes-button "Install IPv6 ONLY" \
+        --yesno "\\n\\nWARNING - no valid IPv4 route detected.\\n\\n\
+            This may be due to a temporary connectivity issue,\\n\
+            or you may be installing on an IPv6 only system.\\n\\n\
+            Do you wish to continue with an IPv6-only installation?\\n\\n" \
+            "${r}" "${c}" && result=0 || result="$?"
 
     case "${result}" in
     "${DIALOG_CANCEL}" | "${DIALOG_ESC}")
@@ -654,10 +654,10 @@ welcomeDialogs() {
         --no-button "Exit" --yes-button "Continue" \
         --defaultno \
         --yesno "\\n\\nThe Pi-hole is a SERVER so it needs a STATIC IP ADDRESS to function properly.\\n\\n\
-\\Zb\\Z1IMPORTANT:\\Zn If you have not already done so, you must ensure that this device has a static IP.\\n\\n\
-Depending on your operating system, there are many ways to achieve this, through DHCP reservation, or by manually assigning one.\\n\\n\
-Please continue when the static addressing has been configured." \
-        "${r}" "${c}" && result=0 || result="$?"
+            \\Zb\\Z1IMPORTANT:\\Zn If you have not already done so, you must ensure that this device has a static IP.\\n\\n\
+            Depending on your operating system, there are many ways to achieve this, through DHCP reservation, or by manually assigning one.\\n\\n\
+            Please continue when the static addressing has been configured." \
+            "${r}" "${c}" && result=0 || result="$?"
 
     case "${result}" in
     "${DIALOG_CANCEL}" | "${DIALOG_ESC}")
@@ -942,8 +942,9 @@ If you want to specify a port other than 53, separate it with a hash.\
                 dialog --no-shadow --no-collapse --keep-tite \
                     --backtitle "Specify Upstream DNS Provider(s)" \
                     --title "Upstream DNS Provider(s)" \
-                    --yesno "Are these settings correct?\\n"$'\t'"DNS Server 1:"$'\t'"${PIHOLE_DNS_1}\\n"$'\t'"DNS Server 2:"$'\t'"${PIHOLE_DNS_2}" \
-                    "${r}" "${c}" && result=0 || result=$?
+                    --yesno "Are these settings correct?\\n"$'\t'"DNS Server 1:"$'\t' \ 
+                        "${PIHOLE_DNS_1}\\n"$'\t'"DNS Server 2:"$'\t'"${PIHOLE_DNS_2}" \
+                        "${r}" "${c}" && result=0 || result=$?
 
                 case ${result} in
                 "${DIALOG_OK}")
@@ -989,7 +990,7 @@ setLogging() {
         --backtitle "Pihole Installation" \
         --title "Enable Logging" \
         --yesno "\\n\\nWould you like to enable query logging?" \
-        "${r}" "${c}" && result=0 || result=$?
+            "${r}" "${c}" && result=0 || result=$?
 
     case ${result} in
     "${DIALOG_OK}")
@@ -1045,11 +1046,11 @@ chooseBlocklists() {
     dialog --no-shadow --keep-tite \
         --backtitle "Pi-hole Installation" \
         --title "Blocklists" \
-        --yesno "\\nPi-hole relies on third party lists in order to block ads.\
-\\n\\nYou can use the suggestion below, and/or add your own after installation.\
-\\n\\nSelect 'Yes' to include:\
-\\n\\nStevenBlack's Unified Hosts List" \
-        "${r}" "${c}" && result=0 || result=$?
+        --yesno "\\nPi-hole relies on third party lists in order to block ads.\\n\\n\
+            You can use the suggestion below, and/or add your own after installation.\\n\\n\
+            Select 'Yes' to include:\\n\\n\
+            StevenBlack's Unified Hosts List" \
+            "${r}" "${c}" && result=0 || result=$?
 
     case ${result} in
     "${DIALOG_OK}")
@@ -2171,7 +2172,9 @@ disableLighttpd() {
         # The terminal is interactive
         dialog --no-shadow --keep-tite \
             --title "Pi-hole v6.0 no longer uses lighttpd" \
-           --yesno "\\n\\nPi-hole v6.0 has its own embedded web server so lighttpd is no longer needed *unless* you have custom configurations.\\n\\nIn this case, you can opt-out of disabling lighttpd and pihole-FTL will try to bind to an alternative port such as 8080.\\n\\nDo you want to disable lighttpd (recommended)?" "${r}" "${c}" && response=0 || response="$?"
+           --yesno "\\n\\nPi-hole v6.0 has its own embedded web server so lighttpd is no longer needed *unless* you have custom configurations.\\n\\n\
+               In this case, you can opt-out of disabling lighttpd and pihole-FTL will try to bind to an alternative port such as 8080.\\n\\n\
+               Do you want to disable lighttpd (recommended)?" "${r}" "${c}" && response=0 || response="$?"
     else
         # The terminal is non-interactive, assume yes. Lighttpd will be stopped
         # but keeps being installed and can easily be re-enabled by the user
