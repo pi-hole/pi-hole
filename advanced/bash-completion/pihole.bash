@@ -43,7 +43,7 @@ _pihole() {
             mapfile -t COMPREPLY < <(compgen -W "${opts_networkflush}" -- "${cur}")
         ;;
         "core"|"web"|"ftl")
-            if [[ "$prev2" == "checkout" ]]; then
+            if [[ "${prev2}" == "checkout" ]]; then
                 opts_checkout="master development"
                 mapfile -t COMPREPLY < <(compgen -W "${opts_checkout}" -- "${cur}")
             else

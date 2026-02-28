@@ -8,10 +8,9 @@
 # This file is copyright under the latest version of the EUPL.
 # Please see LICENSE file for your rights under this license.
 
-# shellcheck source="./advanced/Scripts/COL_TABLE"
-source "/opt/pihole/COL_TABLE"
+PI_HOLE_SCRIPT_DIR="/opt/pihole"
 # shellcheck source="./advanced/Scripts/utils.sh"
-source "/opt/pihole/utils.sh"
+source "${PI_HOLE_SCRIPT_DIR:-/opt/pihole}/utils.sh"
 # getFTLConfigValue() from utils.sh
 
 while true; do
@@ -43,15 +42,14 @@ PIHOLE_DB=$(getFTLConfigValue "files.database")
 GRAVITY_DB=$(getFTLConfigValue "files.gravity")
 MACVENDOR_DB=$(getFTLConfigValue "files.macvendor")
 
-PI_HOLE_LOCAL_REPO="/etc/.pihole"
+PI_HOLE_GIT_DIR="/etc/.pihole"
 # Setting SKIP_INSTALL="true" to source the installer functions without running them
 SKIP_INSTALL="true"
 # shellcheck source="./automated install/basic-install.sh"
-source "${PI_HOLE_LOCAL_REPO}/automated install/basic-install.sh"
-# Functions and Variables sources from basic-install:
+source "${PI_HOLE_SCRIPT_DIR}/basic-install.sh"
+# Functions from basic-install:
 # package_manager_detect(), disable_service(), stop_service(),
 # restart service() and is_command()
-# PI_HOLE_CONFIG_DIR PI_HOLE_INSTALL_DIR PI_HOLE_LOCAL_REPO
 
 removeMetaPackage() {
     # Purge Pi-hole meta package
@@ -129,8 +127,8 @@ removePiholeFiles() {
 
     # Remove pihole config, repo and local files
     rm -rf "${PI_HOLE_CONFIG_DIR:-/etc/pihole}" &> /dev/null
-    rm -rf "${PI_HOLE_LOCAL_REPO:-/etc/.pihole}" &> /dev/null
-    rm -rf "${PI_HOLE_INSTALL_DIR:-/opt/pihole}" &> /dev/null
+    rm -rf "${PI_HOLE_GIT_DIR:-/etc/.pihole}" &> /dev/null
+    rm -rf "${PI_HOLE_SCRIPT_DIR:-/opt/pihole}" &> /dev/null
 
     # Remove log files (including user specified non-default paths)
     # and rotated logs
@@ -139,14 +137,15 @@ removePiholeFiles() {
     rm -f "$(printf '%q' "${DNSMASQ_LOG:-/var/log/pihole/pihole.log}")*" &> /dev/null
     rm -f "$(printf '%q' "${WEBSERVER_LOG:-/var/log/pihole/webserver.log}")*" &> /dev/null
 
-    # remove any remnant log-files from old versions
+    # Remove any remnant log-files from old versions (NB this does not use
+    # PI_HOLE_LOG_DIR as log locations were previously hardcoded).
     rm -rf /var/log/*pihole* &> /dev/null
 
     # remove log directory
-    rm -rf /var/log/pihole &> /dev/null
+    rm -rf "${PI_HOLE_LOG_DIR:-/var/log/pihole}" &> /dev/null
 
     # remove the pihole command
-    rm -f /usr/local/bin/pihole &> /dev/null
+    rm -f "${PI_HOLE_BIN_DIR:-/usr/local/bin}/pihole" &> /dev/null
 
     # remove Pi-hole's bash completion
     rm -f /etc/bash_completion.d/pihole &> /dev/null

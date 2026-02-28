@@ -10,26 +10,26 @@
 # Please see LICENSE file for your rights under this license.
 
 PI_HOLE_SCRIPT_DIR="/opt/pihole"
+PI_HOLE_GIT_DIR="/etc/.pihole"
+PI_HOLE_CONFIG_DIR="/etc/pihole"
+PI_HOLE_LOG_DIR="/var/log/pihole"
 
 # PI_HOLE_BIN_DIR is not readonly here because in some functions (checkout),
 # they might get set again when the installer is sourced. This causes an
 # error due to modifying a readonly variable.
 PI_HOLE_BIN_DIR="/usr/local/bin"
 
-readonly colfile="${PI_HOLE_SCRIPT_DIR}/COL_TABLE"
 # shellcheck source=./advanced/Scripts/COL_TABLE
-source "${colfile}"
+source "${PI_HOLE_SCRIPT_DIR}/COL_TABLE"
 
-utilsfile="${PI_HOLE_SCRIPT_DIR}/utils.sh"
 # shellcheck source=./advanced/Scripts/utils.sh
-source "${utilsfile}"
+source "${PI_HOLE_SCRIPT_DIR}/utils.sh"
 
 # Source api functions
-readonly apifile="${PI_HOLE_SCRIPT_DIR}/api.sh"
 # shellcheck source=./advanced/Scripts/api.sh
-source "${apifile}"
+source "${PI_HOLE_SCRIPT_DIR}/api.sh"
 
-versionsfile="/etc/pihole/versions"
+versionsfile="${PI_HOLE_CONFIG_DIR}/versions"
 if [ -f "${versionsfile}" ]; then
     # Only source versionsfile if the file exits
     # fixes a warning during installation where versionsfile does not exist yet
@@ -82,9 +82,9 @@ debugFunc() {
     shift
 
     for value in "$@"; do
-        [[ "$value"  == *"-a"* ]] && automated="true"
-        [[ "$value"  == *"-c"* ]] && check_database_integrity="true"
-        [[ "$value" == *"--check_database"* ]] && check_database_integrity="true"
+        [[ "${value}"  == *"-a"* ]] && automated="true"
+        [[ "${value}"  == *"-c"* ]] && check_database_integrity="true"
+        [[ "${value}" == *"--check_database"* ]] && check_database_integrity="true"
     done
 
   AUTOMATED=${automated:-} CHECK_DATABASE=${check_database_integrity:-} "${PI_HOLE_SCRIPT_DIR}"/piholeDebug.sh
@@ -125,7 +125,7 @@ repairPiholeFunc() {
   if [ -n "${DOCKER_VERSION}" ]; then
     unsupportedFunc
   else
-    /etc/.pihole/automated\ install/basic-install.sh --repair
+    "${PI_HOLE_GIT_DIR}/automated install"/basic-install.sh --repair
     exit 0;
   fi
 }
@@ -175,7 +175,7 @@ reloadDNS() {
     #         not know about real-time signals
 
     pid="$(getFTLPID ${FTL_PID_FILE})"
-    if [[ "$pid" -eq "-1" ]]; then
+    if [[ "${pid}" -eq "-1" ]]; then
       svc="true"
       str="FTL is not running"
       icon="${INFO}"
@@ -191,7 +191,7 @@ reloadDNS() {
     # Reloading of the DNS cache has been requested
     # Note: This will NOT re-read any *.conf files
     pid="$(getFTLPID ${FTL_PID_FILE})"
-    if [[ "$pid" -eq "-1" ]]; then
+    if [[ "${pid}" -eq "-1" ]]; then
       svc="true"
       str="FTL is not running"
       icon="${INFO}"
@@ -289,9 +289,9 @@ Example: 'pihole logging on'
 Specify whether the Pi-hole log should be used
 
 Options:
-  on                  Enable the Pi-hole log at /var/log/pihole/pihole.log
-  off                 Disable and flush the Pi-hole log at /var/log/pihole/pihole.log
-  off noflush         Disable the Pi-hole log at /var/log/pihole/pihole.log"
+  on                  Enable the Pi-hole log at ${PI_HOLE_LOG_DIR}/pihole.log
+  off                 Disable and flush the Pi-hole log at ${PI_HOLE_LOG_DIR}/pihole.log
+  off noflush         Disable the Pi-hole log at ${PI_HOLE_LOG_DIR}/pihole.log"
     exit 0
   elif [[ "${1}" == "off" ]]; then
     # Disable logging
@@ -354,7 +354,7 @@ statusFunc() {
 
     pid="$(getFTLPID ${ftl_pid_file})"
 
-    if [[ "$pid" -eq "-1" ]]; then
+    if [[ "${pid}" -eq "-1" ]]; then
         case "${1}" in
             "web") echo "-1";;
             *) echo -e "  ${CROSS} DNS service is NOT running";;
@@ -381,7 +381,7 @@ statusFunc() {
   block_status=$(getFTLConfigValue dns.blocking.active)
   if [ ${block_status} == "true" ]; then
     case "${1}" in
-      "web") echo "$port";;
+      "web") echo "${port}";;
       *) echo -e "  ${TICK} Pi-hole blocking is enabled";;
     esac
   else

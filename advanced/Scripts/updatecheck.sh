@@ -38,20 +38,24 @@ function get_remote_hash() {
     git ls-remote "https://github.com/pi-hole/${1}" --tags "${2}" | awk '{print substr($0, 1,8);}' || return 1
 }
 
+readonly PI_HOLE_SCRIPT_DIR="/opt/pihole"
+readonly PI_HOLE_GIT_DIR="/etc/.pihole"
+readonly PI_HOLE_CONFIG_DIR="/etc/pihole"
+
 # Source the utils file for addOrEditKeyValPair()
 # shellcheck source="./advanced/Scripts/utils.sh"
-. /opt/pihole/utils.sh
+source "${PI_HOLE_SCRIPT_DIR}/utils.sh"
 
 ADMIN_INTERFACE_DIR=$(getFTLConfigValue "webserver.paths.webroot")$(getFTLConfigValue "webserver.paths.webhome")
 readonly ADMIN_INTERFACE_DIR
 
 # Remove the below three legacy files if they exist
-rm -f "/etc/pihole/GitHubVersions"
-rm -f "/etc/pihole/localbranches"
-rm -f "/etc/pihole/localversions"
+rm -f "${PI_HOLE_CONFIG_DIR}/GitHubVersions"
+rm -f "${PI_HOLE_CONFIG_DIR}/localbranches"
+rm -f "${PI_HOLE_CONFIG_DIR}/localversions"
 
 # Create new versions file if it does not exist
-VERSION_FILE="/etc/pihole/versions"
+VERSION_FILE="${PI_HOLE_CONFIG_DIR}/versions"
 touch "${VERSION_FILE}"
 chmod 644 "${VERSION_FILE}"
 
@@ -71,13 +75,13 @@ fi
 
 # get Core versions
 
-CORE_VERSION="$(get_local_version /etc/.pihole)"
+CORE_VERSION="$(get_local_version "${PI_HOLE_GIT_DIR}")"
 addOrEditKeyValPair "${VERSION_FILE}" "CORE_VERSION" "${CORE_VERSION}"
 
-CORE_BRANCH="$(get_local_branch /etc/.pihole)"
+CORE_BRANCH="$(get_local_branch "${PI_HOLE_GIT_DIR}")"
 addOrEditKeyValPair "${VERSION_FILE}" "CORE_BRANCH" "${CORE_BRANCH}"
 
-CORE_HASH="$(get_local_hash /etc/.pihole)"
+CORE_HASH="$(get_local_hash "${PI_HOLE_GIT_DIR}")"
 addOrEditKeyValPair "${VERSION_FILE}" "CORE_HASH" "${CORE_HASH}"
 
 GITHUB_CORE_VERSION="$(get_remote_version pi-hole "${CORE_BRANCH}")"
