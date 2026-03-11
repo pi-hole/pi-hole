@@ -116,7 +116,9 @@ class AgentConfig:
                     raw[section] = {**raw[section], **values}
 
         # Environment variable overrides
-        env_api_key = os.environ.get("ANTHROPIC_API_KEY") or os.environ.get("OPENAI_API_KEY", "")
+        env_api_key = os.environ.get("ANTHROPIC_API_KEY") or os.environ.get(
+            "OPENAI_API_KEY", ""
+        )
         if env_api_key:
             raw["llm"]["api_key"] = env_api_key
 

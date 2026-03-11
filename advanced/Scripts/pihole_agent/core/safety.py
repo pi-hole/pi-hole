@@ -13,33 +13,47 @@ from typing import Optional
 
 from pihole_agent.config import AgentConfig, SafetyConfig
 
-
 # Domains that should never be blocked by agents
 DEFAULT_PROTECTED_DOMAINS = {
     # DNS resolvers
-    "dns.google", "dns.google.com", "dns.quad9.net",
-    "cloudflare-dns.com", "one.one.one.one",
+    "dns.google",
+    "dns.google.com",
+    "dns.quad9.net",
+    "cloudflare-dns.com",
+    "one.one.one.one",
     # OS updates
-    "windowsupdate.com", "update.microsoft.com",
-    "updates.apple.com", "swscan.apple.com",
-    "archive.ubuntu.com", "security.ubuntu.com",
-    "deb.debian.org", "security.debian.org",
+    "windowsupdate.com",
+    "update.microsoft.com",
+    "updates.apple.com",
+    "swscan.apple.com",
+    "archive.ubuntu.com",
+    "security.ubuntu.com",
+    "deb.debian.org",
+    "security.debian.org",
     "download.fedoraproject.org",
     # Package managers
-    "pypi.org", "registry.npmjs.org", "rubygems.org",
+    "pypi.org",
+    "registry.npmjs.org",
+    "rubygems.org",
     # Critical infrastructure
-    "github.com", "raw.githubusercontent.com",
-    "gitlab.com", "bitbucket.org",
+    "github.com",
+    "raw.githubusercontent.com",
+    "gitlab.com",
+    "bitbucket.org",
     # Authentication
-    "accounts.google.com", "login.microsoftonline.com",
-    "auth0.com", "okta.com",
+    "accounts.google.com",
+    "login.microsoftonline.com",
+    "auth0.com",
+    "okta.com",
     # Pi-hole itself
-    "pi.hole", "pi-hole.net",
+    "pi.hole",
+    "pi-hole.net",
 }
 
 
 class SafetyError(Exception):
     """Raised when a safety check fails."""
+
     pass
 
 
@@ -47,8 +61,11 @@ class SafetyGuard:
     """Enforces safety constraints on all agent actions."""
 
     MUTATING_TOOLS = {
-        "block_domain", "unblock_domain", "block_regex",
-        "enable_blocking", "disable_blocking",
+        "block_domain",
+        "unblock_domain",
+        "block_regex",
+        "enable_blocking",
+        "disable_blocking",
     }
 
     def __init__(self, config: SafetyConfig) -> None:
@@ -130,8 +147,15 @@ class SafetyGuard:
     def is_mutating(self, tool_name: str) -> bool:
         return tool_name in self.MUTATING_TOOLS
 
-    def log_action(self, source: str, agent: str, action: str,
-                   target: str, rationale: str, status: str = "OK") -> None:
+    def log_action(
+        self,
+        source: str,
+        agent: str,
+        action: str,
+        target: str,
+        rationale: str,
+        status: str = "OK",
+    ) -> None:
         """Append to audit log."""
         entry = {
             "timestamp": datetime.now(timezone.utc).isoformat(),
@@ -145,7 +169,13 @@ class SafetyGuard:
         self._action_log.append(entry)
 
         # Write to file
-        log_path = Path(self._config.protected_domains_file).parent / ".." / "log" / "pihole" / "agent_audit.log"
+        log_path = (
+            Path(self._config.protected_domains_file).parent
+            / ".."
+            / "log"
+            / "pihole"
+            / "agent_audit.log"
+        )
         # Use the config's audit log path via the parent AgentConfig if available
         try:
             config = AgentConfig.load()

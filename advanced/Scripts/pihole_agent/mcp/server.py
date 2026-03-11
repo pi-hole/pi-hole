@@ -303,7 +303,9 @@ def search_adlists(ctx: Context, domain: str, partial: bool = True) -> str:
     ctx.info(f"Searching adlists for '{domain}' (partial={partial})")
     try:
         with PiholeAPIClient() as client:
-            data = client.get(f"search/{domain}?N=20&partial={'true' if partial else 'false'}")
+            data = client.get(
+                f"search/{domain}?N=20&partial={'true' if partial else 'false'}"
+            )
         return json.dumps(data, indent=2)
     except PiholeAPIError as e:
         ctx.error(f"Adlist search failed: {e}")
@@ -365,7 +367,9 @@ def analyze_query_trend(ctx: Context, hours: int = 24, bucket_minutes: int = 60)
 
 
 @mcp.tool()
-def detect_anomalous_domains(ctx: Context, hours: int = 24, min_queries: int = 10) -> str:
+def detect_anomalous_domains(
+    ctx: Context, hours: int = 24, min_queries: int = 10
+) -> str:
     """Detect domains with anomalous query patterns that may indicate malicious activity.
 
     Analyzes domains using:
@@ -399,34 +403,47 @@ def detect_anomalous_domains(ctx: Context, hours: int = 24, min_queries: int = 1
 
         if entropy > 3.5 and len(main_label) > 10:
             is_suspicious = True
-            reasons.append(f"High entropy ({entropy:.2f}) with long label — potential DGA")
+            reasons.append(
+                f"High entropy ({entropy:.2f}) with long label — potential DGA"
+            )
 
         if len(labels) > 5:
             is_suspicious = True
-            reasons.append(f"Excessive subdomain depth ({len(labels)} levels) — potential DNS tunneling")
+            reasons.append(
+                f"Excessive subdomain depth ({len(labels)} levels) — potential DNS tunneling"
+            )
 
         vowels = set("aeiou")
-        consonant_ratio = sum(1 for c in main_label.lower() if c.isalpha() and c not in vowels) / max(len(main_label), 1)
+        consonant_ratio = sum(
+            1 for c in main_label.lower() if c.isalpha() and c not in vowels
+        ) / max(len(main_label), 1)
         if consonant_ratio > 0.75 and len(main_label) > 8:
             is_suspicious = True
-            reasons.append(f"High consonant ratio ({consonant_ratio:.2f}) — random-looking domain")
+            reasons.append(
+                f"High consonant ratio ({consonant_ratio:.2f}) — random-looking domain"
+            )
 
         if is_suspicious:
-            anomalies.append({
-                "domain": domain,
-                "query_count": count,
-                "entropy": round(entropy, 2),
-                "reasons": reasons,
-            })
+            anomalies.append(
+                {
+                    "domain": domain,
+                    "query_count": count,
+                    "entropy": round(entropy, 2),
+                    "reasons": reasons,
+                }
+            )
 
     anomalies.sort(key=lambda x: x["entropy"], reverse=True)
     ctx.info(f"Found {len(anomalies)} anomalous domains out of {len(domains)} analyzed")
 
-    return json.dumps({
-        "anomalies": anomalies[:50],
-        "total_domains_analyzed": len(domains),
-        "hours_analyzed": hours,
-    }, indent=2)
+    return json.dumps(
+        {
+            "anomalies": anomalies[:50],
+            "total_domains_analyzed": len(domains),
+            "hours_analyzed": hours,
+        },
+        indent=2,
+    )
 
 
 def _shannon_entropy(text: str) -> float:
@@ -435,10 +452,7 @@ def _shannon_entropy(text: str) -> float:
         return 0.0
     freq = Counter(text.lower())
     length = len(text)
-    return -sum(
-        (count / length) * math.log2(count / length)
-        for count in freq.values()
-    )
+    return -sum((count / length) * math.log2(count / length) for count in freq.values())
 
 
 # ── Mutating: Blocking operations (safety-guarded) ──────────
@@ -472,7 +486,9 @@ def block_domain(ctx: Context, domain: str, comment: str = "") -> str:
                 f"'{safety._config.blocking_mode}'. To allow blocking, the user "
                 f"must change the policy via: pihole agent config safety.blocking_mode confirm"
             )
-            safety.log_action("mcp", "claude", "block_domain", domain, comment, "DENIED_BY_POLICY")
+            safety.log_action(
+                "mcp", "claude", "block_domain", domain, comment, "DENIED_BY_POLICY"
+            )
             ctx.warning(f"block_domain denied by policy for {domain}")
             return json.dumps({"status": "denied", "reason": msg})
     except SafetyError as e:
@@ -481,12 +497,22 @@ def block_domain(ctx: Context, domain: str, comment: str = "") -> str:
 
     try:
         with PiholeAPIClient() as client:
-            result = client.post("domains/deny/exact", {"domain": domain, "comment": comment or "Blocked via Pi-hole MCP agent"})
+            result = client.post(
+                "domains/deny/exact",
+                {
+                    "domain": domain,
+                    "comment": comment or "Blocked via Pi-hole MCP agent",
+                },
+            )
         safety.log_action("mcp", "claude", "block_domain", domain, comment, "OK")
         ctx.info(f"Successfully blocked {domain}")
-        return json.dumps({"status": "blocked", "domain": domain, "result": result}, default=str)
+        return json.dumps(
+            {"status": "blocked", "domain": domain, "result": result}, default=str
+        )
     except PiholeAPIError as e:
-        safety.log_action("mcp", "claude", "block_domain", domain, comment, f"ERROR: {e}")
+        safety.log_action(
+            "mcp", "claude", "block_domain", domain, comment, f"ERROR: {e}"
+        )
         ctx.error(f"API error blocking {domain}: {e}")
         return json.dumps({"status": "error", "reason": str(e)})
 
@@ -507,22 +533,29 @@ def unblock_domain(ctx: Context, domain: str) -> str:
         safety.check_rate_limit("unblock")
         policy = safety.check_blocking_policy("unblock_domain")
         if policy == "deny":
-            safety.log_action("mcp", "claude", "unblock_domain", domain, "", "DENIED_BY_POLICY")
-            return json.dumps({
-                "status": "denied",
-                "reason": f"Current blocking policy '{safety._config.blocking_mode}' does not allow this action."
-            })
+            safety.log_action(
+                "mcp", "claude", "unblock_domain", domain, "", "DENIED_BY_POLICY"
+            )
+            return json.dumps(
+                {
+                    "status": "denied",
+                    "reason": f"Current blocking policy '{safety._config.blocking_mode}' does not allow this action.",
+                }
+            )
     except SafetyError as e:
         return json.dumps({"status": "denied", "reason": str(e)})
 
     try:
         with PiholeAPIClient() as client:
-            result = client.post("domains:batchDelete", {
-                "domains": [{"domain": domain, "type": "deny", "kind": "exact"}]
-            })
+            result = client.post(
+                "domains:batchDelete",
+                {"domains": [{"domain": domain, "type": "deny", "kind": "exact"}]},
+            )
         safety.log_action("mcp", "claude", "unblock_domain", domain, "", "OK")
         ctx.info(f"Successfully unblocked {domain}")
-        return json.dumps({"status": "unblocked", "domain": domain, "result": result}, default=str)
+        return json.dumps(
+            {"status": "unblocked", "domain": domain, "result": result}, default=str
+        )
     except PiholeAPIError as e:
         safety.log_action("mcp", "claude", "unblock_domain", domain, "", f"ERROR: {e}")
         ctx.error(f"API error unblocking {domain}: {e}")
@@ -560,11 +593,20 @@ def disable_blocking(ctx: Context, seconds: int = 0) -> str:
         safety.check_rate_limit("disable_blocking")
         policy = safety.check_blocking_policy("disable_blocking")
         if policy == "deny":
-            safety.log_action("mcp", "claude", "disable_blocking", "global", f"{seconds}s", "DENIED_BY_POLICY")
-            return json.dumps({
-                "status": "denied",
-                "reason": f"Current blocking policy '{safety._config.blocking_mode}' does not allow this."
-            })
+            safety.log_action(
+                "mcp",
+                "claude",
+                "disable_blocking",
+                "global",
+                f"{seconds}s",
+                "DENIED_BY_POLICY",
+            )
+            return json.dumps(
+                {
+                    "status": "denied",
+                    "reason": f"Current blocking policy '{safety._config.blocking_mode}' does not allow this.",
+                }
+            )
     except SafetyError as e:
         return json.dumps({"status": "denied", "reason": str(e)})
 
@@ -574,9 +616,16 @@ def disable_blocking(ctx: Context, seconds: int = 0) -> str:
             data["timer"] = seconds
         with PiholeAPIClient() as client:
             result = client.post("dns/blocking", data)
-        safety.log_action("mcp", "claude", "disable_blocking", "global", f"{seconds}s", "OK")
-        ctx.info(f"Blocking disabled{f' for {seconds}s' if seconds else ' indefinitely'}")
-        return json.dumps({"status": "blocking_disabled", "seconds": seconds, "result": result}, default=str)
+        safety.log_action(
+            "mcp", "claude", "disable_blocking", "global", f"{seconds}s", "OK"
+        )
+        ctx.info(
+            f"Blocking disabled{f' for {seconds}s' if seconds else ' indefinitely'}"
+        )
+        return json.dumps(
+            {"status": "blocking_disabled", "seconds": seconds, "result": result},
+            default=str,
+        )
     except PiholeAPIError as e:
         ctx.error(f"Failed to disable blocking: {e}")
         return json.dumps({"status": "error", "reason": str(e)})
@@ -597,7 +646,12 @@ def get_agent_audit_log(ctx: Context, last_n: int = 20) -> str:
     log_path = Path(config.logging.audit_log)
 
     if not log_path.exists():
-        return json.dumps({"entries": [], "message": "No audit log found — no agent actions have been recorded yet"})
+        return json.dumps(
+            {
+                "entries": [],
+                "message": "No audit log found — no agent actions have been recorded yet",
+            }
+        )
 
     lines = log_path.read_text().strip().splitlines()
     recent = lines[-last_n:] if len(lines) > last_n else lines
@@ -658,13 +712,15 @@ def check_provider_gate() -> None:
             f"The MCP server is designed for Claude Desktop and Claude mobile apps.\n"
             f"To use it, set the provider in /etc/pihole/agent.toml:\n\n"
             f"  [llm]\n"
-            f"  provider = \"anthropic\"\n",
+            f'  provider = "anthropic"\n',
             file=sys.stderr,
         )
         sys.exit(1)
 
 
-def run_server(transport: str = "stdio", host: str = "127.0.0.1", port: int = 8741) -> None:
+def run_server(
+    transport: str = "stdio", host: str = "127.0.0.1", port: int = 8741
+) -> None:
     """Start the MCP server with the specified transport."""
     check_provider_gate()
 
@@ -677,5 +733,7 @@ def run_server(transport: str = "stdio", host: str = "127.0.0.1", port: int = 87
         mcp.run(transport="streamable-http", host=host, port=port)
     else:
         logger.error(f"Unknown transport: {transport}")
-        print(f"Unknown transport: {transport}. Use 'stdio' or 'http'.", file=sys.stderr)
+        print(
+            f"Unknown transport: {transport}. Use 'stdio' or 'http'.", file=sys.stderr
+        )
         sys.exit(1)

@@ -14,6 +14,7 @@ from pihole_agent.config import AgentConfig
 
 class MCPAuthError(Exception):
     """Raised when authentication fails."""
+
     pass
 
 
@@ -31,7 +32,9 @@ def generate_token() -> str:
     return f"mcp_ph_{secrets.token_hex(32)}"
 
 
-def save_token_to_config(token: str, config_path: str = "/etc/pihole/agent.toml") -> None:
+def save_token_to_config(
+    token: str, config_path: str = "/etc/pihole/agent.toml"
+) -> None:
     """Save a generated token to the config file.
 
     Creates the file if it doesn't exist, or updates the auth_token line
@@ -53,16 +56,14 @@ def save_token_to_config(token: str, config_path: str = "/etc/pihole/agent.toml"
         else:
             # Add under [mcp] section if it exists, else append
             if "[mcp]" in content:
-                content = content.replace("[mcp]", f"[mcp]\nauth_token = \"{token}\"")
+                content = content.replace("[mcp]", f'[mcp]\nauth_token = "{token}"')
                 path.write_text(content)
             else:
                 with open(path, "a") as f:
-                    f.write(f"\n[mcp]\nauth_token = \"{token}\"\n")
+                    f.write(f'\n[mcp]\nauth_token = "{token}"\n')
     else:
         path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_text(
-            f'[mcp]\nauth_token = "{token}"\n'
-        )
+        path.write_text(f'[mcp]\nauth_token = "{token}"\n')
         path.chmod(0o600)
 
     print(f"Generated MCP auth token: {token}")

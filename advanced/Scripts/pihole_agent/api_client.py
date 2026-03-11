@@ -15,12 +15,12 @@ from typing import Any, Optional
 
 import requests
 
-
 CLI_PW_PATH = "/etc/pihole/cli_pw"
 
 
 class PiholeAPIError(Exception):
     """Raised when the FTL API returns an error."""
+
     pass
 
 
@@ -50,8 +50,18 @@ class PiholeAPIClient:
         # Try CHAOS TXT query (same as api.sh line 35)
         try:
             result = subprocess.run(
-                ["dig", "+short", f"-p{dns_port}", "chaos", "txt", "local.api.ftl", "@127.0.0.1"],
-                capture_output=True, text=True, timeout=5,
+                [
+                    "dig",
+                    "+short",
+                    f"-p{dns_port}",
+                    "chaos",
+                    "txt",
+                    "local.api.ftl",
+                    "@127.0.0.1",
+                ],
+                capture_output=True,
+                text=True,
+                timeout=5,
             )
             if result.returncode == 0 and result.stdout.strip():
                 urls = result.stdout.strip().replace('"', "").split("\n")
@@ -156,7 +166,9 @@ class PiholeAPIClient:
         try:
             result = subprocess.run(
                 ["pihole-FTL", "--config", "-q", key],
-                capture_output=True, text=True, timeout=5,
+                capture_output=True,
+                text=True,
+                timeout=5,
             )
             value = result.stdout.strip()
             return value if value else default
