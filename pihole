@@ -140,6 +140,12 @@ queryFunc() {
   exit 0
 }
 
+agentFunc() {
+  shift
+  "${PI_HOLE_SCRIPT_DIR}"/piholeAgent.sh "$@"
+  exit 0
+}
+
 chronometerFunc() {
   echo "Chronometer is gone, use PADD (https://github.com/pi-hole/PADD)"
   exit 0
@@ -535,7 +541,9 @@ Options:
   checkout            Switch Pi-hole subsystems to a different GitHub branch
                         Add '-h' for more info on checkout usage
   networkflush        Flush information stored in Pi-hole's network tables
-                        Add '--arp' to additionally flush the ARP table ";
+                        Add '--arp' to additionally flush the ARP table
+  agent               AI-powered network analysis and management
+                        Add '-h' for more info on agent usage ";
   exit 0
 }
 
@@ -561,6 +569,7 @@ case "${1}" in
   "enable"                        ) piholeEnable true "$2";;
   "disable"                       ) piholeEnable false "$2";;
   "api"                           ) shift; apiFunc "$@"; exit 0;;
+  "agent"                         ) agentFunc "$@";;
 
   # we need to add all arguments that require sudo power to not trigger the * argument
   "-f" | "flush"                  ) need_root=true;;

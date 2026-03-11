@@ -1,0 +1,26 @@
+[Unit]
+Description=Pi-hole AI Agent MCP Server (HTTP transport)
+Documentation=https://pi-hole.net
+After=network.target pihole-FTL.service
+Requires=pihole-FTL.service
+
+[Service]
+Type=simple
+ExecStart=/opt/pihole/piholeAgent.sh mcp --transport http --port 8741
+Restart=on-failure
+RestartSec=10
+
+# Security hardening
+User=pihole
+Group=pihole
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/log/pihole /etc/pihole
+PrivateTmp=true
+
+# Environment
+EnvironmentFile=-/etc/pihole/agent.env
+
+[Install]
+WantedBy=multi-user.target

@@ -394,6 +394,13 @@ analysis_window_minutes = 15
 alert_log = "/var/log/pihole/agent_alerts.log"
 state_file = "/etc/pihole/agent_monitor_state.json"
 
+[mcp]
+enabled = true
+transport = "stdio"                 # "stdio" for Claude Desktop, "http" for mobile/remote
+port = 8741                         # Port for HTTP transport
+host = "127.0.0.1"                  # Bind address ("0.0.0.0" for all interfaces)
+auth_token = ""                     # Required for HTTP transport; generate via --generate-token
+
 [logging]
 audit_log = "/var/log/pihole/agent_audit.log"
 level = "info"                      # "debug", "info", "warning", "error"
@@ -467,17 +474,347 @@ File permissions: `0600`, readable only by root/pihole user (protects API keys).
 
 **Validation:** `pihole agent monitor` runs, detects anomalous queries, writes alerts.
 
-### Phase 5: Testing
+### Phase 5: MCP Server (Claude Desktop & Mobile)
+**Goal:** Expose all agent tools via MCP for Claude Desktop and mobile control
+
+**Create:**
+- `advanced/Scripts/pihole_agent/mcp_server.py`
+- `advanced/Scripts/pihole_agent/mcp_auth.py`
+- `advanced/Scripts/pihole_agent/mcp_resources.py`
+- `advanced/Scripts/piholeAgentMCP.sh`
+- `advanced/Templates/pihole-agent-mcp.service`
+
+**Modify:**
+- `advanced/Scripts/pihole_agent/__main__.py` — add `mcp` subcommand
+- `requirements-agent.txt` — add `mcp[cli]>=1.0.0`
+
+**Validation:**
+- `pihole agent mcp` starts stdio server; Claude Desktop discovers and uses tools
+- `pihole agent mcp --transport http` starts HTTP server; Claude mobile connects
+- Safety guardrails apply to all MCP tool calls
+- Audit log records MCP-sourced actions
+
+### Phase 6: Testing
 **Goal:** Unit tests for safety-critical components
 
 **Create:**
 - `test/test_agent_safety.py`
 - `test/test_agent_tools.py`
 - `test/test_agent_api_client.py`
+- `test/test_agent_mcp.py`
 
 ---
 
-## 9. Extensibility Path
+## 9. MCP Server — Claude Desktop & Mobile Control
+
+The Pi-hole agent framework exposes its full toolset as an **MCP (Model Context Protocol) server**, enabling control from Claude Desktop, Claude mobile apps, and any MCP-compatible client. This turns your Pi-hole into a tool that Claude can use directly — no CLI needed.
+
+### 9.1 Architecture
+
+```
+┌─────────────────────┐     ┌──────────────────────┐     ┌─────────────────┐
+│  Claude Desktop     │     │  Claude Mobile /      │     │  Any MCP Client │
+│  (stdio transport)  │     │  Remote Clients       │     │  (custom apps)  │
+└────────┬────────────┘     │  (HTTP transport)     │     └────────┬────────┘
+         │                  └──────────┬─────────────┘              │
+         │ stdin/stdout                │ HTTPS                      │
+         │                             │                            │
+         ▼                             ▼                            │
+┌─────────────────────────────────────────────────────────────────────┐
+│                    Pi-hole MCP Server                                │
+│  advanced/Scripts/pihole_agent/mcp_server.py                        │
+│                                                                     │
+│  ┌─────────────┐  ┌──────────────┐  ┌────────────────────────────┐ │
+│  │ MCP Tools   │  │ MCP Resources│  │ Safety Layer (same guards) │ │
+│  │ (14 tools)  │  │ (live data)  │  │ rate limits, protection    │ │
+│  └─────────────┘  └──────────────┘  └────────────────────────────┘ │
+│                           │                                         │
+│              ┌────────────┼────────────┐                            │
+│              ▼            ▼            ▼                            │
+│      FTL REST API    pihole-FTL.db   gravity.db                    │
+│      (mutations)     (read-only)     (read-only)                   │
+└─────────────────────────────────────────────────────────────────────┘
+```
+
+The MCP server reuses the same `api_client.py`, `db_reader.py`, `tools/`, and `core/safety.py` modules that the CLI agents use. No logic duplication — the MCP layer is purely a protocol adapter.
+
+### 9.2 New Files
+
+```
+advanced/Scripts/pihole_agent/
+  ├── mcp_server.py              # MCP server: tool + resource registration
+  ├── mcp_auth.py                # Authentication middleware for remote access
+  └── mcp_resources.py           # MCP resource definitions (live data endpoints)
+```
+
+Plus setup/config files:
+```
+advanced/Scripts/piholeAgentMCP.sh          # Bash shim for MCP server startup
+advanced/Templates/pihole-agent-mcp.service # systemd unit for HTTP transport
+```
+
+### 9.3 MCP Server Implementation (`mcp_server.py`)
+
+Built with the official MCP Python SDK (`mcp` package) using FastMCP:
+
+```python
+from mcp.server.fastmcp import FastMCP, Context
+
+mcp = FastMCP("Pi-hole Agent")
+
+# ── MCP Tools (mapped 1:1 from existing tools/) ──────────────
+
+@mcp.tool()
+def get_stats_summary() -> dict:
+    """Get Pi-hole statistics: total queries, blocked, percentage, top domains."""
+    with PiholeAPIClient() as client:
+        return client.get("stats/summary")
+
+@mcp.tool()
+def get_recent_queries(hours: int = 24, limit: int = 100) -> list[dict]:
+    """Get recent DNS queries from the Pi-hole query log."""
+    reader = PiholeDBReader()
+    return reader.get_recent_queries(hours=hours, limit=limit)
+
+@mcp.tool()
+def block_domain(domain: str, comment: str = "") -> dict:
+    """Add a domain to Pi-hole's deny list. Requires safety check."""
+    safety = SafetyGuard.from_config()
+    safety.check_domain_protection(domain)  # raises if protected
+    safety.check_rate_limit("block")        # raises if exceeded
+    with PiholeAPIClient() as client:
+        result = client.post("domains/deny/exact", {"domain": domain, "comment": comment})
+    safety.log_action("mcp", "block_domain", domain, comment)
+    return result
+
+@mcp.tool()
+def unblock_domain(domain: str) -> dict:
+    """Remove a domain from Pi-hole's deny list."""
+    # ... similar pattern with safety checks
+
+@mcp.tool()
+def search_adlists(domain: str, partial: bool = True) -> dict:
+    """Search Pi-hole's adlists for a domain."""
+    with PiholeAPIClient() as client:
+        return client.get(f"search/{domain}?N=20&partial={str(partial).lower()}")
+
+@mcp.tool()
+def enable_blocking() -> dict:
+    """Enable Pi-hole DNS blocking."""
+    with PiholeAPIClient() as client:
+        return client.post("dns/blocking", {"blocking": True})
+
+@mcp.tool()
+def disable_blocking(seconds: int = 0) -> dict:
+    """Temporarily disable Pi-hole DNS blocking. seconds=0 means indefinite."""
+    safety = SafetyGuard.from_config()
+    safety.check_rate_limit("disable_blocking")
+    with PiholeAPIClient() as client:
+        data = {"blocking": False}
+        if seconds > 0:
+            data["timer"] = seconds
+        return client.post("dns/blocking", data)
+
+@mcp.tool()
+def get_top_domains(count: int = 10, hours: int = 24) -> list[dict]:
+    """Get top queried domains over the specified time period."""
+    reader = PiholeDBReader()
+    return reader.get_query_counts_by_domain(hours=hours)[:count]
+
+@mcp.tool()
+def get_top_clients(count: int = 10, hours: int = 24) -> list[dict]:
+    """Get top DNS clients over the specified time period."""
+    reader = PiholeDBReader()
+    return reader.get_query_counts_by_client(hours=hours)[:count]
+
+@mcp.tool()
+def detect_anomalous_domains(hours: int = 24) -> list[dict]:
+    """Detect domains with anomalous query patterns (potential DGA, tunneling)."""
+    # Uses analysis_tools.py internally
+
+@mcp.tool()
+def analyze_query_trend(hours: int = 24, bucket_minutes: int = 60) -> list[dict]:
+    """Get query volume trend over time, bucketed by interval."""
+    # Time-series data for the LLM to reason about
+
+@mcp.tool()
+def list_denied_domains() -> list[dict]:
+    """List all domains currently on the deny list."""
+    with PiholeAPIClient() as client:
+        return client.get("domains/deny/exact")
+
+@mcp.tool()
+def list_allowed_domains() -> list[dict]:
+    """List all domains currently on the allow list."""
+    with PiholeAPIClient() as client:
+        return client.get("domains/allow/exact")
+
+@mcp.tool()
+def get_audit_log(last_n: int = 20) -> list[dict]:
+    """Get the last N entries from the agent audit log."""
+    # Reads /var/log/pihole/agent_audit.log
+
+# ── MCP Resources (live data endpoints) ──────────────
+
+@mcp.resource("pihole://stats/summary")
+def stats_summary() -> str:
+    """Current Pi-hole statistics summary."""
+    with PiholeAPIClient() as client:
+        return json.dumps(client.get("stats/summary"), indent=2)
+
+@mcp.resource("pihole://blocking/status")
+def blocking_status() -> str:
+    """Current DNS blocking status (enabled/disabled)."""
+    with PiholeAPIClient() as client:
+        return json.dumps(client.get("dns/blocking"))
+
+@mcp.resource("pihole://config/safety")
+def safety_config() -> str:
+    """Current agent safety configuration."""
+    config = AgentConfig.load()
+    return json.dumps(config.safety_dict(), indent=2)
+```
+
+### 9.4 Transport Modes
+
+The MCP server supports two transport modes, selectable at startup:
+
+**stdio (for Claude Desktop):**
+```bash
+pihole agent mcp                      # starts in stdio mode (default)
+pihole agent mcp --transport stdio    # explicit
+```
+
+Claude Desktop launches this as a subprocess. Configure in `claude_desktop_config.json`:
+```json
+{
+  "mcpServers": {
+    "pihole": {
+      "command": "pihole",
+      "args": ["agent", "mcp"],
+      "env": {}
+    }
+  }
+}
+```
+
+If Pi-hole is on a remote machine and you SSH in:
+```json
+{
+  "mcpServers": {
+    "pihole": {
+      "command": "ssh",
+      "args": ["pi@192.168.1.2", "pihole", "agent", "mcp"]
+    }
+  }
+}
+```
+
+**Streamable HTTP (for mobile and remote clients):**
+```bash
+pihole agent mcp --transport http --port 8741
+pihole agent mcp --transport http --port 8741 --host 0.0.0.0  # listen on all interfaces
+```
+
+This starts a persistent HTTP server that Claude mobile apps (and any MCP client) can connect to.
+
+### 9.5 Mobile Access Setup
+
+Claude for iOS and Android support remote MCP servers. To control Pi-hole from your phone:
+
+**Step 1: Start the MCP HTTP server on your Pi-hole:**
+```bash
+# One-time: start as a systemd service
+sudo systemctl enable pihole-agent-mcp
+sudo systemctl start pihole-agent-mcp
+```
+
+The systemd unit (`advanced/Templates/pihole-agent-mcp.service`) runs:
+```
+pihole agent mcp --transport http --port 8741 --host 127.0.0.1
+```
+
+**Step 2: Set up a reverse proxy with HTTPS (required for remote MCP).**
+
+Example with Caddy (auto-HTTPS):
+```
+pihole.yourdomain.com {
+    reverse_proxy localhost:8741
+}
+```
+
+Or with nginx + Let's Encrypt:
+```nginx
+server {
+    listen 443 ssl;
+    server_name pihole.yourdomain.com;
+    ssl_certificate /etc/letsencrypt/live/pihole.yourdomain.com/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/pihole.yourdomain.com/privkey.pem;
+
+    location / {
+        proxy_pass http://127.0.0.1:8741;
+        proxy_http_version 1.1;
+        proxy_set_header Connection "";
+        proxy_buffering off;          # required for SSE streams
+    }
+}
+```
+
+**Step 3: Add the remote server in Claude mobile app:**
+
+Go to Settings → MCP Servers → Add Remote Server, enter:
+```
+https://pihole.yourdomain.com/
+```
+
+**For LAN-only access (no internet exposure):** Use Tailscale or WireGuard to create a secure tunnel. The MCP server binds to `0.0.0.0` and your VPN handles authentication and encryption.
+
+### 9.6 MCP Authentication (`mcp_auth.py`)
+
+The HTTP transport needs its own authentication layer (separate from FTL API auth, which is handled internally):
+
+**Token-based auth.** A bearer token is configured in `agent.toml` and required in the `Authorization` header for all HTTP transport requests:
+
+```toml
+[mcp]
+enabled = true
+transport = "http"                  # "stdio" or "http"
+port = 8741
+host = "127.0.0.1"                  # "0.0.0.0" to listen on all interfaces
+auth_token = ""                     # Required for HTTP transport. Generate with: pihole agent mcp --generate-token
+```
+
+Generate a secure token:
+```bash
+$ pihole agent mcp --generate-token
+Generated MCP auth token: mcp_ph_a7b3c9d2e1f0...
+Token saved to /etc/pihole/agent.toml
+```
+
+### 9.7 Safety in MCP Context
+
+The same `SafetyGuard` from `core/safety.py` protects all MCP tool calls. However, MCP has an important difference from CLI usage: **there is no interactive confirmation prompt.** The MCP client (Claude Desktop/Mobile) decides whether to show the user a confirmation dialog based on the tool's metadata.
+
+To handle this:
+- All mutating MCP tools include `"confirmation": true` in their annotations
+- The MCP server sets `blocking_mode` to `alert_only` by default for MCP connections
+- Users can escalate to `auto_high_confidence` via the config
+- Rate limiting and domain protection apply regardless
+- Every MCP tool call is audit-logged with `source: "mcp"` to distinguish from CLI actions
+
+### 9.8 CLI Commands for MCP
+
+```
+pihole agent mcp                          # Start MCP server (stdio, for Claude Desktop)
+pihole agent mcp --transport http         # Start MCP server (HTTP, for mobile/remote)
+pihole agent mcp --port 8741             # Custom port (default: 8741)
+pihole agent mcp --generate-token        # Generate auth token for HTTP transport
+pihole agent mcp --status                # Show MCP server status
+```
+
+---
+
+## 10. Extensibility Path (updated)
 
 ### Adding a new tool
 1. Write a decorated function in `tools/`
@@ -494,6 +831,11 @@ File permissions: `0600`, readable only by root/pihole user (protects API keys).
 2. Implement `create_message()` with the provider's API
 3. Register the provider name in `config.py`
 
+### Adding a new MCP tool
+1. Write the tool function in `tools/` (same as for CLI agents)
+2. Add an `@mcp.tool()` wrapper in `mcp_server.py` that calls it
+3. The MCP SDK auto-generates the JSON schema from type hints
+
 ### Future agent ideas (non-exhaustive)
 - **ThreatIntelAgent** — integrates with threat intelligence feeds to proactively block known-bad domains
 - **ClientProfiler** — builds behavioral profiles per client device, detects compromised devices
@@ -504,7 +846,7 @@ File permissions: `0600`, readable only by root/pihole user (protects API keys).
 
 ---
 
-## 10. Risks and Mitigations
+## 11. Risks and Mitigations
 
 | Risk | Mitigation |
 |------|-----------|
@@ -515,15 +857,18 @@ File permissions: `0600`, readable only by root/pihole user (protects API keys).
 | LLM hallucinating domain names | All blocking goes through safety guard; protected domains can't be blocked; rollback available |
 | Python not available on platform | Agent is entirely optional; bash shim exits cleanly with install instructions |
 | Network outage during blocking | All blocking via local FTL API (loopback); LLM unavailability = graceful degradation to cached rules |
+| MCP server exposed to internet | Bind to localhost by default; require HTTPS reverse proxy for remote access; token-based auth; rate limiting |
+| Unauthorized MCP access | Auth token required for HTTP transport; token stored with 0600 permissions; rotate via `--generate-token` |
 
 ---
 
-## 11. Dependencies
+## 12. Dependencies
 
 **Python packages** (in `requirements-agent.txt`):
 ```
 anthropic>=0.40.0     # Anthropic Claude SDK
 openai>=1.0.0         # OpenAI-compatible SDK (also covers Ollama, etc.)
+mcp[cli]>=1.0.0       # MCP Python SDK (FastMCP server framework)
 requests>=2.28.0      # HTTP client for FTL API
 tomli>=2.0.0          # TOML parser (Python < 3.11 backport)
 ```
@@ -535,7 +880,7 @@ tomli>=2.0.0          # TOML parser (Python < 3.11 backport)
 
 ---
 
-## 12. Critical Reference Files
+## 13. Critical Reference Files
 
 | File | Relevance |
 |------|-----------|
@@ -545,3 +890,5 @@ tomli>=2.0.0          # TOML parser (Python < 3.11 backport)
 | `advanced/Scripts/query.sh` | Reference for search/query API pattern |
 | `advanced/Templates/gravity.db.sql` | Database schema for gravity.db |
 | `advanced/bash-completion/pihole.bash` | Must add `agent` completions |
+| MCP Python SDK docs | https://modelcontextprotocol.io/docs/develop/build-server |
+| Claude Desktop MCP config | `~/Library/Application Support/Claude/claude_desktop_config.json` (macOS) |

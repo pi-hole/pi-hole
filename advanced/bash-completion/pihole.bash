@@ -11,7 +11,7 @@ _pihole() {
 
     case "${prev}" in
         "pihole")
-            opts="allow allow-regex allow-wild deny checkout debug disable enable flush help logging query repair regex reloaddns reloadlists setpassword status tail uninstall updateGravity updatePihole version wildcard networkflush api"
+            opts="agent allow allow-regex allow-wild deny checkout debug disable enable flush help logging query repair regex reloaddns reloadlists setpassword status tail uninstall updateGravity updatePihole version wildcard networkflush api"
             mapfile -t COMPREPLY < <(compgen -W "${opts}" -- "${cur}")
         ;;
         "allow"|"deny"|"wildcard"|"regex"|"allow-regex"|"allow-wild")
@@ -41,6 +41,10 @@ _pihole() {
         "networkflush")
             opts_networkflush="--arp"
             mapfile -t COMPREPLY < <(compgen -W "${opts_networkflush}" -- "${cur}")
+        ;;
+        "agent")
+            opts_agent="analyze chat monitor mcp status rollback config log --help"
+            mapfile -t COMPREPLY < <(compgen -W "${opts_agent}" -- "${cur}")
         ;;
         "core"|"web"|"ftl")
             if [[ "$prev2" == "checkout" ]]; then

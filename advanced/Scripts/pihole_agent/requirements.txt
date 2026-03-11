@@ -1,0 +1,5 @@
+anthropic>=0.40.0
+openai>=1.0.0
+mcp[cli]>=1.0.0
+requests>=2.28.0
+tomli>=2.0.0;python_version<"3.11"
