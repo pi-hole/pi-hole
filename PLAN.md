@@ -474,13 +474,13 @@ File permissions: `0600`, readable only by root/pihole user (protects API keys).
 
 **Validation:** `pihole agent monitor` runs, detects anomalous queries, writes alerts.
 
-### Phase 5: MCP Server (Claude Desktop & Mobile)
-**Goal:** Expose all agent tools via MCP for Claude Desktop and mobile control
+### Phase 5: MCP Server (Claude Desktop & Mobile — Claude-only)
+**Goal:** Expose all agent tools via MCP for Claude Desktop and mobile control.
+Only available when `provider = "anthropic"`.
 
 **Create:**
-- `advanced/Scripts/pihole_agent/mcp_server.py`
-- `advanced/Scripts/pihole_agent/mcp_auth.py`
-- `advanced/Scripts/pihole_agent/mcp_resources.py`
+- `advanced/Scripts/pihole_agent/mcp/server.py` — MCP server with tools, prompts, resources
+- `advanced/Scripts/pihole_agent/mcp/auth.py` — token auth for HTTP transport
 - `advanced/Scripts/piholeAgentMCP.sh`
 - `advanced/Templates/pihole-agent-mcp.service`
 
@@ -489,10 +489,13 @@ File permissions: `0600`, readable only by root/pihole user (protects API keys).
 - `requirements-agent.txt` — add `mcp[cli]>=1.0.0`
 
 **Validation:**
-- `pihole agent mcp` starts stdio server; Claude Desktop discovers and uses tools
+- `pihole agent mcp` starts stdio server; Claude Desktop discovers tools + prompts
 - `pihole agent mcp --transport http` starts HTTP server; Claude mobile connects
+- Provider gate: exits with error if provider != "anthropic"
+- MCP prompts appear as /slash commands in Claude Desktop
+- MCP resources are @mentionable in Claude Desktop
 - Safety guardrails apply to all MCP tool calls
-- Audit log records MCP-sourced actions
+- Audit log records MCP-sourced actions with `source: "mcp"`
 
 ### Phase 6: Testing
 **Goal:** Unit tests for safety-critical components
@@ -505,175 +508,80 @@ File permissions: `0600`, readable only by root/pihole user (protects API keys).
 
 ---
 
-## 9. MCP Server — Claude Desktop & Mobile Control
+## 9. MCP Server — Claude Desktop & Mobile Control (Claude-Only)
 
-The Pi-hole agent framework exposes its full toolset as an **MCP (Model Context Protocol) server**, enabling control from Claude Desktop, Claude mobile apps, and any MCP-compatible client. This turns your Pi-hole into a tool that Claude can use directly — no CLI needed.
+The MCP server is **only available when `provider = "anthropic"`** in the agent config. It is purpose-built for Claude Desktop and Claude mobile, leveraging Claude-specific MCP features:
+
+- **MCP Prompts** — pre-built workflows surfaced as `/slash` commands in Claude Desktop
+- **MCP Resources** — live Pi-hole data that Claude can `@mention` for context
+- **MCP Context Logging** — structured diagnostics via `ctx.info()`/`ctx.error()` to stderr
+- **Content Annotations** — priority and audience metadata on tool results
+
+If a different LLM provider is configured (OpenAI, Ollama, etc.), the `pihole agent mcp` command exits with an error directing the user to set `provider = "anthropic"`.
 
 ### 9.1 Architecture
 
 ```
-┌─────────────────────┐     ┌──────────────────────┐     ┌─────────────────┐
-│  Claude Desktop     │     │  Claude Mobile /      │     │  Any MCP Client │
-│  (stdio transport)  │     │  Remote Clients       │     │  (custom apps)  │
-└────────┬────────────┘     │  (HTTP transport)     │     └────────┬────────┘
-         │                  └──────────┬─────────────┘              │
-         │ stdin/stdout                │ HTTPS                      │
-         │                             │                            │
-         ▼                             ▼                            │
-┌─────────────────────────────────────────────────────────────────────┐
-│                    Pi-hole MCP Server                                │
-│  advanced/Scripts/pihole_agent/mcp_server.py                        │
-│                                                                     │
-│  ┌─────────────┐  ┌──────────────┐  ┌────────────────────────────┐ │
-│  │ MCP Tools   │  │ MCP Resources│  │ Safety Layer (same guards) │ │
-│  │ (14 tools)  │  │ (live data)  │  │ rate limits, protection    │ │
-│  └─────────────┘  └──────────────┘  └────────────────────────────┘ │
-│                           │                                         │
-│              ┌────────────┼────────────┐                            │
-│              ▼            ▼            ▼                            │
-│      FTL REST API    pihole-FTL.db   gravity.db                    │
-│      (mutations)     (read-only)     (read-only)                   │
-└─────────────────────────────────────────────────────────────────────┘
+┌─────────────────────┐     ┌──────────────────────┐
+│  Claude Desktop     │     │  Claude Mobile /      │
+│  (stdio transport)  │     │  Remote Clients       │
+└────────┬────────────┘     │  (HTTP transport)     │
+         │                  └──────────┬─────────────┘
+         │ stdin/stdout                │ HTTPS
+         │                             │
+         ▼                             ▼
+┌─────────────────────────────────────────────────────────┐
+│              Pi-hole MCP Server (Claude-only)           │
+│  advanced/Scripts/pihole_agent/mcp/server.py            │
+│                                                         │
+│  ┌───────────┐ ┌───────────┐ ┌───────────┐ ┌─────────┐│
+│  │ 16 Tools  │ │ 6 Resrcs  │ │ 5 Prompts │ │ Safety  ││
+│  │ (actions) │ │ (@mention)│ │ (/slash)  │ │ Guards  ││
+│  └───────────┘ └───────────┘ └───────────┘ └─────────┘│
+│                        │                                │
+│           ┌────────────┼────────────┐                   │
+│           ▼            ▼            ▼                   │
+│   FTL REST API    pihole-FTL.db   gravity.db            │
+│   (mutations)     (read-only)     (read-only)           │
+└─────────────────────────────────────────────────────────┘
 ```
 
-The MCP server reuses the same `api_client.py`, `db_reader.py`, `tools/`, and `core/safety.py` modules that the CLI agents use. No logic duplication — the MCP layer is purely a protocol adapter.
+### 9.2 MCP Prompts (Claude Desktop /slash commands)
 
-### 9.2 New Files
+The server registers 5 pre-built prompts that appear as slash commands in Claude Desktop:
 
-```
-advanced/Scripts/pihole_agent/
-  ├── mcp_server.py              # MCP server: tool + resource registration
-  ├── mcp_auth.py                # Authentication middleware for remote access
-  └── mcp_resources.py           # MCP resource definitions (live data endpoints)
-```
+| Prompt | Slash Command | Description |
+|--------|--------------|-------------|
+| `network_health_check` | `/mcp__pihole__network_health_check` | Comprehensive health check: stats, top domains, anomalies, trends |
+| `investigate_domain` | `/mcp__pihole__investigate_domain ads.example.com` | Deep investigation of a specific domain |
+| `block_category` | `/mcp__pihole__block_category "social media trackers"` | Block an entire category of domains |
+| `traffic_anomaly_report` | `/mcp__pihole__traffic_anomaly_report 48` | Security-focused anomaly report for a time window |
+| `troubleshoot_blocking` | `/mcp__pihole__troubleshoot_blocking example.com` | Debug why a domain is/isn't being blocked |
 
-Plus setup/config files:
-```
-advanced/Scripts/piholeAgentMCP.sh          # Bash shim for MCP server startup
-advanced/Templates/pihole-agent-mcp.service # systemd unit for HTTP transport
-```
+Each prompt orchestrates multiple tool calls into a coherent workflow. Claude executes the sequence autonomously based on the prompt's instructions.
 
-### 9.3 MCP Server Implementation (`mcp_server.py`)
+### 9.3 MCP Resources (@mentionable live data)
 
-Built with the official MCP Python SDK (`mcp` package) using FastMCP:
+6 resources available via `@` mention in Claude Desktop:
 
-```python
-from mcp.server.fastmcp import FastMCP, Context
+| URI | Description |
+|-----|-------------|
+| `pihole://stats/summary` | Current stats (queries, blocked %, status) |
+| `pihole://blocking/status` | Whether blocking is enabled/disabled |
+| `pihole://config/safety` | Agent safety configuration |
+| `pihole://domains/denied` | All explicitly denied domains |
+| `pihole://domains/allowed` | All explicitly allowed domains |
+| `pihole://audit/recent` | Last 20 agent audit log entries |
 
-mcp = FastMCP("Pi-hole Agent")
+### 9.4 Logging & Diagnostics
 
-# ── MCP Tools (mapped 1:1 from existing tools/) ──────────────
+All logging goes to **stderr** (stdout is reserved for JSON-RPC protocol messages). The server uses:
 
-@mcp.tool()
-def get_stats_summary() -> dict:
-    """Get Pi-hole statistics: total queries, blocked, percentage, top domains."""
-    with PiholeAPIClient() as client:
-        return client.get("stats/summary")
+- `ctx.info()` — operational messages visible in Claude Desktop's Developer Settings
+- `ctx.error()` / `ctx.warning()` — error conditions surfaced to the client
+- Python `logging` module to stderr — for structured server-side diagnostics
 
-@mcp.tool()
-def get_recent_queries(hours: int = 24, limit: int = 100) -> list[dict]:
-    """Get recent DNS queries from the Pi-hole query log."""
-    reader = PiholeDBReader()
-    return reader.get_recent_queries(hours=hours, limit=limit)
-
-@mcp.tool()
-def block_domain(domain: str, comment: str = "") -> dict:
-    """Add a domain to Pi-hole's deny list. Requires safety check."""
-    safety = SafetyGuard.from_config()
-    safety.check_domain_protection(domain)  # raises if protected
-    safety.check_rate_limit("block")        # raises if exceeded
-    with PiholeAPIClient() as client:
-        result = client.post("domains/deny/exact", {"domain": domain, "comment": comment})
-    safety.log_action("mcp", "block_domain", domain, comment)
-    return result
-
-@mcp.tool()
-def unblock_domain(domain: str) -> dict:
-    """Remove a domain from Pi-hole's deny list."""
-    # ... similar pattern with safety checks
-
-@mcp.tool()
-def search_adlists(domain: str, partial: bool = True) -> dict:
-    """Search Pi-hole's adlists for a domain."""
-    with PiholeAPIClient() as client:
-        return client.get(f"search/{domain}?N=20&partial={str(partial).lower()}")
-
-@mcp.tool()
-def enable_blocking() -> dict:
-    """Enable Pi-hole DNS blocking."""
-    with PiholeAPIClient() as client:
-        return client.post("dns/blocking", {"blocking": True})
-
-@mcp.tool()
-def disable_blocking(seconds: int = 0) -> dict:
-    """Temporarily disable Pi-hole DNS blocking. seconds=0 means indefinite."""
-    safety = SafetyGuard.from_config()
-    safety.check_rate_limit("disable_blocking")
-    with PiholeAPIClient() as client:
-        data = {"blocking": False}
-        if seconds > 0:
-            data["timer"] = seconds
-        return client.post("dns/blocking", data)
-
-@mcp.tool()
-def get_top_domains(count: int = 10, hours: int = 24) -> list[dict]:
-    """Get top queried domains over the specified time period."""
-    reader = PiholeDBReader()
-    return reader.get_query_counts_by_domain(hours=hours)[:count]
-
-@mcp.tool()
-def get_top_clients(count: int = 10, hours: int = 24) -> list[dict]:
-    """Get top DNS clients over the specified time period."""
-    reader = PiholeDBReader()
-    return reader.get_query_counts_by_client(hours=hours)[:count]
-
-@mcp.tool()
-def detect_anomalous_domains(hours: int = 24) -> list[dict]:
-    """Detect domains with anomalous query patterns (potential DGA, tunneling)."""
-    # Uses analysis_tools.py internally
-
-@mcp.tool()
-def analyze_query_trend(hours: int = 24, bucket_minutes: int = 60) -> list[dict]:
-    """Get query volume trend over time, bucketed by interval."""
-    # Time-series data for the LLM to reason about
-
-@mcp.tool()
-def list_denied_domains() -> list[dict]:
-    """List all domains currently on the deny list."""
-    with PiholeAPIClient() as client:
-        return client.get("domains/deny/exact")
-
-@mcp.tool()
-def list_allowed_domains() -> list[dict]:
-    """List all domains currently on the allow list."""
-    with PiholeAPIClient() as client:
-        return client.get("domains/allow/exact")
-
-@mcp.tool()
-def get_audit_log(last_n: int = 20) -> list[dict]:
-    """Get the last N entries from the agent audit log."""
-    # Reads /var/log/pihole/agent_audit.log
-
-# ── MCP Resources (live data endpoints) ──────────────
-
-@mcp.resource("pihole://stats/summary")
-def stats_summary() -> str:
-    """Current Pi-hole statistics summary."""
-    with PiholeAPIClient() as client:
-        return json.dumps(client.get("stats/summary"), indent=2)
-
-@mcp.resource("pihole://blocking/status")
-def blocking_status() -> str:
-    """Current DNS blocking status (enabled/disabled)."""
-    with PiholeAPIClient() as client:
-        return json.dumps(client.get("dns/blocking"))
-
-@mcp.resource("pihole://config/safety")
-def safety_config() -> str:
-    """Current agent safety configuration."""
-    config = AgentConfig.load()
-    return json.dumps(config.safety_dict(), indent=2)
-```
+This follows the MCP specification requirement that stdout contains only protocol messages.
 
 ### 9.4 Transport Modes
 

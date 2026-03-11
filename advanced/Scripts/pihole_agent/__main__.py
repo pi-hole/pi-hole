@@ -26,7 +26,10 @@ def main() -> None:
     subparsers = parser.add_subparsers(dest="command", help="Agent commands")
 
     # ── pihole agent mcp ──
-    mcp_parser = subparsers.add_parser("mcp", help="Start MCP server for Claude Desktop/Mobile")
+    mcp_parser = subparsers.add_parser(
+        "mcp",
+        help="Start MCP server for Claude Desktop/Mobile (requires provider=anthropic)",
+    )
     mcp_parser.add_argument(
         "--transport", choices=["stdio", "http"], default="stdio",
         help="Transport mode: stdio (Claude Desktop) or http (mobile/remote)",
