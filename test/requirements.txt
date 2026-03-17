@@ -1,6 +1,0 @@
-pyyaml == 6.0.3
-pytest == 9.0.3
-pytest-xdist == 3.8.0
-pytest-testinfra == 10.2.2
-tox == 4.52.1
-pytest-clarity == 1.0.1

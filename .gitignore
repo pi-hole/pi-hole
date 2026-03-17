@@ -1,15 +1,7 @@
 .DS_Store
-*.pyc
 *.swp
-__pycache__
-.cache
-.pytest_cache
-.tox
-.eggs
-*.egg-info
 .idea/
 *.iml
 .vscode/
-.venv/
 .fleet/
-.cache/
+test/libs/
