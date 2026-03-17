@@ -75,10 +75,17 @@ BATS="${BATS:-libs/bats/bin/bats}"
 
 export IMAGE_TAG DISTRO DISTRO_FAMILY
 
-TEST_FILES=(test_automated_install.bats test_utils.bats)
+TEST_FILES=(
+    test_automated_install.bats
+    test_ftl.bats
+    test_network.bats
+    test_utils.bats
+)
 [[ "$DISTRO_FAMILY" == "rhel" ]] && TEST_FILES+=(test_selinux.bats)
 
-# Use pretty output only when stdout is a real terminal; fall back to TAP in CI
+# Use pretty output only when stdout is a real terminal; fall back to TAP in CI.
+# Parallelise across files with --jobs when GNU parallel is available.
 BATS_FLAGS=()
 [[ -t 1 ]] && BATS_FLAGS+=("-p")
+command -v parallel > /dev/null 2>&1 && BATS_FLAGS+=("--jobs" "$(nproc)")
 "$BATS" "${BATS_FLAGS[@]}" "${TEST_FILES[@]}"
