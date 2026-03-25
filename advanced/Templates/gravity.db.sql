@@ -105,12 +105,12 @@ CREATE TRIGGER tr_adlist_update AFTER UPDATE OF address,enabled,comment ON adlis
 
 CREATE TRIGGER tr_client_update AFTER UPDATE ON client
     BEGIN
-      UPDATE client SET date_modified = (cast(strftime('%s', 'now') as int)) WHERE ip = NEW.ip;
+      UPDATE client SET date_modified = (cast(strftime('%s', 'now') as int)) WHERE id = NEW.id;
     END;
 
 CREATE TRIGGER tr_domainlist_update AFTER UPDATE ON domainlist
     BEGIN
-      UPDATE domainlist SET date_modified = (cast(strftime('%s', 'now') as int)) WHERE domain = NEW.domain;
+      UPDATE domainlist SET date_modified = (cast(strftime('%s', 'now') as int)) WHERE id = NEW.id;
     END;
 
 CREATE VIEW vw_allowlist AS SELECT domain, domainlist.id AS id, domainlist_by_group.group_id AS group_id
