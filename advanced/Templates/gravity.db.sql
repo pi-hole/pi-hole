@@ -47,6 +47,7 @@ CREATE TABLE adlist_by_group
     group_id INTEGER NOT NULL REFERENCES "group" (id) ON DELETE CASCADE,
     PRIMARY KEY (adlist_id, group_id)
 ) WITHOUT ROWID;
+CREATE INDEX idx_adlist_by_group_gid ON adlist_by_group (group_id, adlist_id);
 
 CREATE TABLE gravity
 (
@@ -79,6 +80,7 @@ CREATE TABLE domainlist_by_group
     group_id INTEGER NOT NULL REFERENCES "group" (id) ON DELETE CASCADE,
     PRIMARY KEY (domainlist_id, group_id)
 ) WITHOUT ROWID;
+CREATE INDEX idx_domainlist_by_group_gid ON domainlist_by_group (group_id, domainlist_id);
 
 CREATE TABLE client
 (
