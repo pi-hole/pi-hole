@@ -46,7 +46,7 @@ CREATE TABLE adlist_by_group
     adlist_id INTEGER NOT NULL REFERENCES adlist (id) ON DELETE CASCADE,
     group_id INTEGER NOT NULL REFERENCES "group" (id) ON DELETE CASCADE,
     PRIMARY KEY (adlist_id, group_id)
-);
+) WITHOUT ROWID;
 
 CREATE TABLE gravity
 (
@@ -64,7 +64,7 @@ CREATE TABLE info
 (
     property TEXT PRIMARY KEY,
     value TEXT NOT NULL
-);
+) WITHOUT ROWID;
 
 INSERT INTO "info" VALUES('version','20');
 /* This is a flag to indicate if gravity was restored from a backup
@@ -78,7 +78,7 @@ CREATE TABLE domainlist_by_group
     domainlist_id INTEGER NOT NULL REFERENCES domainlist (id) ON DELETE CASCADE,
     group_id INTEGER NOT NULL REFERENCES "group" (id) ON DELETE CASCADE,
     PRIMARY KEY (domainlist_id, group_id)
-);
+) WITHOUT ROWID;
 
 CREATE TABLE client
 (
@@ -94,7 +94,7 @@ CREATE TABLE client_by_group
     client_id INTEGER NOT NULL REFERENCES client (id) ON DELETE CASCADE,
     group_id INTEGER NOT NULL REFERENCES "group" (id) ON DELETE CASCADE,
     PRIMARY KEY (client_id, group_id)
-);
+) WITHOUT ROWID;
 
 CREATE TRIGGER tr_adlist_update AFTER UPDATE OF address,enabled,comment ON adlist
     BEGIN
