@@ -53,18 +53,27 @@ docker buildx build \
 # Install BATS and helper libraries (on-demand, not committed)
 # ---------------------------------------------------------------------------
 
+# Pin BATS-related dependencies to specific refs for reproducible test runs.
+# Override via environment variables if needed (e.g., BATS_CORE_REF=<tag-or-commit>).
+BATS_CORE_REF="${BATS_CORE_REF:-v1.13.0}"
+BATS_SUPPORT_REF="${BATS_SUPPORT_REF:-v0.3.0}"
+BATS_ASSERT_REF="${BATS_ASSERT_REF:-v2.2.4}"
+
 mkdir -p libs
 if [[ ! -d libs/bats ]]; then
-    echo "Cloning bats-core..."
-    git clone --depth=1 --quiet https://github.com/bats-core/bats-core libs/bats
+    echo "Cloning bats-core (ref: ${BATS_CORE_REF})..."
+    git clone --depth=1 --single-branch --branch "${BATS_CORE_REF}" --quiet \
+        https://github.com/bats-core/bats-core libs/bats
 fi
 if [[ ! -d libs/bats-support ]]; then
-    echo "Cloning bats-support..."
-    git clone --depth=1 --quiet https://github.com/bats-core/bats-support libs/bats-support
+    echo "Cloning bats-support (ref: ${BATS_SUPPORT_REF})..."
+    git clone --depth=1 --single-branch --branch "${BATS_SUPPORT_REF}" --quiet \
+        https://github.com/bats-core/bats-support libs/bats-support
 fi
 if [[ ! -d libs/bats-assert ]]; then
-    echo "Cloning bats-assert..."
-    git clone --depth=1 --quiet https://github.com/bats-core/bats-assert libs/bats-assert
+    echo "Cloning bats-assert (ref: ${BATS_ASSERT_REF})..."
+    git clone --depth=1 --single-branch --branch "${BATS_ASSERT_REF}" --quiet \
+        https://github.com/bats-core/bats-assert libs/bats-assert
 fi
 
 BATS="${BATS:-libs/bats/bin/bats}"
