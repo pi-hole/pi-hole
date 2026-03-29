@@ -92,9 +92,17 @@ TEST_FILES=(
 )
 [[ "$DISTRO_FAMILY" == "rhel" ]] && TEST_FILES+=(test_selinux.bats)
 
-# Use pretty output only when stdout is a real terminal; fall back to TAP in CI.
-# Parallelise across files with --jobs when GNU parallel is available.
-BATS_FLAGS=()
-[[ -t 1 ]] && BATS_FLAGS+=("-p")
-command -v parallel > /dev/null 2>&1 && BATS_FLAGS+=("--jobs" "$(nproc)")
+# Configure BATS output and parallelization
+BATS_FLAGS=("--print-output-on-failure");
+
+# Use pretty output when stdout is a terminal; TAP format for CI
+if [[ -t 1 ]]; then
+    BATS_FLAGS+=("-p")
+fi
+
+# Parallelize tests if GNU parallel is available
+if command -v parallel > /dev/null 2>&1; then
+    BATS_FLAGS+=("--jobs" "$(nproc)")
+fi
+
 "$BATS" "${BATS_FLAGS[@]}" "${TEST_FILES[@]}"

@@ -32,6 +32,7 @@ teardown() {
         package_manager_detect
     "
     assert_output --partial "${CROSS} No supported package manager found"
+    assert_failure
 }
 
 @test "installer continues when SELinux config file does not exist" {
