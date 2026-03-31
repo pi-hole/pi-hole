@@ -142,7 +142,7 @@ RemoveIPC=yes
 # and executable
 MemoryDenyWriteExecute=yes
 
-### The following can't be enabled of overridden without causing potential
+### The following can't be enabled or overridden without causing potential
 # breakage to people who have altered file paths in the pi-hole configuration
 #
 # LogsDirectory=pihole
