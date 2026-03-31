@@ -121,8 +121,7 @@ PrivateTmp=yes
 
 # Prevent modification to CGROUP hierarchies
 ProtectControlGroups=yes
-
-# Restrict nameservices
+# Restrict namespaces
 RestrictNamespaces=yes
 
 # Prevent switching personality
