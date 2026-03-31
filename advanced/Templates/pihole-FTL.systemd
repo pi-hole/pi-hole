@@ -171,7 +171,7 @@ MemoryDenyWriteExecute=yes
 
 ### NTP Incompatibility
 # The following options may be implemented as overrides by advanced users,
-# nothing that they will interfere with Pi-hole's NTP functionality.
+# note that these overrides will interfere with Pi-hole's NTP functionality.
 #
 # ProtectProc=invisible
 #
