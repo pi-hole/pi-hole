@@ -177,6 +177,12 @@ update_gravity_timestamp() {
 
 database_adlist_table_from_array() {
 
+    # Check if the gravity database exists
+    if [[ ! -f "${gravityDBfile}" ]]; then
+        echo -e "  ${CROSS} Gravity database ${gravityDBfile} does not exist"
+        return 1
+    fi
+
     # Add adlists to gravity database
     local tmpFile
     local -a blocklists=("$@")
@@ -202,7 +208,7 @@ database_adlist_table_from_array() {
         fi
     done
 
-    # Store domains in database table specified by ${table}
+    # Store domains in database adlist table
     # Use printf as .mode and .import need to be on separate lines
     # see https://unix.stackexchange.com/a/445615/83260
     output=$({ printf ".timeout 30000\\n.mode csv\\n.import \"%s\" %s\\n" "${tmpFile}" "adlist" | pihole-FTL sqlite3 -ni "${gravityDBfile}"; } 2>&1)
@@ -1051,10 +1057,10 @@ migrate_to_listsCache_dir() {
 
 helpFunc() {
   echo "Usage: pihole -g
-Update domains from blocklists specified in adlists.list
+Update domains from adlists
 
 Options:
-  -f, --force          Force the download of all specified blocklists
+  -f, --force          Force the download of all specified adlists
   -t, --timeit         Time the gravity update process
   -h, --help           Show this help dialog"
   exit 0

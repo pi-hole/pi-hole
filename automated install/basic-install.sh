@@ -2410,7 +2410,7 @@ main() {
 
     # Creating/updating gravity database needs pihole-FTL installed
     if [[ "${fresh_install}" == true ]]; then
-        # Create and updating gravity database on new installs
+        # Create and update gravity database on new installs
         /opt/pihole/gravity.sh --newdb
         # add chosen blocklists to the adlist table
         /opt/pihole/gravity.sh --addadlist "${BLOCKLISTS[@]}"
