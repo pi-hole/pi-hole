@@ -32,12 +32,6 @@ piholeDir="/etc/${basename}"
 # Gravity aux files directory
 listsCacheDir="${piholeDir}/listsCache"
 
-# Legacy (pre v5.0) list file locations
-whitelistFile="${piholeDir}/whitelist.txt"
-blacklistFile="${piholeDir}/blacklist.txt"
-regexFile="${piholeDir}/regex.list"
-adListFile="${piholeDir}/adlists.list"
-
 piholeGitDir="/etc/.pihole"
 GRAVITYDB=$(getFTLConfigValue files.gravity)
 GRAVITY_TMPDIR=$(getFTLConfigValue files.gravity_tmp)
@@ -181,67 +175,38 @@ update_gravity_timestamp() {
   return 0
 }
 
-# Import domains from file and store them in the specified database table
-database_table_from_file() {
-  # Define locals
-  local table src backup_path backup_file tmpFile list_type
-  table="${1}"
-  src="${2}"
-  backup_path="${piholeDir}/migration_backup"
-  backup_file="${backup_path}/$(basename "${2}")"
+database_adlist_table_from_array() {
+
+    # Add adlists to gravity database
+    local tmpFile
+    local -a blocklists=("$@")
+
   # Create a temporary file with random filename with '.gravity' suffix.
   # Note: '--suffix' requires GNU mktemp (coreutils), which is not pre-installed on Alpine, but it is installed as Pi-hole dependency.
   tmpFile="$(mktemp -p "${GRAVITY_TMPDIR}" --suffix=".gravity")"
 
-  local timestamp
-  timestamp="$(date --utc +'%s')"
+    local timestamp
+    timestamp="$(date --utc +'%s')"
 
-  local rowid
-  declare -i rowid
-  rowid=1
+    local rowid
+    declare -i rowid
+    rowid=1
 
-  # Special handling for domains to be imported into the common domainlist table
-  if [[ "${table}" == "whitelist" ]]; then
-    list_type="0"
-    table="domainlist"
-  elif [[ "${table}" == "blacklist" ]]; then
-    list_type="1"
-    table="domainlist"
-  elif [[ "${table}" == "regex" ]]; then
-    list_type="3"
-    table="domainlist"
-  fi
+    # Loop over all URLs in the blocklists array
+    for url in "${blocklists[@]}"; do
+        # Only add non-empty URLs
+        if [[ -n "${url}" ]]; then
+            # Adlist table format
+            echo "${rowid},\"${url}\",1,${timestamp},${timestamp},\"Added during install\",,0,0,0,0,0" >>"${tmpFile}"
+            rowid+=1
+        fi
+    done
 
-  # Get MAX(id) from domainlist when INSERTing into this table
-  if [[ "${table}" == "domainlist" ]]; then
-    rowid="$(pihole-FTL sqlite3 -ni "${gravityDBfile}" "SELECT MAX(id) FROM domainlist;")"
-    if [[ -z "${rowid}" ]]; then
-      rowid=0
-    fi
-    rowid+=1
-  fi
-
-  # Loop over all domains in ${src} file
-  # Read file line by line
-  grep -v '^ *#' <"${src}" | while IFS= read -r domain; do
-    # Only add non-empty lines
-    if [[ -n "${domain}" ]]; then
-      if [[ "${table}" == "adlist" ]]; then
-        # Adlist table format
-        echo "${rowid},\"${domain}\",1,${timestamp},${timestamp},\"Migrated from ${src}\",,0,0,0,0,0" >>"${tmpFile}"
-      else
-        # White-, black-, and regexlist table format
-        echo "${rowid},${list_type},\"${domain}\",1,${timestamp},${timestamp},\"Migrated from ${src}\"" >>"${tmpFile}"
-      fi
-      rowid+=1
-    fi
-  done
-
-  # Store domains in database table specified by ${table}
-  # Use printf as .mode and .import need to be on separate lines
-  # see https://unix.stackexchange.com/a/445615/83260
-  output=$({ printf ".timeout 30000\\n.mode csv\\n.import \"%s\" %s\\n" "${tmpFile}" "${table}" | pihole-FTL sqlite3 -ni "${gravityDBfile}"; } 2>&1)
-  status="$?"
+    # Store domains in database table specified by ${table}
+    # Use printf as .mode and .import need to be on separate lines
+    # see https://unix.stackexchange.com/a/445615/83260
+    output=$({ printf ".timeout 30000\\n.mode csv\\n.import \"%s\" %s\\n" "${tmpFile}" "adlist" | pihole-FTL sqlite3 -ni "${gravityDBfile}"; } 2>&1)
+    status="$?"
 
   if [[ "${status}" -ne 0 ]]; then
     echo -e "\\n  ${CROSS} Unable to fill table ${table}${list_type} in database ${gravityDBfile}\\n"
@@ -249,14 +214,9 @@ database_table_from_file() {
     gravity_Cleanup "error"
   fi
 
-  # Move source file to backup directory, create directory if not existing
-  mkdir -p "${backup_path}"
-  mv "${src}" "${backup_file}" 2>/dev/null ||
-    echo -e "  ${CROSS} Unable to backup ${src} to ${backup_path}"
-
-  # Delete tmpFile
-  rm -f "${tmpFile}" >/dev/null 2>&1 ||
-    echo -e "  ${CROSS} Unable to remove ${tmpFile}"
+    # Delete tmpFile
+    rm -f "${tmpFile}" >/dev/null 2>&1 ||
+        echo -e "  ${CROSS} Unable to remove ${tmpFile}"
 }
 
 # Check if a column with name ${2} exists in gravity table with name ${1}
@@ -303,42 +263,15 @@ database_adlist_status() {
   fi
 }
 
-# Migrate pre-v5.0 list files to database-based Pi-hole versions
-migrate_to_database() {
+# Creates a fresh gravity database if not present and checks if an update is needed if it already exists
+create_or_update_database() {
   # Create database file only if not present
   if [ ! -e "${gravityDBfile}" ]; then
     # Create new database file - note that this will be created in version 1
     echo -e "  ${INFO} Creating new gravity database"
     if ! generate_gravity_database; then
       echo -e "   ${CROSS} Error creating new gravity database. Please contact support."
-      gravity_Cleanup "error"
-    fi
-
-    # Check if gravity database needs to be updated
-    upgrade_gravityDB "${gravityDBfile}"
-
-    # Migrate list files to new database
-    if [ -e "${adListFile}" ]; then
-      # Store adlist domains in database
-      echo -e "  ${INFO} Migrating content of ${adListFile} into new database"
-      database_table_from_file "adlist" "${adListFile}"
-    fi
-    if [ -e "${blacklistFile}" ]; then
-      # Store blacklisted domains in database
-      echo -e "  ${INFO} Migrating content of ${blacklistFile} into new database"
-      database_table_from_file "blacklist" "${blacklistFile}"
-    fi
-    if [ -e "${whitelistFile}" ]; then
-      # Store whitelisted domains in database
-      echo -e "  ${INFO} Migrating content of ${whitelistFile} into new database"
-      database_table_from_file "whitelist" "${whitelistFile}"
-    fi
-    if [ -e "${regexFile}" ]; then
-      # Store regex domains in database
-      # Important note: We need to add the domains to the "regex" table
-      # as it will only later be renamed to "regex_blacklist"!
-      echo -e "  ${INFO} Migrating content of ${regexFile} into new database"
-      database_table_from_file "regex" "${regexFile}"
+      return 1
     fi
   fi
 
@@ -1148,9 +1081,7 @@ Available options:
 
   pihole -g -r recreate       Create a new gravity database file from scratch.
                               This will remove your existing gravity database
-                              and create a new file from scratch. If you still
-                              have the migration backup created when migrating
-                              to Pi-hole v5.0, Pi-hole will import these files."
+                              and create a new file from scratch."
     exit 0
     ;;
   esac
@@ -1163,8 +1094,14 @@ for var in "$@"; do
   "-r" | "--repair") repairSelector "$3" ;;
   "-u" | "--upgrade")
     upgrade_gravityDB "${gravityDBfile}"
-    exit 0
-    ;;
+    exit 0 ;;
+  "-n" | "--newdb")
+    create_or_update_database
+    exit 0 ;;
+  "-a" | "--addadlist")
+    shift  # Remove the --addadlist flag
+    database_adlist_table_from_array "$@"
+    exit 0 ;;
   "-h" | "--help") helpFunc ;;
   esac
 done
@@ -1181,12 +1118,9 @@ fi
 gravity_Trap
 
 if [[ "${recreate_database:-}" == true ]]; then
-  str="Recreating gravity database from migration backup"
+  str="Recreating gravity database from scratch"
   echo -ne "${INFO} ${str}..."
   rm -f "${gravityDBfile}"
-  pushd "${piholeDir}" >/dev/null || exit
-  cp migration_backup/* .
-  popd >/dev/null || exit
   echo -e "${OVER}  ${TICK} ${str}"
 fi
 
@@ -1197,9 +1131,9 @@ fi
 # Migrate scattered list files to the new cache directory
 migrate_to_listsCache_dir
 
-# Move possibly existing legacy files to the gravity database
-if ! timeit migrate_to_database; then
-  echo -e "   ${CROSS} Unable to migrate to database. Please contact support."
+# Create or update gravity database
+if ! timeit create_or_update_database; then
+  echo -e "   ${CROSS} Unable to create/update gravity database. Please contact support."
   gravity_Cleanup "error"
 fi
 

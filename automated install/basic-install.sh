@@ -92,7 +92,8 @@ PI_HOLE_BIN_DIR="/usr/local/bin"
 PI_HOLE_V6_CONFIG="${PI_HOLE_CONFIG_DIR}/pihole.toml"
 fresh_install=true
 
-adlistFile="/etc/pihole/adlists.list"
+# an array to store blocklists that the user selects during the installation process.
+BLOCKLISTS=()
 # Pi-hole needs an IP address; to begin, these variables are empty since we don't know what the IP is until this script can run
 IPV4_ADDRESS=
 IPV6_ADDRESS=
@@ -1084,10 +1085,6 @@ setPrivacyLevel() {
 
 # A function to display a list of example blocklists for users to select
 chooseBlocklists() {
-    # Back up any existing adlist file, on the off chance that it exists.
-    if [[ -f "${adlistFile}" ]]; then
-        mv "${adlistFile}" "${adlistFile}.old"
-    fi
     # Let user select (or not) blocklists
     dialog --no-shadow --keep-tite \
         --backtitle "Pi-hole Installation" \
@@ -1102,7 +1099,7 @@ chooseBlocklists() {
     "${DIALOG_OK}")
         # If they chose yes,
         printf "  %b Installing StevenBlack's Unified Hosts List\\n" "${INFO}"
-        echo "https://raw.githubusercontent.com/StevenBlack/hosts/master/hosts" >>"${adlistFile}"
+        BLOCKLISTS+=("https://raw.githubusercontent.com/StevenBlack/hosts/master/hosts")
         ;;
     "${DIALOG_CANCEL}")
         # If they chose no,
@@ -1114,23 +1111,6 @@ chooseBlocklists() {
         exit 1
         ;;
     esac
-    # Create an empty adList file with appropriate permissions.
-    if [ ! -f "${adlistFile}" ]; then
-        install -m 644 /dev/null "${adlistFile}"
-    else
-        chmod 644 "${adlistFile}"
-    fi
-}
-
-# Used only in unattended setup
-# If there is already the adListFile, we keep it, else we create it using all default lists
-installDefaultBlocklists() {
-    # In unattended setup, could be useful to use userdefined blocklist.
-    # If this file exists, we avoid overriding it.
-    if [[ -f "${adlistFile}" ]]; then
-        return
-    fi
-    echo "https://raw.githubusercontent.com/StevenBlack/hosts/master/hosts" >>"${adlistFile}"
 }
 
 move_old_dnsmasq_ftl_configs() {
@@ -1535,7 +1515,7 @@ installCron() {
     fi
 }
 
-# Gravity is a very important script as it aggregates all of the domains into a single HOSTS formatted list,
+# Gravity is a very important script as it aggregates all of the domains into a single database
 # which is what Pi-hole needs to begin blocking ads
 runGravity() {
     # Run gravity in the current shell as user pihole
@@ -2378,9 +2358,6 @@ main() {
         setLogging
         # Let the user decide the FTL privacy level
         setPrivacyLevel
-    else
-        # Setup adlist file if not exists
-        installDefaultBlocklists
     fi
     # Download or reset the appropriate git repos depending on the 'repair' flag
     clone_or_reset_repos
@@ -2431,7 +2408,13 @@ main() {
     # but before starting or resttarting the ftl service
     disable_resolved_stublistener
 
-    if [[ "${fresh_install}" == false ]]; then
+    # Creating/updating gravity database needs pihole-FTL installed
+    if [[ "${fresh_install}" == true ]]; then
+        # Create and updating gravity database on new installs
+        /opt/pihole/gravity.sh --newdb
+        # add chosen blocklists to the adlist table
+        /opt/pihole/gravity.sh --addadlist "${BLOCKLISTS[@]}"
+    else
         # Check if gravity database needs to be upgraded. If so, do it without rebuilding
         # gravity altogether. This may be a very long running task needlessly blocking
         # the update process.
