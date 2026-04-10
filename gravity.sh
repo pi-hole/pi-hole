@@ -887,6 +887,8 @@ gravity_Cleanup() {
   rm -f "${GRAVITY_TMPDIR}"/*.phgpb 2>/dev/null
   # list to database parsing location
   rm -f "${GRAVITY_TMPDIR}"/*.gravity 2>/dev/null
+  # temporary adlist URL file location
+  rm -f "${GRAVITY_TMPDIR}"/*.gravity 2>/dev/null
 
   # Ensure this function only runs when gravity_DownloadBlocklists() has completed
   if [[ "${DownloadBlocklists_done:-}" == true ]]; then
