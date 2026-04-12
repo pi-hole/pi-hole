@@ -1,3 +1,4 @@
+import re
 import pytest
 import testinfra
 import testinfra.backend.docker
@@ -5,6 +6,8 @@ import subprocess
 from textwrap import dedent
 
 IMAGE = "pytest_pihole:test_container"
+
+ALLOWED_IMAGE_PATTERN = re.compile(r'^[a-zA-Z0-9][a-zA-Z0-9_.:\-/]*$')
 tick_box = "[✓]"
 cross_box = "[✗]"
 info_box = "[i]"
@@ -29,9 +32,12 @@ testinfra.backend.docker.DockerBackend.run = run_bash
 
 @pytest.fixture
 def host():
+    # Validate IMAGE to prevent use of malicious container images
+    if not ALLOWED_IMAGE_PATTERN.match(IMAGE):
+        raise ValueError("Invalid Docker image name: {}".format(IMAGE))
     # run a container
     docker_id = (
-        subprocess.check_output(["docker", "run", "-t", "-d", "--cap-add=ALL", IMAGE])
+        subprocess.check_output(["docker", "run", "-t", "-d", IMAGE])
         .decode()
         .strip()
     )
