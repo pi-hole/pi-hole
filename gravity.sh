@@ -71,8 +71,10 @@ fix_owner_permissions() {
   chown pihole:pihole "${1}"
   chmod 664 "${1}"
 
-  # Ensure the containing directory is group writable
-  chmod g+w "$(dirname -- "${1}")"
+  # Ensure the containing directory is owned by pihole:pihole
+  # so the pihole user can write to it without requiring group-write
+  # permissions (which would change the directory mode unexpectedly)
+  chown pihole:pihole "$(dirname -- "${1}")"
 }
 
 # Generate new SQLite3 file from schema template
@@ -86,16 +88,17 @@ generate_gravity_database() {
 
 # Build gravity tree
 gravity_build_tree() {
+  local table="$1"
   local str
-  str="Building tree"
+  str="Building ${table} tree"
   echo -ne "  ${INFO} ${str}..."
 
   # The index is intentionally not UNIQUE as poor quality adlists may contain domains more than once
-  output=$({ pihole-FTL sqlite3 -ni "${gravityTEMPfile}" "CREATE INDEX idx_gravity ON gravity (domain, adlist_id);"; } 2>&1)
+  output=$({ pihole-FTL sqlite3 -ni "${gravityTEMPfile}" "CREATE INDEX idx_${table} ON ${table} (domain, adlist_id);"; } 2>&1)
   status="$?"
 
   if [[ "${status}" -ne 0 ]]; then
-    echo -e "\\n  ${CROSS} Unable to build gravity tree in ${gravityTEMPfile}\\n  ${output}"
+    echo -e "\\n  ${CROSS} Unable to build ${table} tree in ${gravityTEMPfile}\\n  ${output}"
     echo -e "  ${INFO} If you have a large amount of domains, make sure your Pi-hole has enough RAM available\\n"
     return 1
   fi
@@ -844,11 +847,11 @@ gravity_Table_Count() {
   local str="${2}"
   local num
   num="$(pihole-FTL sqlite3 -ni "${gravityTEMPfile}" "SELECT COUNT(*) FROM ${table};")"
-  if [[ "${table}" == "gravity" ]]; then
+  if [[ "${table}" == "gravity" || "${table}" == "antigravity" ]]; then
     local unique
     unique="$(pihole-FTL sqlite3 -ni "${gravityTEMPfile}" "SELECT COUNT(*) FROM (SELECT DISTINCT domain FROM ${table});")"
     echo -e "  ${INFO} Number of ${str}: ${num} (${COL_BOLD}${unique} unique domains${COL_NC})"
-    pihole-FTL sqlite3 -ni "${gravityTEMPfile}" "INSERT OR REPLACE INTO info (property,value) VALUES ('gravity_count',${unique});"
+    pihole-FTL sqlite3 -ni "${gravityTEMPfile}" "INSERT OR REPLACE INTO info (property,value) VALUES ('${table}_count',${unique});"
   else
     echo -e "  ${INFO} Number of ${str}: ${num}"
   fi
@@ -858,11 +861,14 @@ gravity_Table_Count() {
 gravity_ShowCount() {
   # Here we use the table "gravity" instead of the view "vw_gravity" for speed.
   # It's safe to replace it here, because right after a gravity run both will show the exactly same number of domains.
+  echo ""
   gravity_Table_Count "gravity" "gravity domains"
+  gravity_Table_Count "antigravity" "antigravity domains"
   gravity_Table_Count "domainlist WHERE type = 1 AND enabled = 1" "exact denied domains"
   gravity_Table_Count "domainlist WHERE type = 3 AND enabled = 1" "regex denied filters"
   gravity_Table_Count "domainlist WHERE type = 0 AND enabled = 1" "exact allowed domains"
   gravity_Table_Count "domainlist WHERE type = 2 AND enabled = 1" "regex allowed filters"
+  echo ""
 }
 
 # Trap Ctrl-C
@@ -947,7 +953,7 @@ database_recovery() {
   else
     echo -e "${OVER}  ${CROSS} ${str} - the following errors happened:"
     while IFS= read -r line; do echo "  - $line"; done <<<"$result"
-    echo -e "  ${CROSS} Recovery failed. Try \"pihole -r recreate\" instead."
+    echo -e "  ${CROSS} Recovery failed. Try \"pihole -g -r recreate\" instead."
     exit 1
   fi
   echo ""
@@ -1149,7 +1155,8 @@ update_gravity_timestamp
 fix_owner_permissions "${gravityTEMPfile}"
 
 # Build the tree
-timeit gravity_build_tree
+timeit gravity_build_tree gravity
+timeit gravity_build_tree antigravity
 
 # Compute numbers to be displayed (do this after building the tree to get the
 # numbers quickly from the tree instead of having to scan the whole database)

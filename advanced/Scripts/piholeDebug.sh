@@ -41,8 +41,10 @@ else
     #OVER="\r\033[K"
 fi
 
-# shellcheck source=/dev/null
-. /etc/pihole/versions
+# shellcheck source=./advanced/Scripts/utils.sh
+source /opt/pihole/utils.sh
+
+loadVersionFile /etc/pihole/versions
 
 # Read the value of an FTL config key. The value is printed to stdout.
 get_ftl_conf_value() {
@@ -92,7 +94,6 @@ PIHOLE_GRAVITY_DB_FILE="$(get_ftl_conf_value "files.gravity")"
 PIHOLE_FTL_DB_FILE="$(get_ftl_conf_value "files.database")"
 
 PIHOLE_COMMAND="${BIN_DIRECTORY}/pihole"
-PIHOLE_COLTABLE_FILE="${BIN_DIRECTORY}/COL_TABLE"
 
 FTL_PID="$(get_ftl_conf_value "files.pid")"
 
@@ -117,7 +118,6 @@ REQUIRED_FILES=("${PIHOLE_CRON_FILE}"
 "${PIHOLE_FTL_CONF_FILE}"
 "${PIHOLE_DNSMASQ_CONF_FILE}"
 "${PIHOLE_COMMAND}"
-"${PIHOLE_COLTABLE_FILE}"
 "${FTL_PID}"
 "${PIHOLE_LOG}"
 "${PIHOLE_LOG_GZIPS}"
@@ -169,7 +169,7 @@ initialize_debug() {
     # Display that the debug process is beginning
     log_write "${COL_PURPLE}*** [ INITIALIZING ]${COL_NC}"
     # Timestamp the start of the log
-    log_write "${INFO} $(date "+%Y-%m-%d:%H:%M:%S") debug log has been initialized."
+    log_write "${INFO} $(date "+%Y-%m-%d %H:%M:%S") debug log has been initialized."
     # Uptime of the system
     # credits to https://stackoverflow.com/questions/28353409/bash-format-uptime-to-show-days-hours-minutes
     system_uptime=$(uptime | awk -F'( |,|:)+' '{if ($7=="min") m=$6; else {if ($7~/^day/){if ($9=="min") {d=$6;m=$8} else {d=$6;h=$8;m=$9}} else {h=$6;m=$7}}} {print d+0,"days,",h+0,"hours,",m+0,"minutes"}')
@@ -288,7 +288,7 @@ check_ftl_version() {
 
 # Checks the core version of the Pi-hole codebase
 check_component_versions() {
-    # Check the Web version, branch, and commit
+    # Check the Core version, branch, and commit
     compare_local_version_to_git_version "${CORE_GIT_DIRECTORY}" "Core"
     # Check the Web version, branch, and commit
     compare_local_version_to_git_version "${WEB_GIT_DIRECTORY}" "Web"
@@ -375,22 +375,6 @@ check_firewalld() {
                     log_write "${CROSS} ${COL_RED}  Allow Service: ${i}${COL_NC} (${FAQ_HARDWARE_REQUIREMENTS_FIREWALLD})"
                 fi
             done
-            # check for custom FTL FirewallD zone
-            local firewalld_zones
-            firewalld_zones=$(firewall-cmd --get-zones)
-            if [[ "${firewalld_zones}" =~ "ftl" ]]; then
-                log_write "${TICK} ${COL_GREEN}FTL Custom Zone Detected${COL_NC}";
-                # check FTL custom zone interface: lo
-                local firewalld_ftl_zone_interfaces
-                firewalld_ftl_zone_interfaces=$(firewall-cmd --zone=ftl --list-interfaces)
-                if [[ "${firewalld_ftl_zone_interfaces}" =~ "lo" ]]; then
-                    log_write "${TICK} ${COL_GREEN}  Local Interface Detected${COL_NC}";
-                else
-                    log_write "${CROSS} ${COL_RED}  Local Interface Not Detected${COL_NC} (${FAQ_HARDWARE_REQUIREMENTS_FIREWALLD})"
-                fi
-            else
-                log_write "${CROSS} ${COL_RED}FTL Custom Zone Not Detected${COL_NC} (${FAQ_HARDWARE_REQUIREMENTS_FIREWALLD})"
-            fi
         fi
     else
         log_write "${TICK} ${COL_GREEN}Firewalld service not detected${COL_NC}";
@@ -593,18 +577,21 @@ check_required_ports() {
     # Add port 53
     ports_configured+=("53")
 
+    local protocol_type port_number service_name
     # Now that we have the values stored,
     for i in "${!ports_in_use[@]}"; do
         # loop through them and assign some local variables
-        local service_name
-        service_name=$(echo "${ports_in_use[$i]}" | awk '{gsub(/users:\(\("/,"",$7);gsub(/".*/,"",$7);print $7}')
-        local protocol_type
-        protocol_type=$(echo "${ports_in_use[$i]}" | awk '{print $1}')
-        local port_number
-        port_number="$(echo "${ports_in_use[$i]}" | awk '{print $5}')" #  | awk '{gsub(/^.*:/,"",$5);print $5}')
+        read -r protocol_type port_number service_name <<< "$(
+            awk '{
+                p=$1; n=$5; s=$7
+                gsub(/users:\(\("/,"",s)
+                gsub(/".*/,"",s)
+                print p, n, s
+            }' <<< "${ports_in_use[$i]}"
+        )"
 
         # Check if the right services are using the right ports
-        if [[ ${ports_configured[*]} =~ $(echo "${port_number}" | rev | cut -d: -f1 | rev) ]]; then
+        if [[ ${ports_configured[*]} =~ ${port_number##*:} ]]; then
             compare_port_to_service_assigned  "${ftl}" "${service_name}" "${protocol_type}:${port_number}"
         else
             # If it's not a default port that Pi-hole needs, just print it out for the user to see
@@ -722,7 +709,7 @@ dig_at() {
                 fi
 
               # Check if Pi-hole can use itself to block a domain
-                if local_dig="$(dig +tries=1 +time=2 -"${protocol}" "${random_url}" @"${local_address}" "${record_type}")"; then
+                if local_dig="$(dig +tries=1 +time=2 -"${protocol}" "${random_url}" @"${local_address}" "${record_type}" -p "$(get_ftl_conf_value "dns.port")")"; then
                     # If it can, show success
                     if [[ "${local_dig}" == *"status: NOERROR"* ]]; then
                         local_dig="NOERROR"
@@ -816,42 +803,27 @@ ftl_full_status(){
 
 make_array_from_file() {
     local filename="${1}"
+
+    # If the file is a directory do nothing since it cannot be parsed
+    [[ -d "${filename}" ]] && return
+
     # The second argument can put a limit on how many line should be read from the file
     # Since some of the files are so large, this is helpful to limit the output
     local limit=${2}
     # A local iterator for testing if we are at the limit above
     local i=0
-    # If the file is a directory
-    if [[ -d "${filename}" ]]; then
-        # do nothing since it cannot be parsed
-        :
-    else
-        # Otherwise, read the file line by line
-        while IFS= read -r line;do
-            # Otherwise, strip out comments and blank lines
-            new_line=$(echo "${line}" | sed -e 's/^\s*#.*$//' -e '/^$/d')
-            # If the line still has content (a non-zero value)
-            if [[ -n "${new_line}" ]]; then
 
-                # If the string contains "### CHANGED", highlight this part in red
-                if [[ "${new_line}" == *"### CHANGED"* ]]; then
-                    new_line="${new_line//### CHANGED/${COL_RED}### CHANGED${COL_NC}}"
-                fi
+    # Process the file, strip out comments and blank lines
+    local processed
+    processed=$(sed -e 's/^\s*#.*$//' -e '/^$/d' "${filename}")
 
-                # Finally, write this line to the log
-                log_write "   ${new_line}"
-            fi
-            # Increment the iterator +1
-            i=$((i+1))
-            # but if the limit of lines we want to see is exceeded
-            if [[ -z ${limit} ]]; then
-                # do nothing
-                :
-            elif [[ $i -eq ${limit} ]]; then
-                break
-            fi
-        done < "${filename}"
-    fi
+    while IFS= read -r line; do
+        # If the string contains "### CHANGED", highlight this part in red
+        log_write "   ${line//### CHANGED/${COL_RED}### CHANGED${COL_NC}}"
+        ((i++))
+        # if the limit of lines we want to see is exceeded do nothing
+        [[ -n ${limit} && $i -eq ${limit} ]] && break
+    done <<< "$processed"
 }
 
 parse_file() {
@@ -924,38 +896,38 @@ list_files_in_dir() {
     fi
 
     # Store the files found in an array
-    mapfile -t files_found < <(ls "${dir_to_parse}")
+    local files_found=("${dir_to_parse}"/*)
     # For each file in the array,
     for each_file in "${files_found[@]}"; do
-        if [[ -d "${dir_to_parse}/${each_file}" ]]; then
+        if [[ -d "${each_file}" ]]; then
             # If it's a directory, do nothing
             :
-        elif [[ "${dir_to_parse}/${each_file}" == "${PIHOLE_DEBUG_LOG}" ]] || \
-            [[ "${dir_to_parse}/${each_file}" == "${PIHOLE_RAW_BLOCKLIST_FILES}" ]] || \
-            [[ "${dir_to_parse}/${each_file}" == "${PIHOLE_INSTALL_LOG_FILE}" ]] || \
-            [[ "${dir_to_parse}/${each_file}" == "${PIHOLE_LOG}" ]] || \
-            [[ "${dir_to_parse}/${each_file}" == "${PIHOLE_LOG_GZIPS}" ]]; then
+        elif [[ "${each_file}" == "${PIHOLE_DEBUG_LOG}" ]] || \
+            [[ "${each_file}" == "${PIHOLE_RAW_BLOCKLIST_FILES}" ]] || \
+            [[ "${each_file}" == "${PIHOLE_INSTALL_LOG_FILE}" ]] || \
+            [[ "${each_file}" == "${PIHOLE_LOG}" ]] || \
+            [[ "${each_file}" == "${PIHOLE_LOG_GZIPS}" ]]; then
             :
         elif [[ "${dir_to_parse}" == "${DNSMASQ_D_DIRECTORY}" ]]; then
             # in case of the dnsmasq directory include all files in the debug output
-            log_write "\\n${COL_GREEN}$(ls -lhd "${dir_to_parse}"/"${each_file}")${COL_NC}"
-            make_array_from_file "${dir_to_parse}/${each_file}"
+            log_write "\\n${COL_GREEN}$(ls -lhd "${each_file}")${COL_NC}"
+            make_array_from_file "${each_file}"
         else
             # Then, parse the file's content into an array so each line can be analyzed if need be
             for i in "${!REQUIRED_FILES[@]}"; do
-                if [[ "${dir_to_parse}/${each_file}" == "${REQUIRED_FILES[$i]}" ]]; then
+                if [[ "${each_file}" == "${REQUIRED_FILES[$i]}" ]]; then
                     # display the filename
-                    log_write "\\n${COL_GREEN}$(ls -lhd "${dir_to_parse}"/"${each_file}")${COL_NC}"
+                    log_write "\\n${COL_GREEN}$(ls -lhd "${each_file}")${COL_NC}"
                     # Check if the file we want to view has a limit (because sometimes we just need a little bit of info from the file, not the entire thing)
-                    case "${dir_to_parse}/${each_file}" in
+                    case "${each_file}" in
                         # If it's Web server log, give the first and last 25 lines
-                        "${PIHOLE_WEBSERVER_LOG}") head_tail_log "${dir_to_parse}/${each_file}" 25
+                        "${PIHOLE_WEBSERVER_LOG}") head_tail_log "${each_file}" 25
                             ;;
                         # Same for the FTL log
-                        "${PIHOLE_FTL_LOG}") head_tail_log "${dir_to_parse}/${each_file}" 35
+                        "${PIHOLE_FTL_LOG}") head_tail_log "${each_file}" 35
                             ;;
                         # parse the file into an array in case we ever need to analyze it line-by-line
-                        *) make_array_from_file "${dir_to_parse}/${each_file}";
+                        *) make_array_from_file "${each_file}";
                     esac
                 else
                     # Otherwise, do nothing since it's not a file needed for Pi-hole so we don't care about it
@@ -991,6 +963,7 @@ head_tail_log() {
     local filename="${1}"
     # The number of lines to use for head and tail
     local qty="${2}"
+    local filebasename="${filename##*/}"
     local head_line
     local tail_line
     # Put the current Internal Field Separator into another variable so it can be restored later
@@ -999,14 +972,14 @@ head_tail_log() {
     IFS=$'\r\n'
     local log_head=()
     mapfile -t log_head < <(head -n "${qty}" "${filename}")
-    log_write "   ${COL_CYAN}-----head of $(basename "${filename}")------${COL_NC}"
+    log_write "   ${COL_CYAN}-----head of ${filebasename}------${COL_NC}"
     for head_line in "${log_head[@]}"; do
         log_write "   ${head_line}"
     done
     log_write ""
     local log_tail=()
     mapfile -t log_tail < <(tail -n "${qty}" "${filename}")
-    log_write "   ${COL_CYAN}-----tail of $(basename "${filename}")------${COL_NC}"
+    log_write "   ${COL_CYAN}-----tail of ${filebasename}------${COL_NC}"
     for tail_line in "${log_tail[@]}"; do
         log_write "   ${tail_line}"
     done
@@ -1033,6 +1006,24 @@ show_db_entries() {
     )
 
     for line in "${entries[@]}"; do
+        # Use gray color for "no". Normal color for "yes"
+        line=${line//--no---/${COL_GRAY}  no   ${COL_NC}}
+        line=${line//--yes--/  yes  }
+
+        # Use red for "deny" and green for "allow"
+        if [ "$title" = "Domainlist" ]; then
+            line=${line//regex-deny/${COL_RED}regex-deny${COL_NC}}
+            line=${line//regex-allow/${COL_GREEN}regex-allow${COL_NC}}
+            line=${line//exact-deny/${COL_RED}exact-deny${COL_NC}}
+            line=${line//exact-allow/${COL_GREEN}exact-allow${COL_NC}}
+        fi
+
+        # Use red for "block" and green for "allow"
+        if [ "$title" = "Adlists" ]; then
+            line=${line//-BLOCK-/${COL_RED} Block ${COL_NC}}
+            line=${line//-ALLOW-/${COL_GREEN} Allow ${COL_NC}}
+        fi
+
         log_write "   ${line}"
     done
 
@@ -1080,15 +1071,15 @@ check_dhcp_servers() {
 }
 
 show_groups() {
-    show_db_entries "Groups" "SELECT id,CASE enabled WHEN '0' THEN '   0' WHEN '1' THEN '      1' ELSE enabled END enabled,name,datetime(date_added,'unixepoch','localtime') date_added,datetime(date_modified,'unixepoch','localtime') date_modified,description FROM \"group\"" "4 7 50 19 19 50"
+    show_db_entries "Groups" "SELECT id,CASE enabled WHEN '0' THEN '--no---' WHEN '1' THEN '--yes--' ELSE enabled END enabled,name,datetime(date_added,'unixepoch','localtime') date_added,datetime(date_modified,'unixepoch','localtime') date_modified,description FROM \"group\"" "4 7 50 19 19 50"
 }
 
 show_adlists() {
-    show_db_entries "Adlists" "SELECT id,CASE enabled WHEN '0' THEN '   0' WHEN '1' THEN '      1' ELSE enabled END enabled,GROUP_CONCAT(adlist_by_group.group_id) group_ids,address,datetime(date_added,'unixepoch','localtime') date_added,datetime(date_modified,'unixepoch','localtime') date_modified,comment FROM adlist LEFT JOIN adlist_by_group ON adlist.id = adlist_by_group.adlist_id GROUP BY id;" "5 7 12 100 19 19 50"
+    show_db_entries "Adlists" "SELECT id,CASE enabled WHEN '0' THEN '--no---' WHEN '1' THEN '--yes--' ELSE enabled END enabled,GROUP_CONCAT(adlist_by_group.group_id) group_ids, CASE type WHEN '0' THEN '-BLOCK-' WHEN '1' THEN '-ALLOW-' ELSE type END type, address,datetime(date_added,'unixepoch','localtime') date_added,datetime(date_modified,'unixepoch','localtime') date_modified,comment FROM adlist LEFT JOIN adlist_by_group ON adlist.id = adlist_by_group.adlist_id GROUP BY id;" "5 7 12 7 100 19 19 50"
 }
 
 show_domainlist() {
-    show_db_entries "Domainlist (0/1 = exact allow-/denylist, 2/3 = regex allow-/denylist)" "SELECT id,CASE type WHEN '0' THEN '0   ' WHEN '1' THEN ' 1  ' WHEN '2' THEN '  2 ' WHEN '3' THEN '   3' ELSE type END type,CASE enabled WHEN '0' THEN '   0' WHEN '1' THEN '      1' ELSE enabled END enabled,GROUP_CONCAT(domainlist_by_group.group_id) group_ids,domain,datetime(date_added,'unixepoch','localtime') date_added,datetime(date_modified,'unixepoch','localtime') date_modified,comment FROM domainlist LEFT JOIN domainlist_by_group ON domainlist.id = domainlist_by_group.domainlist_id GROUP BY id;" "5 4 7 12 100 19 19 50"
+    show_db_entries "Domainlist" "SELECT id,CASE type WHEN '0' THEN 'exact-allow' WHEN '1' THEN 'exact-deny' WHEN '2' THEN 'regex-allow' WHEN '3' THEN 'regex-deny' ELSE type END type,CASE enabled WHEN '0' THEN '--no---' WHEN '1' THEN '--yes--' ELSE enabled END enabled,GROUP_CONCAT(domainlist_by_group.group_id) group_ids,domain,datetime(date_added,'unixepoch','localtime') date_added,datetime(date_modified,'unixepoch','localtime') date_modified,comment FROM domainlist LEFT JOIN domainlist_by_group ON domainlist.id = domainlist_by_group.domainlist_id GROUP BY id;" "5 11 7 12 90 19 19 50"
 }
 
 show_clients() {

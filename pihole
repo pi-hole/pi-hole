@@ -30,15 +30,10 @@ readonly apifile="${PI_HOLE_SCRIPT_DIR}/api.sh"
 source "${apifile}"
 
 versionsfile="/etc/pihole/versions"
-if [ -f "${versionsfile}" ]; then
-    # Only source versionsfile if the file exits
-    # fixes a warning during installation where versionsfile does not exist yet
-    # but gravity calls `pihole -status` and thereby sourcing the file
-    # shellcheck source=/dev/null
-    source "${versionsfile}"
-fi
+# Load version variables without executing file content as shell code.
+# loadVersionFile() only assigns known keys with validated values.
+loadVersionFile "${versionsfile}"
 
-# TODO: We can probably remove the reliance on this function too, just tell people to pihole-FTL --config webserver.api.password "password"
 SetWebPassword() {
     if [ -n "$2" ] ; then
         readonly PASSWORD="$2"

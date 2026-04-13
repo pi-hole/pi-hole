@@ -18,7 +18,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
-        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 #v5.0.0
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd #v6.0.2
         with:
           fetch-depth: 0 # Differential ShellCheck requires full git history
 
@@ -31,11 +31,15 @@ jobs:
           [[ $FAIL == 1 ]] && exit 1 || echo "Scripts are executable!"
 
       - name: Differential ShellCheck
-        uses: redhat-plumbers-in-action/differential-shellcheck@0d9e5b29625f871e6a4215380486d6f1a7cb6cdd #v5.5.5
+        uses: redhat-plumbers-in-action/differential-shellcheck@d965e66ec0b3b2f821f75c8eff9b12442d9a7d1e #v5.5.6
         with:
           severity: warning
           display-engine: sarif-fmt
 
+      - name: Secret Scanning with TruffleHog
+        uses: trufflesecurity/trufflehog@47e7b7cd74f578e1e3145d48f669f22fd1330ca6 #v3.94.3
+        with:
+          extra_args: --results=verified,unknown
 
       - name: Spell-Checking
         uses: codespell-project/actions-codespell@8f01853be192eb0f849a5c7d721450e7a467c579 #v2.2
@@ -43,13 +47,13 @@ jobs:
           ignore_words_file: .codespellignore
 
       - name: Get editorconfig-checker
-        uses: editorconfig-checker/action-editorconfig-checker@4b6cd6190d435e7e084fb35e36a096e98506f7b9 #v2.1.0
+        uses: editorconfig-checker/action-editorconfig-checker@840e866d93b8e032123c23bac69dece044d4d84c #v2.2.0
 
       - name: Run editorconfig-checker
         run: editorconfig-checker
 
       - name: Check python code formatting with black
-        uses: psf/black@af0ba72a73598c76189d6dd1b21d8532255d5942 #25.9.0
+        uses: psf/black@c6755bb741b6481d6b3d3bb563c83fa060db96c9 #26.3.1
         with:
           src: "./test"
           options: "--check --diff --color"
@@ -77,15 +81,16 @@ jobs:
             fedora_43,
             alpine_3_21,
             alpine_3_22,
+            alpine_3_23,
           ]
     env:
       DISTRO: ${{matrix.distro}}
     steps:
       - name: Checkout repository
-        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 #v5.0.0
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd #v6.0.2
 
       - name: Set up Python
-        uses: actions/setup-python@e797f83bcb11b83ae66e0230d6156d7c80228e7c #v6.0.0
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 #v6.2.0
         with:
           python-version: "3.13"
 

@@ -15,7 +15,7 @@ if [[ -f ${coltable} ]]; then
     source ${coltable}
 fi
 
-readonly PI_HOLE_SCRIPT_DIR="/opt/pihole"
+PI_HOLE_SCRIPT_DIR="/opt/pihole"
 utilsfile="${PI_HOLE_SCRIPT_DIR}/utils.sh"
 # shellcheck source=./advanced/Scripts/utils.sh
 source "${utilsfile}"

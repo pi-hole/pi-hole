@@ -6,10 +6,8 @@ from .conftest import (
     info_box,
     cross_box,
     mock_command,
-    mock_command_run,
     mock_command_2,
     mock_command_passthrough,
-    run_script,
 )
 
 FTL_BRANCH = "development"
@@ -23,12 +21,10 @@ def test_supported_package_manager(host):
     host.run("rm -rf /usr/bin/apt-get")
     host.run("rm -rf /usr/bin/rpm")
     host.run("rm -rf /sbin/apk")
-    package_manager_detect = host.run(
-        """
+    package_manager_detect = host.run("""
     source /opt/pihole/basic-install.sh
     package_manager_detect
-    """
-    )
+    """)
     expected_stdout = cross_box + " No supported package manager found"
     assert expected_stdout in package_manager_detect.stdout
     # assert package_manager_detect.rc == 1
@@ -38,13 +34,11 @@ def test_selinux_not_detected(host):
     """
     confirms installer continues when SELinux configuration file does not exist
     """
-    check_selinux = host.run(
-        """
+    check_selinux = host.run("""
     rm -f /etc/selinux/config
     source /opt/pihole/basic-install.sh
     checkSelinux
-    """
-    )
+    """)
     expected_stdout = info_box + " SELinux not detected"
     assert expected_stdout in check_selinux.stdout
     assert check_selinux.rc == 0
@@ -95,8 +89,7 @@ def test_installPihole_fresh_install_readableFiles(host):
     host.run("command -v apk > /dev/null && apk add mandoc man-pages")
     # Workaround to get FTLv6 installed until it reaches master branch
     host.run('echo "' + FTL_BRANCH + '" > /etc/pihole/ftlbranch')
-    install = host.run(
-        """
+    install = host.run("""
     export TERM=xterm
     export DEBIAN_FRONTEND=noninteractive
     umask 0027
@@ -105,8 +98,7 @@ def test_installPihole_fresh_install_readableFiles(host):
     runUnattended=true
     main
     /opt/pihole/pihole-FTL-prestart.sh
-    """
-    )
+    """)
     assert 0 == install.rc
     maninstalled = True
     if (info_box + " man not installed") in install.stdout:
@@ -162,12 +154,6 @@ def test_installPihole_fresh_install_readableFiles(host):
         check_man = test_cmd.format("r", "/usr/local/share/man/man8", piholeuser)
         actual_rc = host.run(check_man).rc
         assert exit_status_success == actual_rc
-        check_man = test_cmd.format("x", "/usr/local/share/man/man5", piholeuser)
-        actual_rc = host.run(check_man).rc
-        assert exit_status_success == actual_rc
-        check_man = test_cmd.format("r", "/usr/local/share/man/man5", piholeuser)
-        actual_rc = host.run(check_man).rc
-        assert exit_status_success == actual_rc
         check_man = test_cmd.format(
             "r", "/usr/local/share/man/man8/pihole.8", piholeuser
         )
@@ -201,13 +187,11 @@ def test_update_package_cache_success_no_errors(host):
     """
     confirms package cache was updated without any errors
     """
-    updateCache = host.run(
-        """
+    updateCache = host.run("""
     source /opt/pihole/basic-install.sh
     package_manager_detect
     update_package_cache
-    """
-    )
+    """)
     expected_stdout = tick_box + " Update local cache of available packages"
     assert expected_stdout in updateCache.stdout
     assert "error" not in updateCache.stdout.lower()
@@ -218,13 +202,11 @@ def test_update_package_cache_failure_no_errors(host):
     confirms package cache was not updated
     """
     mock_command("apt-get", {"update": ("", "1")}, host)
-    updateCache = host.run(
-        """
+    updateCache = host.run("""
     source /opt/pihole/basic-install.sh
     package_manager_detect
     update_package_cache
-    """
-    )
+    """)
     expected_stdout = cross_box + " Update local cache of available packages"
     assert expected_stdout in updateCache.stdout
     assert "Error: Unable to update package cache." in updateCache.stdout
@@ -260,16 +242,14 @@ def test_FTL_detect_no_errors(host, arch, detected_string, supported):
         host,
     )
     host.run('echo "' + FTL_BRANCH + '" > /etc/pihole/ftlbranch')
-    detectPlatform = host.run(
-        """
+    detectPlatform = host.run("""
     source /opt/pihole/basic-install.sh
     create_pihole_user
     funcOutput=$(get_binary_name)
     binary="pihole-FTL${funcOutput##*pihole-FTL}"
     theRest="${funcOutput%pihole-FTL*}"
     FTLdetect "${binary}" "${theRest}"
-    """
-    )
+    """)
     if supported:
         expected_stdout = info_box + " FTL Checks..."
         assert expected_stdout in detectPlatform.stdout
@@ -289,22 +269,18 @@ def test_FTL_development_binary_installed_and_responsive_no_errors(host):
     confirms FTL development binary is copied and functional in installed location
     """
     host.run('echo "' + FTL_BRANCH + '" > /etc/pihole/ftlbranch')
-    host.run(
-        """
+    host.run("""
     source /opt/pihole/basic-install.sh
     create_pihole_user
     funcOutput=$(get_binary_name)
     binary="pihole-FTL${funcOutput##*pihole-FTL}"
     theRest="${funcOutput%pihole-FTL*}"
     FTLdetect "${binary}" "${theRest}"
-    """
-    )
-    version_check = host.run(
-        """
+    """)
+    version_check = host.run("""
     VERSION=$(pihole-FTL version)
     echo ${VERSION:0:1}
-    """
-    )
+    """)
     expected_stdout = "v"
     assert expected_stdout in version_check.stdout
 
@@ -319,12 +295,10 @@ def test_IPv6_only_link_local(host):
         {"-6 address": ("inet6 fe80::d210:52fa:fe00:7ad7/64 scope link", "0")},
         host,
     )
-    detectPlatform = host.run(
-        """
+    detectPlatform = host.run("""
     source /opt/pihole/basic-install.sh
     find_IPv6_information
-    """
-    )
+    """)
     expected_stdout = "Unable to find IPv6 ULA/GUA address"
     assert expected_stdout in detectPlatform.stdout
 
@@ -344,12 +318,10 @@ def test_IPv6_only_ULA(host):
         },
         host,
     )
-    detectPlatform = host.run(
-        """
+    detectPlatform = host.run("""
     source /opt/pihole/basic-install.sh
     find_IPv6_information
-    """
-    )
+    """)
     expected_stdout = "Found IPv6 ULA address"
     assert expected_stdout in detectPlatform.stdout
 
@@ -369,12 +341,10 @@ def test_IPv6_only_GUA(host):
         },
         host,
     )
-    detectPlatform = host.run(
-        """
+    detectPlatform = host.run("""
     source /opt/pihole/basic-install.sh
     find_IPv6_information
-    """
-    )
+    """)
     expected_stdout = "Found IPv6 GUA address"
     assert expected_stdout in detectPlatform.stdout
 
@@ -395,12 +365,10 @@ def test_IPv6_GUA_ULA_test(host):
         },
         host,
     )
-    detectPlatform = host.run(
-        """
+    detectPlatform = host.run("""
     source /opt/pihole/basic-install.sh
     find_IPv6_information
-    """
-    )
+    """)
     expected_stdout = "Found IPv6 ULA address"
     assert expected_stdout in detectPlatform.stdout
 
@@ -421,12 +389,10 @@ def test_IPv6_ULA_GUA_test(host):
         },
         host,
     )
-    detectPlatform = host.run(
-        """
+    detectPlatform = host.run("""
     source /opt/pihole/basic-install.sh
     find_IPv6_information
-    """
-    )
+    """)
     expected_stdout = "Found IPv6 ULA address"
     assert expected_stdout in detectPlatform.stdout
 
@@ -437,14 +403,10 @@ def test_validate_ip(host):
     """
 
     def test_address(addr, success=True):
-        output = host.run(
-            """
+        output = host.run("""
         source /opt/pihole/basic-install.sh
         valid_ip "{addr}"
-        """.format(
-                addr=addr
-            )
-        )
+        """.format(addr=addr))
 
         assert output.rc == 0 if success else 1
 
@@ -479,15 +441,13 @@ def test_validate_ip(host):
 def test_package_manager_has_pihole_deps(host):
     """Confirms OS is able to install the required packages for Pi-hole"""
     mock_command("dialog", {"*": ("", "0")}, host)
-    output = host.run(
-        """
+    output = host.run("""
     source /opt/pihole/basic-install.sh
     package_manager_detect
     update_package_cache
     build_dependency_package
     install_dependent_packages
-    """
-    )
+    """)
 
     assert "No package" not in output.stdout
     assert output.rc == 0
@@ -496,21 +456,17 @@ def test_package_manager_has_pihole_deps(host):
 def test_meta_package_uninstall(host):
     """Confirms OS is able to install and uninstall the Pi-hole meta package"""
     mock_command("dialog", {"*": ("", "0")}, host)
-    install = host.run(
-        """
+    install = host.run("""
     source /opt/pihole/basic-install.sh
     package_manager_detect
     update_package_cache
     build_dependency_package
     install_dependent_packages
-    """
-    )
+    """)
     assert install.rc == 0
 
-    uninstall = host.run(
-        """
+    uninstall = host.run("""
     source /opt/pihole/uninstall.sh
     removeMetaPackage
-    """
-    )
+    """)
     assert uninstall.rc == 0

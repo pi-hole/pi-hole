@@ -51,29 +51,19 @@ def mock_command(script, args, container):
     in unit tests
     """
     full_script_path = "/usr/local/bin/{}".format(script)
-    mock_script = dedent(
-        r"""\
+    mock_script = dedent(r"""\
     #!/bin/bash -e
     echo "\$0 \$@" >> /var/log/{script}
-    case "\$1" in""".format(
-            script=script
-        )
-    )
+    case "\$1" in""".format(script=script))
     for k, v in args.items():
-        case = dedent(
-            """
+        case = dedent("""
         {arg})
         echo {res}
         exit {retcode}
-        ;;""".format(
-                arg=k, res=v[0], retcode=v[1]
-            )
-        )
+        ;;""".format(arg=k, res=v[0], retcode=v[1]))
         mock_script += case
-    mock_script += dedent(
-        """
-    esac"""
-    )
+    mock_script += dedent("""
+    esac""")
     container.run(
         """
     cat <<EOF> {script}\n{content}\nEOF
@@ -94,37 +84,23 @@ def mock_command_passthrough(script, args, container):
     """
     orig_script_path = container.check_output("command -v {}".format(script))
     full_script_path = "/usr/local/bin/{}".format(script)
-    mock_script = dedent(
-        r"""\
+    mock_script = dedent(r"""\
     #!/bin/bash -e
     echo "\$0 \$@" >> /var/log/{script}
-    case "\$1" in""".format(
-            script=script
-        )
-    )
+    case "\$1" in""".format(script=script))
     for k, v in args.items():
-        case = dedent(
-            """
+        case = dedent("""
         {arg})
         echo {res}
         exit {retcode}
-        ;;""".format(
-                arg=k, res=v[0], retcode=v[1]
-            )
-        )
+        ;;""".format(arg=k, res=v[0], retcode=v[1]))
         mock_script += case
-    mock_script += dedent(
-        r"""
+    mock_script += dedent(r"""
     *)
     {orig_script_path} "\$@"
-    ;;""".format(
-            orig_script_path=orig_script_path
-        )
-    )
-    mock_script += dedent(
-        """
-    esac"""
-    )
+    ;;""".format(orig_script_path=orig_script_path))
+    mock_script += dedent("""
+    esac""")
     container.run(
         """
     cat <<EOF> {script}\n{content}\nEOF
@@ -141,29 +117,19 @@ def mock_command_run(script, args, container):
     in unit tests
     """
     full_script_path = "/usr/local/bin/{}".format(script)
-    mock_script = dedent(
-        r"""\
+    mock_script = dedent(r"""\
     #!/bin/bash -e
     echo "\$0 \$@" >> /var/log/{script}
-    case "\$1 \$2" in""".format(
-            script=script
-        )
-    )
+    case "\$1 \$2" in""".format(script=script))
     for k, v in args.items():
-        case = dedent(
-            """
+        case = dedent("""
         \"{arg}\")
         echo {res}
         exit {retcode}
-        ;;""".format(
-                arg=k, res=v[0], retcode=v[1]
-            )
-        )
+        ;;""".format(arg=k, res=v[0], retcode=v[1]))
         mock_script += case
-    mock_script += dedent(
-        """
-    esac"""
-    )
+    mock_script += dedent(r"""
+    esac""")
     container.run(
         """
     cat <<EOF> {script}\n{content}\nEOF
@@ -180,29 +146,19 @@ def mock_command_2(script, args, container):
     in unit tests
     """
     full_script_path = "/usr/local/bin/{}".format(script)
-    mock_script = dedent(
-        r"""\
+    mock_script = dedent(r"""\
     #!/bin/bash -e
     echo "\$0 \$@" >> /var/log/{script}
-    case "\$1 \$2" in""".format(
-            script=script
-        )
-    )
+    case "\$1 \$2" in""".format(script=script))
     for k, v in args.items():
-        case = dedent(
-            """
+        case = dedent("""
         \"{arg}\")
         echo \"{res}\"
         exit {retcode}
-        ;;""".format(
-                arg=k, res=v[0], retcode=v[1]
-            )
-        )
+        ;;""".format(arg=k, res=v[0], retcode=v[1]))
         mock_script += case
-    mock_script += dedent(
-        """
-    esac"""
-    )
+    mock_script += dedent(r"""
+    esac""")
     container.run(
         """
     cat <<EOF> {script}\n{content}\nEOF

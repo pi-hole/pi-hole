@@ -8,17 +8,18 @@
 # This file is copyright under the latest version of the EUPL.
 # Please see LICENSE file for your rights under this license.
 
-# Source the versions file populated by updatechecker.sh
+# shellcheck source=./advanced/Scripts/utils.sh
+. /opt/pihole/utils.sh
+
+# Load the versions file populated by updatechecker.sh
 cachedVersions="/etc/pihole/versions"
 
-if [ -f ${cachedVersions} ]; then
-    # shellcheck source=/dev/null
-    . "$cachedVersions"
+if [ -f "${cachedVersions}" ]; then
+    loadVersionFile "${cachedVersions}"
 else
     echo "Could not find /etc/pihole/versions. Running update now."
     pihole updatechecker
-     # shellcheck source=/dev/null
-    . "$cachedVersions"
+    loadVersionFile "${cachedVersions}"
 fi
 
 main() {

@@ -186,7 +186,9 @@ checkout() {
 
         echo -e "  ${INFO} Checking for ${COL_YELLOW}${binary}${COL_NC} binary on https://ftl.pi-hole.net"
 
-        if check_download_exists "$path"; then
+        local download_status
+        check_download_exists "$path" && download_status=0 || download_status=$?
+        if [ $download_status -eq 0 ]; then
             echo "  ${TICK} Binary exists"
             echo "${2}" > /etc/pihole/ftlbranch
             chmod 644 /etc/pihole/ftlbranch
@@ -210,15 +212,13 @@ checkout() {
             # Update local and remote versions via updatechecker
             /opt/pihole/updatecheck.sh
         else
-            local status
-            status=$?
-            if [ $status -eq 1 ]; then
+            if [ $download_status -eq 1 ]; then
                 # Binary for requested branch is not available, may still be
                 # int he process of being built or CI build job failed
                 printf "  %b Binary for requested branch is not available, please try again later.\\n" "${CROSS}"
                 printf "      If the issue persists, please contact Pi-hole Support and ask them to re-generate the binary.\\n"
                 exit 1
-            elif [ $status -eq 2 ]; then
+            elif [ $download_status -eq 2 ]; then
                 printf "  %b Unable to download from ftl.pi-hole.net. Please check your Internet connection and try again later.\\n" "${CROSS}"
                 exit 1
             else
