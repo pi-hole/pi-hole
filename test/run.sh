@@ -11,10 +11,13 @@ cd "$SCRIPT_DIR"
 usage() {
     echo "Usage:"
     echo "  DISTRO=<name> bash test/run.sh"
+    echo "  DISTRO=<name> PLATFORM=<platform> bash test/run.sh"
     echo "  bash test/run.sh --distro <name>"
+    echo "  bash test/run.sh --distro <name> --platform <platform>"
     echo ""
     echo "Options:"
     echo "  -d, --distro <name>   Distro to test (e.g., debian_12)"
+    echo "  -p, --platform <name> Target platform (e.g., linux/amd64)"
     echo "  -h, --help            Show this help"
 }
 
@@ -28,6 +31,15 @@ while [[ $# -gt 0 ]]; do
                 exit 1
             fi
             DISTRO="$1"
+            ;;
+        -p|--platform)
+            shift
+            if [[ $# -eq 0 ]]; then
+                echo "Error: --platform requires a value"
+                usage
+                exit 1
+            fi
+            PLATFORM="$1"
             ;;
         -h|--help)
             usage
@@ -83,20 +95,27 @@ TEST_FILES=(
 )
 [[ "$DISTRO_FAMILY" == "rhel" ]] && TEST_FILES+=(test_selinux.bats)
 
+# Target platform selection
+PLATFORM="${PLATFORM:-linux/amd64}"
+PLATFORM_TAG="${PLATFORM//\//_}"
+
 # ---------------------------------------------------------------------------
 # Build the test image
 # ---------------------------------------------------------------------------
 
-IMAGE_TAG="pihole_test:${DISTRO}"
+IMAGE_TAG="pihole_test:${DISTRO}_${PLATFORM_TAG}"
 
 docker buildx build \
     --load \
     --progress plain \
+    --platform "$PLATFORM" \
     -f "$DOCKERFILE" \
     -t "$IMAGE_TAG" \
     ../
 
 docker run --rm -t \
+    --platform "$PLATFORM" \
+    -e TEST_PLATFORM="$PLATFORM" \
     -e BATS_CORE_REF="${BATS_CORE_REF:-v1.13.0}" \
     -e BATS_SUPPORT_REF="${BATS_SUPPORT_REF:-v0.3.0}" \
     -e BATS_ASSERT_REF="${BATS_ASSERT_REF:-v2.2.4}" \

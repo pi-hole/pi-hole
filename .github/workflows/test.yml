@@ -48,12 +48,35 @@ jobs:
         run: editorconfig-checker
 
   distro-test:
+    name: distro-test (${{ matrix.distro }}, ${{ matrix.platform }})
     if: github.event.pull_request.draft == false
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.runner }}
     needs: smoke-tests
     strategy:
       fail-fast: false
       matrix:
+        platform:
+          [
+            linux/amd64,
+            linux/386,
+            linux/arm/v6,
+            linux/arm/v7,
+            linux/arm64/v8,
+            linux/riscv64,
+          ]
+        include:
+          - platform: linux/amd64
+            runner: ubuntu-latest
+          - platform: linux/386
+            runner: ubuntu-latest
+          - platform: linux/arm/v6
+            runner: ubuntu-24.04-arm
+          - platform: linux/arm/v7
+            runner: ubuntu-24.04-arm
+          - platform: linux/arm64/v8
+            runner: ubuntu-24.04-arm
+          - platform: linux/riscv64
+            runner: ubuntu-latest
         distro:
           [
             debian_11,
@@ -76,5 +99,11 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd #v6.0.2
 
-      - name: Run BATS test suite for ${{ matrix.distro }}
-        run: DISTRO=${{ matrix.distro }} bash test/run.sh
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@ce360397dd3f832beb865e1373c09c0e9f86d70a #v4.0.0
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@4d04d5d9486b7bd6fa91e7baf45bbb4f8b9deedd #v4.0.0
+
+      - name: Run BATS test suite for ${{ matrix.distro }} (${{ matrix.platform }})
+        run: DISTRO=${{ matrix.distro }} PLATFORM=${{ matrix.platform }} bash test/run.sh

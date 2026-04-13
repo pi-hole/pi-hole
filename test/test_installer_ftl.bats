@@ -3,37 +3,16 @@
 
 load 'libs/bats-support/load'
 load 'libs/bats-assert/load'
-load 'helpers/mocks'
-
 TICK="[✓]"
 INFO="[i]"
 
 FTL_BRANCH="development"
 
-_reset_ftl_test_state() {
-    rm -f /usr/local/bin/uname /usr/local/bin/readelf /var/log/uname /var/log/readelf
-}
-
-setup() {
-    _reset_ftl_test_state
-}
-
-teardown() {
-    _reset_ftl_test_state
-}
-
 # ---------------------------------------------------------------------------
-# Installer FTL architecture detection — one @test per arch
+# Installer FTL architecture detection for the active runtime platform
 # ---------------------------------------------------------------------------
 
-_test_ftl_arch() {
-    local arch="$1" detected_string="$2" supported="$3"
-
-    mock_command uname "-m" "$arch" "0"
-    mock_command_2 readelf \
-        "-A /bin/sh"      "Tag_CPU_arch: ${arch}" "0" \
-        "-A /usr/bin/sh"  "Tag_CPU_arch: ${arch}" "0" \
-        "-A /usr/sbin/sh" "Tag_CPU_arch: ${arch}" "0"
+_run_installer_ftl_detect() {
     echo "${FTL_BRANCH}" > /etc/pihole/ftlbranch
 
     run bash -c "
@@ -44,51 +23,52 @@ _test_ftl_arch() {
         theRest=\"\${funcOutput%pihole-FTL*}\"
         FTLdetect \"\${binary}\" \"\${theRest}\"
     "
+}
 
-    if [[ "$supported" == "true" ]]; then
-        assert_output --partial "${INFO} FTL Checks..."
-        assert_output --partial "${TICK} Detected ${detected_string} architecture"
+_expected_arch_message_for_platform() {
+    local platform="${TEST_PLATFORM:-linux/amd64}"
+    case "$platform" in
+        linux/amd64) echo "Detected x86_64 architecture" ;;
+        linux/386) echo "Detected 32bit (i686) architecture" ;;
+        linux/arm/v6) echo "Detected ARMv6 architecture" ;;
+        linux/arm/v7) echo "Detected ARMv7 (or newer) architecture" ;;
+        linux/arm64|linux/arm64/v8) echo "Detected AArch64 (64 Bit ARM) architecture" ;;
+        linux/riscv64) echo "Detected riscv64 architecture" ;;
+        *) echo "" ;;
+    esac
+}
 
-        if [[ "$output" != *"Downloading and Installing FTL"* && "$output" != *"Local binary up-to-date. No need to download!"* ]]; then
-            echo "Expected either download or up-to-date path, got:" >&2
-            echo "$output" >&2
-            false
-        fi
-    else
-        assert_output --partial "Not able to detect architecture (unknown: ${detected_string})"
+_expected_arch_label_for_platform() {
+    local platform="${TEST_PLATFORM:-linux/amd64}"
+    case "$platform" in
+        linux/amd64) echo "x86_64" ;;
+        linux/386) echo "32bit (i686)" ;;
+        linux/arm/v6) echo "ARMv6" ;;
+        linux/arm/v7) echo "ARMv7 (or newer)" ;;
+        linux/arm64|linux/arm64/v8) echo "AArch64 (64 Bit ARM)" ;;
+        linux/riscv64) echo "riscv64" ;;
+        *) echo "unknown" ;;
+    esac
+}
+
+@test "installer detects $(_expected_arch_label_for_platform) architecture for TEST_PLATFORM" {
+    local expected
+    expected="$(_expected_arch_message_for_platform)"
+
+    if [[ -z "$expected" ]]; then
+        skip "No expected installer architecture mapping for TEST_PLATFORM='${TEST_PLATFORM:-unset}'"
     fi
-}
 
-@test "installer detects aarch64 architecture for FTL" {
-    _test_ftl_arch "aarch64" "AArch64 (64 Bit ARM)" "true"
-}
+    _run_installer_ftl_detect
 
-@test "installer detects ARMv6 architecture for FTL" {
-    _test_ftl_arch "armv6" "ARMv6" "true"
-}
+    assert_output --partial "${INFO} FTL Checks..."
+    assert_output --partial "${TICK} ${expected}"
 
-@test "installer detects ARMv7l architecture for FTL" {
-    _test_ftl_arch "armv7l" "ARMv7 (or newer)" "true"
-}
-
-@test "installer detects ARMv7 architecture for FTL" {
-    _test_ftl_arch "armv7" "ARMv7 (or newer)" "true"
-}
-
-@test "installer detects ARMv8a architecture for FTL" {
-    _test_ftl_arch "armv8a" "ARMv7 (or newer)" "true"
-}
-
-@test "installer detects x86_64 architecture for FTL" {
-    _test_ftl_arch "x86_64" "x86_64" "true"
-}
-
-@test "installer detects riscv64 architecture for FTL" {
-    _test_ftl_arch "riscv64" "riscv64" "true"
-}
-
-@test "installer reports unsupported architecture for FTL" {
-    _test_ftl_arch "mips" "mips" "false"
+    if [[ "$output" != *"Downloading and Installing FTL"* && "$output" != *"Local binary up-to-date. No need to download!"* ]]; then
+        echo "Expected either download or up-to-date path, got:" >&2
+        echo "$output" >&2
+        false
+    fi
 }
 
 @test "installer provides a responsive FTL development binary" {
