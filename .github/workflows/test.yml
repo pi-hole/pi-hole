@@ -47,63 +47,127 @@ jobs:
       - name: Run editorconfig-checker
         run: editorconfig-checker
 
-  distro-test:
-    name: distro-test (${{ matrix.distro }}, ${{ matrix.platform }})
+  distro-test-amd64:
+    name: distro-test (linux/amd64, ${{ matrix.distro }})
     if: github.event.pull_request.draft == false
-    runs-on: ${{ matrix.runner }}
+    runs-on: ubuntu-latest
     needs: smoke-tests
     strategy:
       fail-fast: false
       matrix:
-        platform:
-          [
-            linux/amd64,
-            linux/386,
-            linux/arm/v6,
-            linux/arm/v7,
-            linux/arm64/v8,
-            linux/riscv64,
-          ]
-        include:
-          - platform: linux/amd64
-            runner: ubuntu-latest
-          - platform: linux/386
-            runner: ubuntu-latest
-          - platform: linux/arm/v6
-            runner: ubuntu-24.04-arm
-          - platform: linux/arm/v7
-            runner: ubuntu-24.04-arm
-          - platform: linux/arm64/v8
-            runner: ubuntu-24.04-arm
-          - platform: linux/riscv64
-            runner: ubuntu-latest
-        distro:
-          [
-            debian_11,
-            debian_12,
-            debian_13,
-            ubuntu_20,
-            ubuntu_22,
-            ubuntu_24,
-            centos_9,
-            centos_10,
-            fedora_40,
-            fedora_41,
-            fedora_42,
-            fedora_43,
-            alpine_3_21,
-            alpine_3_22,
-            alpine_3_23,
-          ]
+        distro: &distros
+          - debian_11
+          - debian_12
+          - debian_13
+          - ubuntu_20
+          - ubuntu_22
+          - ubuntu_24
+          - centos_9
+          - centos_10
+          - fedora_40
+          - fedora_41
+          - fedora_42
+          - fedora_43
+          - alpine_3_21
+          - alpine_3_22
+          - alpine_3_23
     steps:
-      - name: Checkout repository
+      - &step-checkout
+        name: Checkout repository
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd #v6.0.2
 
-      - name: Set up QEMU
+      - &step-qemu
+        name: Set up QEMU
         uses: docker/setup-qemu-action@ce360397dd3f832beb865e1373c09c0e9f86d70a #v4.0.0
 
-      - name: Set up Docker Buildx
+      - &step-buildx
+        name: Set up Docker Buildx
         uses: docker/setup-buildx-action@4d04d5d9486b7bd6fa91e7baf45bbb4f8b9deedd #v4.0.0
 
-      - name: Run BATS test suite for ${{ matrix.distro }} (${{ matrix.platform }})
-        run: DISTRO=${{ matrix.distro }} PLATFORM=${{ matrix.platform }} bash test/run.sh
+      - name: Run BATS test suite for ${{ matrix.distro }} (linux/amd64)
+        run: DISTRO=${{ matrix.distro }} PLATFORM=linux/amd64 bash test/run.sh
+
+  distro-test-386:
+    name: distro-test (linux/386, ${{ matrix.distro }})
+    if: github.event.pull_request.draft == false
+    runs-on: ubuntu-latest
+    needs: smoke-tests
+    strategy:
+      fail-fast: false
+      matrix:
+        distro: *distros
+    steps:
+      - *step-checkout
+      - *step-qemu
+      - *step-buildx
+
+      - name: Run BATS test suite for ${{ matrix.distro }} (linux/386)
+        run: DISTRO=${{ matrix.distro }} PLATFORM=linux/386 bash test/run.sh
+
+  distro-test-armv6:
+    name: distro-test (linux/arm/v6, ${{ matrix.distro }})
+    if: github.event.pull_request.draft == false
+    runs-on: ubuntu-24.04-arm
+    needs: smoke-tests
+    strategy:
+      fail-fast: false
+      matrix:
+        distro: *distros
+    steps:
+      - *step-checkout
+      - *step-qemu
+      - *step-buildx
+
+      - name: Run BATS test suite for ${{ matrix.distro }} (linux/arm/v6)
+        run: DISTRO=${{ matrix.distro }} PLATFORM=linux/arm/v6 bash test/run.sh
+
+  distro-test-armv7:
+    name: distro-test (linux/arm/v7, ${{ matrix.distro }})
+    if: github.event.pull_request.draft == false
+    runs-on: ubuntu-24.04-arm
+    needs: smoke-tests
+    strategy:
+      fail-fast: false
+      matrix:
+        distro: *distros
+    steps:
+      - *step-checkout
+      - *step-qemu
+      - *step-buildx
+
+      - name: Run BATS test suite for ${{ matrix.distro }} (linux/arm/v7)
+        run: DISTRO=${{ matrix.distro }} PLATFORM=linux/arm/v7 bash test/run.sh
+
+  distro-test-arm64:
+    name: distro-test (linux/arm64/v8, ${{ matrix.distro }})
+    if: github.event.pull_request.draft == false
+    runs-on: ubuntu-24.04-arm
+    needs: smoke-tests
+    strategy:
+      fail-fast: false
+      matrix:
+        distro: *distros
+    steps:
+      - *step-checkout
+      - *step-qemu
+      - *step-buildx
+
+      - name: Run BATS test suite for ${{ matrix.distro }} (linux/arm64/v8)
+        run: DISTRO=${{ matrix.distro }} PLATFORM=linux/arm64/v8 bash test/run.sh
+
+  distro-test-riscv64:
+    name: distro-test (linux/riscv64, ${{ matrix.distro }})
+    if: github.event.pull_request.draft == false
+    runs-on: ubuntu-latest
+    needs: smoke-tests
+    strategy:
+      fail-fast: false
+      matrix:
+        distro: *distros
+    steps:
+      - *step-checkout
+      - *step-qemu
+      - *step-buildx
+
+      - name: Run BATS test suite for ${{ matrix.distro }} (linux/riscv64)
+        run: DISTRO=${{ matrix.distro }} PLATFORM=linux/riscv64 bash test/run.sh
