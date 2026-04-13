@@ -7,11 +7,6 @@ on:
 permissions:
   contents: read
 
-env:
-  FORCE_COLOR: 1
-  PYTHONUNBUFFERED: 1
-  PYTHONUTF8: 1
-
 jobs:
   smoke-tests:
     if: github.event.pull_request.draft == false
@@ -25,7 +20,7 @@ jobs:
       - name: Check scripts in repository are executable
         run: |
           IFS=$'\n';
-          for f in $(find . -name '*.sh'); do if [[ ! -x $f ]]; then echo "$f is not executable" && FAIL=1; fi ;done
+          for f in $(find . -name '*.sh' -o -name '*.bats'); do if [[ ! -x $f ]]; then echo "$f is not executable" && FAIL=1; fi ;done
           unset IFS;
           # If FAIL is 1 then we fail.
           [[ $FAIL == 1 ]] && exit 1 || echo "Scripts are executable!"
@@ -52,12 +47,6 @@ jobs:
       - name: Run editorconfig-checker
         run: editorconfig-checker
 
-      - name: Check python code formatting with black
-        uses: psf/black@c6755bb741b6481d6b3d3bb563c83fa060db96c9 #26.3.1
-        with:
-          src: "./test"
-          options: "--check --diff --color"
-
   distro-test:
     if: github.event.pull_request.draft == false
     runs-on: ubuntu-latest
@@ -83,22 +72,9 @@ jobs:
             alpine_3_22,
             alpine_3_23,
           ]
-    env:
-      DISTRO: ${{matrix.distro}}
     steps:
       - name: Checkout repository
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd #v6.0.2
 
-      - name: Set up Python
-        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 #v6.2.0
-        with:
-          python-version: "3.13"
-
-      - name: Install wheel
-        run:  pip install wheel
-
-      - name: Install dependencies
-        run: pip install -r test/requirements.txt
-
-      - name: Test with tox
-        run: tox -c test/tox.${DISTRO}.ini
+      - name: Run BATS test suite for ${{ matrix.distro }}
+        run: DISTRO=${{ matrix.distro }} bash test/run.sh
