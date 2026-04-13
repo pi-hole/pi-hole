@@ -59,6 +59,29 @@ _expected_arch_label_for_platform() {
         skip "No expected installer architecture mapping for TEST_PLATFORM='${TEST_PLATFORM:-unset}'"
     fi
 
+    # Under QEMU emulation the host kernel's uname -m is reported inside the container
+    # rather than the architecture of the emulated platform. When that mismatch is
+    # detected, the installer will select the host architecture's binary (which is still
+    # functional), but asserting the expected arch label would be wrong. Skip instead.
+    local machine
+    machine=$(uname -m)
+    case "${TEST_PLATFORM:-linux/amd64}" in
+        linux/arm/v6|linux/arm/v7)
+            # ARM 32-bit containers on a non-ARM32 host (e.g. arm64 CI runner) report
+            # aarch64 via uname -m; the installer selects the arm64 binary instead.
+            if [[ "${machine}" != "arm"* ]]; then
+                skip "uname -m reports '${machine}', not ARM32 — QEMU on a non-ARM32 host; skipping arch-detection assertion"
+            fi
+            ;;
+        linux/386)
+            # On non-dpkg systems (e.g. Alpine) there is no dpkg --print-architecture to
+            # distinguish a 32-bit container from a native x86_64 host under QEMU.
+            if [[ "${machine}" == "x86_64" ]] && ! command -v dpkg &>/dev/null; then
+                skip "uname -m reports 'x86_64' and dpkg is absent — cannot distinguish i686 from x86_64 under QEMU; skipping arch-detection assertion"
+            fi
+            ;;
+    esac
+
     _run_installer_ftl_detect
 
     assert_output --partial "${INFO} FTL Checks..."

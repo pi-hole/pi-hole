@@ -96,6 +96,17 @@ jobs:
       fail-fast: false
       matrix:
         distro: *distros
+        exclude:
+          # No linux/386 image available for these distros
+          - distro: ubuntu_20
+          - distro: ubuntu_22
+          - distro: ubuntu_24
+          - distro: fedora_40
+          - distro: fedora_41
+          - distro: fedora_42
+          - distro: fedora_43
+          - distro: centos_9
+          - distro: centos_10
     steps:
       - *step-checkout
       - *step-qemu
@@ -113,6 +124,18 @@ jobs:
       fail-fast: false
       matrix:
         distro: *distros
+        exclude:
+          # No linux/arm/v6 image available for these distros
+          - distro: debian_11
+          - distro: ubuntu_20
+          - distro: ubuntu_22
+          - distro: ubuntu_24
+          - distro: fedora_40
+          - distro: fedora_41
+          - distro: fedora_42
+          - distro: fedora_43
+          - distro: centos_9
+          - distro: centos_10
     steps:
       - *step-checkout
       - *step-qemu
@@ -130,6 +153,14 @@ jobs:
       fail-fast: false
       matrix:
         distro: *distros
+        exclude:
+          # No linux/arm/v7 image available for these distros
+          - distro: fedora_40
+          - distro: fedora_41
+          - distro: fedora_42
+          - distro: fedora_43
+          - distro: centos_9
+          - distro: centos_10
     steps:
       - *step-checkout
       - *step-qemu
@@ -164,6 +195,17 @@ jobs:
       fail-fast: false
       matrix:
         distro: *distros
+        exclude:
+          # No linux/riscv64 image available for these distros
+          - distro: debian_11
+          - distro: debian_12
+          - distro: ubuntu_20
+          - distro: fedora_40
+          - distro: fedora_41
+          - distro: fedora_42
+          - distro: fedora_43
+          - distro: centos_9
+          - distro: centos_10
     steps:
       - *step-checkout
       - *step-qemu
