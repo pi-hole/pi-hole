@@ -9,12 +9,16 @@ load 'helpers/mocks'
 TICK="[✓]"
 CROSS="[✗]"
 
-setup() {
+_reset_selinux_test_state() {
     rm -f /usr/local/bin/getenforce /var/log/getenforce
 }
 
+setup() {
+    _reset_selinux_test_state
+}
+
 teardown() {
-    rm -f /usr/local/bin/getenforce /var/log/getenforce
+    _reset_selinux_test_state
 }
 
 _mock_selinux_config() {

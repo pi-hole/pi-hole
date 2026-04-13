@@ -4,8 +4,16 @@
 load 'libs/bats-support/load'
 load 'libs/bats-assert/load'
 
-setup() {
+_reset_utils_test_state() {
     rm -f ./testoutput
+}
+
+setup() {
+    _reset_utils_test_state
+}
+
+teardown() {
+    _reset_utils_test_state
 }
 
 # ---------------------------------------------------------------------------

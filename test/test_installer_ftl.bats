@@ -1,5 +1,5 @@
 #!/usr/bin/env bats
-# FTL architecture detection and binary installation tests
+# Installer tests for FTL architecture detection and binary installation
 
 load 'libs/bats-support/load'
 load 'libs/bats-assert/load'
@@ -10,16 +10,20 @@ INFO="[i]"
 
 FTL_BRANCH="development"
 
-setup() {
+_reset_ftl_test_state() {
     rm -f /usr/local/bin/uname /usr/local/bin/readelf /var/log/uname /var/log/readelf
+}
+
+setup() {
+    _reset_ftl_test_state
 }
 
 teardown() {
-    rm -f /usr/local/bin/uname /usr/local/bin/readelf /var/log/uname /var/log/readelf
+    _reset_ftl_test_state
 }
 
 # ---------------------------------------------------------------------------
-# FTL architecture detection — one @test per arch (replaces parametrize)
+# Installer FTL architecture detection — one @test per arch
 # ---------------------------------------------------------------------------
 
 _test_ftl_arch() {
@@ -55,39 +59,39 @@ _test_ftl_arch() {
     fi
 }
 
-@test "FTL detects aarch64 architecture" {
+@test "installer detects aarch64 architecture for FTL" {
     _test_ftl_arch "aarch64" "AArch64 (64 Bit ARM)" "true"
 }
 
-@test "FTL detects ARMv6 architecture" {
+@test "installer detects ARMv6 architecture for FTL" {
     _test_ftl_arch "armv6" "ARMv6" "true"
 }
 
-@test "FTL detects ARMv7l architecture" {
+@test "installer detects ARMv7l architecture for FTL" {
     _test_ftl_arch "armv7l" "ARMv7 (or newer)" "true"
 }
 
-@test "FTL detects ARMv7 architecture" {
+@test "installer detects ARMv7 architecture for FTL" {
     _test_ftl_arch "armv7" "ARMv7 (or newer)" "true"
 }
 
-@test "FTL detects ARMv8a architecture" {
+@test "installer detects ARMv8a architecture for FTL" {
     _test_ftl_arch "armv8a" "ARMv7 (or newer)" "true"
 }
 
-@test "FTL detects x86_64 architecture" {
+@test "installer detects x86_64 architecture for FTL" {
     _test_ftl_arch "x86_64" "x86_64" "true"
 }
 
-@test "FTL detects riscv64 architecture" {
+@test "installer detects riscv64 architecture for FTL" {
     _test_ftl_arch "riscv64" "riscv64" "true"
 }
 
-@test "FTL reports unsupported architecture" {
+@test "installer reports unsupported architecture for FTL" {
     _test_ftl_arch "mips" "mips" "false"
 }
 
-@test "FTL development binary is installed and responsive" {
+@test "installer provides a responsive FTL development binary" {
     echo "${FTL_BRANCH}" > /etc/pihole/ftlbranch
     bash -c "
         source /opt/pihole/basic-install.sh

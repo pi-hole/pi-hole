@@ -10,7 +10,7 @@ CROSS="[✗]"
 INFO="[i]"
 FTL_BRANCH="development"
 
-setup() {
+_reset_automated_install_test_state() {
     rm -f /usr/local/bin/dialog /usr/local/bin/git /usr/local/bin/systemctl /usr/local/bin/rc-service /usr/local/bin/apt-get
     rm -f /var/log/dialog /var/log/git /var/log/systemctl /var/log/rc-service /var/log/apt-get
 
@@ -20,13 +20,12 @@ setup() {
     [[ -e /sbin/apk.disabled ]] && mv -f /sbin/apk.disabled /sbin/apk || true
 }
 
-teardown() {
-    rm -f /usr/local/bin/dialog /usr/local/bin/git /usr/local/bin/systemctl /usr/local/bin/rc-service /usr/local/bin/apt-get
-    rm -f /var/log/dialog /var/log/git /var/log/systemctl /var/log/rc-service /var/log/apt-get
+setup() {
+    _reset_automated_install_test_state
+}
 
-    [[ -e /usr/bin/apt-get.disabled ]] && mv -f /usr/bin/apt-get.disabled /usr/bin/apt-get || true
-    [[ -e /usr/bin/rpm.disabled ]] && mv -f /usr/bin/rpm.disabled /usr/bin/rpm || true
-    [[ -e /sbin/apk.disabled ]] && mv -f /sbin/apk.disabled /sbin/apk || true
+teardown() {
+    _reset_automated_install_test_state
 }
 
 @test "installer exits when no supported package manager found" {

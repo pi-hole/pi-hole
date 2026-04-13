@@ -5,12 +5,16 @@ load 'libs/bats-support/load'
 load 'libs/bats-assert/load'
 load 'helpers/mocks'
 
-setup() {
+_reset_network_test_state() {
     rm -f /usr/local/bin/ip /var/log/ip
 }
 
+setup() {
+    _reset_network_test_state
+}
+
 teardown() {
-    rm -f /usr/local/bin/ip /var/log/ip
+    _reset_network_test_state
 }
 
 # ---------------------------------------------------------------------------

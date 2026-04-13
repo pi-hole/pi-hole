@@ -3,7 +3,7 @@ FROM alpine:3.22
 ENV GITDIR=/etc/.pihole
 ENV SCRIPTDIR=/opt/pihole
 RUN sed -i 's/#\(.*\/community\)/\1/' /etc/apk/repositories
-RUN apk --no-cache add bash coreutils curl git jq openrc shadow
+RUN apk --no-cache add bash coreutils curl git jq ncurses openrc shadow
 
 RUN mkdir -p $GITDIR $SCRIPTDIR /etc/pihole
 ADD . $GITDIR
