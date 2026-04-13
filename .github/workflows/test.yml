@@ -26,7 +26,6 @@ jobs:
           [[ $FAIL == 1 ]] && exit 1 || echo "Scripts are executable!"
 
       - name: Differential ShellCheck
-        if: github.event_name == 'pull_request'
         uses: redhat-plumbers-in-action/differential-shellcheck@d965e66ec0b3b2f821f75c8eff9b12442d9a7d1e #v5.5.6
         with:
           severity: warning

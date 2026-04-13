@@ -1,7 +1,6 @@
 #!/usr/bin/env bash
 # Mock command helpers for BATS tests.
 #
-# These are the BATS equivalents of the mock_command* functions in conftest.py.
 # Each function writes a bash case-statement script to /usr/local/bin/<name>
 # inside the container, allowing tests to intercept command invocations.
 #
