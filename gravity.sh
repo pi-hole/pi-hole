@@ -758,13 +758,24 @@ gravity_DownloadBlocklistFromUrl() {
   fi
 
   if [[ "${download}" == true ]]; then
+    # On success or failure, this command will output a json containing all curl variables.
+    # Error messages are suppressed by "-s" option.
+    # If curl version is older than 7.70.0, curl can't generate the JSON output. In this case,
+    # the command will return an empty string, even on error.
     curlJson=$(curl --connect-timeout ${curl_connect_timeout} -s -L ${compression:+${compression}} ${customUpstreamResolver:+${customUpstreamResolver}} "${modifiedOptions[@]}" -w "%{json}" "${url}" -o "${listCurlBuffer}")
   fi
 
-  # Retrieve the HTTP code, exit code and error message returned by curl command
-  httpCode=$(echo "${curlJson}" | jq '.http_code')
-  curlErrorMsg=$(echo "${curlJson}" | jq '.errormsg')
-  curlExitCode=$(echo "${curlJson}" | jq '.exitcode')
+  # Use jq to retrieve the HTTP code, exit code and error message, returned by curl command:
+  # - if the input is NOT a json (`fromjson` failed), return "999", "null" and "null"
+  # - if the input is a json, execute the code inside parenthesis:
+  #   - print http_code, or "0" if not found;
+  #   - print exitcode, or "null" if not found;
+  #   - print errormsg, or "No message available" if not found;
+  {
+    read -r httpCode;
+    read -r curlExitCode;
+    read -r curlErrorMsg;
+  } < <( echo "${curlJson}" | jq -sRr '(fromjson? | .http_code? // "0", .exitcode? // "null", .errormsg? // "No message available") // "999\n\n"')
 
   case $url in
   # Did we "download" a local file?
@@ -796,6 +807,7 @@ gravity_DownloadBlocklistFromUrl() {
     "504") echo -e "${OVER}  ${CROSS} ${str} Connection Timed Out (Gateway)" ;;
     "521") echo -e "${OVER}  ${CROSS} ${str} Web Server Is Down (Cloudflare)" ;;
     "522") echo -e "${OVER}  ${CROSS} ${str} Connection Timed Out (Cloudflare)" ;;
+    "999") echo -e "${OVER}  ${CROSS} ${str} Failure (${COL_CYAN}Error details could not be retrieved. Non supported curl version.${COL_NC})" ;;
     *) echo -e "${OVER}  ${CROSS} ${str} Failure (exit_code=${COL_RED}${curlExitCode}${COL_NC} Msg: ${COL_CYAN}${curlErrorMsg}${COL_NC})" ;;
     esac
     ;;
