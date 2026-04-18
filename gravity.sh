@@ -761,7 +761,7 @@ gravity_DownloadBlocklistFromUrl() {
     # Check if the installed curl version supports the "-w %{errormsg}" option
     # (available as of curl 7.75.0)
     #curlOutputFormat='{ "http_code": "%{http_code}" }'
-    curlOutputFormat='%{http_code}\nnomsg'
+    curlOutputFormat='%{http_code}\nNo message available. Non supported curl version.'
     if curl --help --write-out | grep -q "errormsg" ; then
         curlOutputFormat='%{http_code}\n%{errormsg}'
     fi
@@ -781,11 +781,6 @@ gravity_DownloadBlocklistFromUrl() {
     read -r httpCode;
     read -r curlErrorMsg;
   } < <( echo "${curlOutput}" )
-
-  # If curl is too old to return errormsg, we provide a generic message here
-  if [[ "${curlErrorMsg}" == "nomsg" ]]; then
-    curlErrorMsg="No message available. Non supported curl version."
-  fi
 
   case $url in
   # Did we "download" a local file?
