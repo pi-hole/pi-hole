@@ -614,8 +614,8 @@ compareLists() {
 # Download specified URL and perform checks on HTTP status and file content
 gravity_DownloadBlocklistFromUrl() {
   local url="${1}" adlistID="${2}" saveLocation="${3}" compression="${4}" gravity_type="${5}" domain="${6}"
-  local listCurlBuffer str curlJson httpCode curlErrorMsg="" curlExitCode="" success="" ip customUpstreamResolver=""
-  local file_path permissions ip_addr port blocked=false download=true
+  local listCurlBuffer str curlOutput httpCode curlErrorMsg="" curlExitCode="" curlOutputFormat=""
+  local success="" ip customUpstreamResolver="" file_path permissions ip_addr port blocked=false download=true
   # modifiedOptions is an array to store all the options used to check if the adlist has been changed upstream
   local modifiedOptions=()
 
@@ -758,24 +758,34 @@ gravity_DownloadBlocklistFromUrl() {
   fi
 
   if [[ "${download}" == true ]]; then
-    # On success or failure, this command will output a json containing all curl variables.
+    # Check if the installed curl version supports the "-w %{errormsg}" option
+    # (available as of curl 7.75.0)
+    #curlOutputFormat='{ "http_code": "%{http_code}" }'
+    curlOutputFormat='%{http_code}\nnomsg'
+    if curl --help --write-out | grep -q "errormsg" ; then
+        curlOutputFormat='%{http_code}\n%{errormsg}'
+    fi
+
+    # This command will output the HTTP code and an error message, if available.
     # Error messages are suppressed by "-s" option.
-    # If curl version is older than 7.70.0, curl can't generate the JSON output. In this case,
-    # the command will return an empty string, even on error.
-    curlJson=$(curl --connect-timeout ${curl_connect_timeout} -s -L ${compression:+${compression}} ${customUpstreamResolver:+${customUpstreamResolver}} "${modifiedOptions[@]}" -w "%{json}" "${url}" -o "${listCurlBuffer}")
+    # By default curl returns exitcode=0 even an HTTP code happens (403, 404, 500, etc). To fix
+    # this, we use the "--fail" option to force curl to return a non-zero exit code.
+    # If curl version is older than 7.75.0, curl can't generate the errormsg output. In this case,
+    # the command will return "nomsg" and this will be replaced later by a generic error message.
+    curlOutput=$(curl --connect-timeout ${curl_connect_timeout} -s --fail -L ${compression:+${compression}} ${customUpstreamResolver:+${customUpstreamResolver}} "${modifiedOptions[@]}" -w "${curlOutputFormat}" "${url}" -o "${listCurlBuffer}")
+    curlExitCode="$?"
   fi
 
-  # Use jq to retrieve the HTTP code, exit code and error message, returned by curl command:
-  # - if the input is NOT a json (`fromjson` failed), return "999", "null" and "null"
-  # - if the input is a json, execute the code inside parenthesis:
-  #   - print http_code, or "0" if not found;
-  #   - print exitcode, or "null" if not found;
-  #   - print errormsg, or "No message available" if not found;
+  # Retrieve http_code and errormsg values, returned by curl command
   {
     read -r httpCode;
-    read -r curlExitCode;
     read -r curlErrorMsg;
-  } < <( echo "${curlJson}" | jq -sRr '(fromjson? | .http_code? // "0", .exitcode? // "null", .errormsg? // "No message available") // "999\n\n"')
+  } < <( echo "${curlOutput}" )
+
+  # If curl is too old to return errormsg, we provide a generic message here
+  if [[ "${curlErrorMsg}" == "nomsg" ]]; then
+    curlErrorMsg="No message available. Non supported curl version."
+  fi
 
   case $url in
   # Did we "download" a local file?
@@ -789,27 +799,27 @@ gravity_DownloadBlocklistFromUrl() {
     ;;
   # Did we "download" a remote file?
   *)
-    # Determine "Status:" output based on HTTP response
-    case "${httpCode}" in
-    "200")
-      echo -e "${OVER}  ${TICK} ${str} Retrieval successful"
+    # Use the exit code to determine if curl was successful or not.
+    # Use HTTP code only to select the correct error message.
+    if [[ "${curlExitCode}" == "0" ]]; then
+      case "${httpCode}" in
+        "200") echo -e "${OVER}  ${TICK} ${str} Retrieval successful" ;;
+        "304") echo -e "${OVER}  ${TICK} ${str} No changes detected"  ;;
+      esac
       success=true
-      ;;
-    "304")
-      echo -e "${OVER}  ${TICK} ${str} No changes detected"
-      success=true
-      ;;
-    "403") echo -e "${OVER}  ${CROSS} ${str} Forbidden" ;;
-    "404") echo -e "${OVER}  ${CROSS} ${str} Not found" ;;
-    "408") echo -e "${OVER}  ${CROSS} ${str} Time-out" ;;
-    "451") echo -e "${OVER}  ${CROSS} ${str} Unavailable For Legal Reasons" ;;
-    "500") echo -e "${OVER}  ${CROSS} ${str} Internal Server Error" ;;
-    "504") echo -e "${OVER}  ${CROSS} ${str} Connection Timed Out (Gateway)" ;;
-    "521") echo -e "${OVER}  ${CROSS} ${str} Web Server Is Down (Cloudflare)" ;;
-    "522") echo -e "${OVER}  ${CROSS} ${str} Connection Timed Out (Cloudflare)" ;;
-    "999") echo -e "${OVER}  ${CROSS} ${str} Failure (${COL_CYAN}Error details could not be retrieved. Non supported curl version.${COL_NC})" ;;
-    *) echo -e "${OVER}  ${CROSS} ${str} Failure (exit_code=${COL_RED}${curlExitCode}${COL_NC} Msg: ${COL_CYAN}${curlErrorMsg}${COL_NC})" ;;
-    esac
+    else
+      case "${httpCode}" in
+        "403") echo -e "${OVER}  ${CROSS} ${str} Forbidden" ;;
+        "404") echo -e "${OVER}  ${CROSS} ${str} Not found" ;;
+        "408") echo -e "${OVER}  ${CROSS} ${str} Time-out" ;;
+        "451") echo -e "${OVER}  ${CROSS} ${str} Unavailable For Legal Reasons" ;;
+        "500") echo -e "${OVER}  ${CROSS} ${str} Internal Server Error" ;;
+        "504") echo -e "${OVER}  ${CROSS} ${str} Connection Timed Out (Gateway)" ;;
+        "521") echo -e "${OVER}  ${CROSS} ${str} Web Server Is Down (Cloudflare)" ;;
+        "522") echo -e "${OVER}  ${CROSS} ${str} Connection Timed Out (Cloudflare)" ;;
+        *) echo -e "${OVER}  ${CROSS} ${str} Retrieval failed (exit_code=${COL_RED}${curlExitCode}${COL_NC} Msg: ${COL_CYAN}${curlErrorMsg}${COL_NC})" ;;
+      esac
+    fi
     ;;
   esac
 
