@@ -805,6 +805,7 @@ gravity_DownloadBlocklistFromUrl() {
       case "${httpCode}" in
         "200") echo -e "${OVER}  ${TICK} ${str} Retrieval successful" ;;
         "304") echo -e "${OVER}  ${TICK} ${str} No changes detected"  ;;
+        *) echo -e "${OVER}  ${TICK} ${str} Success (http_code=${COL_RED}${httpCode}${COL_NC})"  ;;
       esac
       success=true
     else
