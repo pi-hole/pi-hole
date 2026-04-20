@@ -36,6 +36,9 @@ jobs:
           severity: warning
           display-engine: sarif-fmt
 
+      - name: Switch Style Lint
+        run: bash test/lint-switch-style.sh
+
       - name: Secret Scanning with TruffleHog
         uses: trufflesecurity/trufflehog@47e7b7cd74f578e1e3145d48f669f22fd1330ca6 #v3.94.3
         with:
