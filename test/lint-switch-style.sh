@@ -9,6 +9,7 @@ set -euo pipefail
 # - PREFER_LONG_RULES entries:  command:short=long
 # - PREFER_SHORT_RULES entries: command:long=short
 VERBOSE=0
+FIX_MODE=0
 SCRIPT_NAME="$(basename "$0")"
 
 PREFER_LONG_RULES=(
@@ -17,12 +18,10 @@ PREFER_LONG_RULES=(
     "sed:i=in-place"
     "sed:e=expression"
     "sed:E=regexp-extended"
-    "chmod:R=recursive"
     "install:m=mode"
     "install:o=owner"
     "install:g=group"
     "install:t=target-directory"
-    "install:T=no-target-directory"
     "install:d=directory"
 
     # Non-BusyBox commands where long form is preferred
@@ -35,7 +34,6 @@ PREFER_LONG_RULES=(
     "jq:R=raw-input"
     "jq:s=slurp"
     "git:q=quiet"
-    "truncate:s=size"
     "usermod:g=gid"
     "useradd:r=system"
     "useradd:g=gid"
@@ -52,6 +50,7 @@ PREFER_SHORT_RULES=(
     "grep:extended-regexp=E"
     "grep:after-context=A"
     "cp:preserve=p"
+    "chmod:recursive=R"
     "rm:force=f"
     "rm:recursive=r"
     "head:lines=n"
@@ -59,15 +58,22 @@ PREFER_SHORT_RULES=(
     "tail:bytes=c"
     "sha1sum:check=c"
     "sha1sum:status=s"
+    "sha1sum:strict=w"
+    "truncate:size=s"
 )
 
 usage() {
     cat <<'EOF'
 Usage:
-    lint-switch-style.sh [--verbose] [FILE...]
+    lint-switch-style.sh [--verbose] [--fix] [FILE...]
+
+Purpose:
+    Enforce Pi-hole shell switch style for readability and compatibility:
+    use long options where safe, keep short options where BusyBox requires them.
 
 Options:
     -v, --verbose   Print rule loading and per-file check details
+    --fix           Apply safe, token-level autofixes in place
 
 If no FILE is provided, lints all tracked .sh files in the repository.
 Exit code is non-zero when violations are found.
@@ -89,6 +95,10 @@ while [[ $# -gt 0 ]]; do
     case "$1" in
         -v|--verbose)
             VERBOSE=1
+            shift
+            ;;
+        --fix)
+            FIX_MODE=1
             shift
             ;;
         --)
@@ -207,7 +217,86 @@ report_violation() {
     local got="$4"
     local expected="$5"
 
-    printf '%s:%s: %s option style violation: got %s, expected %s\n' "${file}" "${line_no}" "${cmd}" "${got}" "${expected}"
+    printf '%s:%s: %s option style mismatch: found %s, expected %s (policy: long where safe, short where BusyBox requires)\n' "${file}" "${line_no}" "${cmd}" "${got}" "${expected}"
+}
+
+extract_token_parts() {
+    local token="$1"
+    local trailing=""
+    local last_char
+
+    while :; do
+        last_char="${token: -1}"
+        case "${last_char}" in
+            '"'|"'"|')'|']'|'}'|';'|',')
+                trailing="${last_char}${trailing}"
+                token="${token%?}"
+                ;;
+            *)
+                break
+                ;;
+        esac
+    done
+
+    REPLY="${token}"
+    TOKEN_TRAILING="${trailing}"
+}
+
+convert_short_token_mixed() {
+    local cmd="$1"
+    local opt_base="$2"
+    local body letters rest
+    local idx c key mapped changed is_last
+    local expanded=()
+
+    [[ "${opt_base}" == -* && "${opt_base}" != --* ]] || return 1
+
+    body="${opt_base#-}"
+    letters=""
+    rest=""
+
+    # Split token body into a leading short-option cluster and optional attached value.
+    for ((idx=0; idx<${#body}; idx++)); do
+        c="${body:$idx:1}"
+        if [[ "${c}" =~ [A-Za-z] ]] && [[ -z "${rest}" ]]; then
+            letters+="${c}"
+        else
+            rest="${body:$idx}"
+            break
+        fi
+    done
+
+    [[ -n "${letters}" ]] || return 1
+
+    changed=0
+    for ((idx=0; idx<${#letters}; idx++)); do
+        c="${letters:$idx:1}"
+        key="${cmd}:${c}"
+        mapped="${EXPECT_LONG[${key}]:-}"
+        is_last=0
+        if [[ $idx -eq $((${#letters} - 1)) ]]; then
+            is_last=1
+        fi
+
+        if [[ -n "${mapped}" ]]; then
+            changed=1
+            if [[ ${is_last} -eq 1 && -n "${rest}" ]]; then
+                expanded+=("--${mapped}=${rest}")
+            else
+                expanded+=("--${mapped}")
+            fi
+        else
+            if [[ ${is_last} -eq 1 && -n "${rest}" ]]; then
+                expanded+=("-${c}${rest}")
+            else
+                expanded+=("-${c}")
+            fi
+        fi
+    done
+
+    [[ ${changed} -eq 1 ]] || return 1
+    REPLY="${expanded[*]}"
+    return 0
 }
 
 violations=0
@@ -215,6 +304,11 @@ files_scanned=0
 lines_scanned=0
 option_checks=0
 match_events=0
+fixed_violations=0
+files_modified=0
+tmp_file=""
+
+echo "Checking shell option style (readability + BusyBox compatibility)..."
 
 for file in "${FILES[@]}"; do
     if [[ ! -f "${file}" ]]; then
@@ -225,21 +319,49 @@ for file in "${FILES[@]}"; do
     files_scanned=$((files_scanned + 1))
     log_verbose "Scanning file: ${file}"
 
+    file_modified=0
+    if [[ ${FIX_MODE} -eq 1 ]]; then
+        tmp_file="$(mktemp)"
+    fi
+
     line_no=0
     while IFS= read -r line || [[ -n "${line}" ]]; do
+        line_modified=0
+        comment=""
+
         line_no=$((line_no + 1))
         lines_scanned=$((lines_scanned + 1))
 
         # Ignore full-line comments and explicit ignore marker.
-        [[ "${line}" =~ ^[[:space:]]*# ]] && continue
-        [[ "${line}" == *"lint-switch: ignore"* ]] && continue
+        if [[ "${line}" =~ ^[[:space:]]*# ]] || [[ "${line}" == *"lint-switch: ignore"* ]]; then
+            if [[ ${FIX_MODE} -eq 1 ]]; then
+                printf '%s\n' "${line}" >> "${tmp_file}"
+            fi
+            continue
+        fi
 
         # Trim trailing comment for simple tokenization.
         code="${line%%#*}"
-        [[ -z "${code//[[:space:]]/}" ]] && continue
+        if [[ "${line}" == *#* ]]; then
+            comment="${line#"${code}"}"
+        fi
+
+        if [[ -z "${code//[[:space:]]/}" ]]; then
+            if [[ ${FIX_MODE} -eq 1 ]]; then
+                printf '%s\n' "${line}" >> "${tmp_file}"
+            fi
+            continue
+        fi
+
+        leading_ws="${code%%[![:space:]]*}"
 
         read -r -a tok <<< "${code}"
-        [[ ${#tok[@]} -eq 0 ]] && continue
+        if [[ ${#tok[@]} -eq 0 ]]; then
+            if [[ ${FIX_MODE} -eq 1 ]]; then
+                printf '%s\n' "${line}" >> "${tmp_file}"
+            fi
+            continue
+        fi
 
         # Find all known commands on the line and check options after each.
         for ((i=0; i<${#tok[@]}; i++)); do
@@ -277,8 +399,18 @@ for file in "${FILES[@]}"; do
                     if [[ -n "${EXPECT_SHORT[${key}]:-}" ]]; then
                         short_name="${EXPECT_SHORT[${key}]}"
                         match_events=$((match_events + 1))
-                        report_violation "${file}" "${line_no}" "${cmd}" "--${long_name}" "-${short_name}"
-                        violations=$((violations + 1))
+                        extract_token_parts "${tok[$j]}"
+                        opt_base="${REPLY}"
+
+                        if [[ ${FIX_MODE} -eq 1 && "${opt_base}" == "--${long_name}" ]]; then
+                            tok[$j]="-${short_name}${TOKEN_TRAILING}"
+                            fixed_violations=$((fixed_violations + 1))
+                            line_modified=1
+                            log_verbose "      fixed -> -${short_name}"
+                        else
+                            report_violation "${file}" "${line_no}" "${cmd}" "--${long_name}" "-${short_name}"
+                            violations=$((violations + 1))
+                        fi
                     else
                         log_verbose "      ok"
                     fi
@@ -298,6 +430,26 @@ for file in "${FILES[@]}"; do
                     if [[ -n "${EXPECT_LONG[${key}]:-}" ]]; then
                         long_name="${EXPECT_LONG[${key}]}"
                         match_events=$((match_events + 1))
+                        extract_token_parts "${tok[$j]}"
+                        opt_base="${REPLY}"
+                        cluster="${opt_base#-}"
+
+                        if [[ ${FIX_MODE} -eq 1 ]]; then
+                            if [[ ${#cluster} -eq 1 && "${cluster}" == "${ch}" ]]; then
+                                tok[$j]="--${long_name}${TOKEN_TRAILING}"
+                                fixed_violations=$((fixed_violations + 1))
+                                line_modified=1
+                                log_verbose "      fixed -> --${long_name}"
+                                break
+                            elif convert_short_token_mixed "${cmd}" "${opt_base}"; then
+                                tok[$j]="${REPLY}${TOKEN_TRAILING}"
+                                fixed_violations=$((fixed_violations + 1))
+                                line_modified=1
+                                log_verbose "      fixed token -> ${REPLY}"
+                                break
+                            fi
+                        fi
+
                         report_violation "${file}" "${line_no}" "${cmd}" "-${ch}" "--${long_name}"
                         violations=$((violations + 1))
                     else
@@ -306,14 +458,42 @@ for file in "${FILES[@]}"; do
                 done
             done
         done
+
+        if [[ ${FIX_MODE} -eq 1 ]]; then
+            if [[ ${line_modified} -eq 1 ]]; then
+                new_code="${tok[*]}"
+                line="${leading_ws}${new_code}"
+                if [[ -n "${comment}" ]]; then
+                    line="${line} ${comment}"
+                fi
+                file_modified=1
+            fi
+
+            printf '%s\n' "${line}" >> "${tmp_file}"
+        fi
     done < "${file}"
+
+    if [[ ${FIX_MODE} -eq 1 ]]; then
+        if [[ ${file_modified} -eq 1 ]] && ! cmp -s "${file}" "${tmp_file}"; then
+            mv "${tmp_file}" "${file}"
+            files_modified=$((files_modified + 1))
+            log_verbose "Updated file: ${file}"
+        else
+            rm -f "${tmp_file}"
+        fi
+    fi
 done
 
 log_verbose "Summary: files=${files_scanned}, lines=${lines_scanned}, option-checks=${option_checks}, rule-matches=${match_events}, violations=${violations}"
 
+if [[ ${FIX_MODE} -eq 1 ]]; then
+    echo "Applied ${fixed_violations} auto-fix(es) across ${files_modified} file(s)."
+fi
+
 if [[ ${violations} -gt 0 ]]; then
-    echo "Found ${violations} switch style violation(s)." >&2
+    echo "Found ${violations} switch style issue(s)." >&2
+    echo "Run with --fix to apply safe automatic fixes where possible." >&2
     exit 1
 fi
 
-echo "Switch style lint passed."
+echo "Switch style check passed: option usage matches project policy."

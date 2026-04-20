@@ -32,7 +32,7 @@ addOrEditKeyValPair() {
 
   if grep -q "^${key}=" "${file}"; then
     # Key already exists in file, modify the value
-    sed -i "/^${key}=/c\\${key}=${value}" "${file}"
+    sed --in-place "/^${key}=/c\\${key}=${value}" "${file}"
   else
     # Key does not already exist, add it and it's value
     echo "${key}=${value}" >> "${file}"

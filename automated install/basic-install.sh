@@ -345,7 +345,7 @@ build_dependency_package(){
         rm -f /tmp/pihole-meta.deb
 
         # Prepare directory structure and control file
-        mkdir -p "${tempdir}"/DEBIAN
+        mkdir --parents "${tempdir}"/DEBIAN
         chmod 0755 "${tempdir}"/DEBIAN
         touch "${tempdir}"/DEBIAN/control
 
@@ -375,7 +375,7 @@ build_dependency_package(){
         rm -f /tmp/pihole-meta.rpm
 
         # Prepare directory structure and spec file
-        mkdir -p "${tempdir}"/SPECS
+        mkdir --parents "${tempdir}"/SPECS
         touch "${tempdir}"/SPECS/pihole-meta.spec
         echo "${PIHOLE_META_PACKAGE_CONTROL_RPM}" > "${tempdir}"/SPECS/pihole-meta.spec
 
@@ -462,7 +462,7 @@ make_repo() {
         return 1
     fi
     # Clone the repo and return the return code from this command
-    git clone -q --depth 20 "${remoteRepo}" "${directory}" &>/dev/null || return $?
+    git clone --quiet --depth 20 "${remoteRepo}" "${directory}" &>/dev/null || return $?
     # Move into the directory that was passed as an argument
     pushd "${directory}" &>/dev/null || return 1
     # Check current branch. If it is master, then reset to the latest available tag.
@@ -1070,7 +1070,7 @@ chooseBlocklists() {
     esac
     # Create an empty adList file with appropriate permissions.
     if [ ! -f "${adlistFile}" ]; then
-        install -m 644 /dev/null "${adlistFile}"
+        install --mode 644 /dev/null "${adlistFile}"
     else
         chmod 644 "${adlistFile}"
     fi
@@ -1090,7 +1090,7 @@ installDefaultBlocklists() {
 move_old_dnsmasq_ftl_configs() {
     # Create migration directory /etc/pihole/migration_backup_v6
     # and make it owned by pihole:pihole
-    mkdir -p "${V6_CONF_MIGRATION_DIR}"
+    mkdir --parents "${V6_CONF_MIGRATION_DIR}"
     chown pihole:pihole "${V6_CONF_MIGRATION_DIR}"
 
     # Move all conf files originally created by Pi-hole into this directory
@@ -1123,7 +1123,7 @@ remove_old_pihole_lighttpd_configs() {
     local confenabled="/etc/lighttpd/conf-enabled/15-pihole-admin.conf"
 
     if [[ -f "${lighttpdConfig}" ]]; then
-        sed -i '/include "\/etc\/lighttpd\/conf.d\/pihole-admin.conf"/d' "${lighttpdConfig}"
+        sed --in-place '/include "\/etc\/lighttpd\/conf.d\/pihole-admin.conf"/d' "${lighttpdConfig}"
     fi
 
     if [[ -f "${condfd}" ]]; then
@@ -1177,15 +1177,15 @@ installScripts() {
         #  -Dm755 create all leading components of destination except the last, then copy the source to the destination and setting the permissions to 755
         #
         # This first one is the directory
-        install -o "${USER}" -Dm755 -d "${PI_HOLE_INSTALL_DIR}"
+        install --owner "${USER}" -D --mode=755 --directory "${PI_HOLE_INSTALL_DIR}"
         # The rest are the scripts Pi-hole needs
-        install -o "${USER}" -Dm755 -t "${PI_HOLE_INSTALL_DIR}" gravity.sh
-        install -o "${USER}" -Dm755 -t "${PI_HOLE_INSTALL_DIR}" ./advanced/Scripts/*.sh
-        install -o "${USER}" -Dm755 -t "${PI_HOLE_INSTALL_DIR}" ./automated\ install/uninstall.sh
-        install -o "${USER}" -Dm755 -t "${PI_HOLE_INSTALL_DIR}" ./advanced/Scripts/COL_TABLE
-        install -o "${USER}" -Dm755 -t "${PI_HOLE_BIN_DIR}" pihole
-        install -Dm644 ./advanced/bash-completion/pihole.bash /etc/bash_completion.d/pihole
-        install -Dm644 ./advanced/bash-completion/pihole-ftl.bash /etc/bash_completion.d/pihole-FTL
+        install --owner "${USER}" -D --mode=755 --target-directory "${PI_HOLE_INSTALL_DIR}" gravity.sh
+        install --owner "${USER}" -D --mode=755 --target-directory "${PI_HOLE_INSTALL_DIR}" ./advanced/Scripts/*.sh
+        install --owner "${USER}" -D --mode=755 --target-directory "${PI_HOLE_INSTALL_DIR}" ./automated\ install/uninstall.sh
+        install --owner "${USER}" -D --mode=755 --target-directory "${PI_HOLE_INSTALL_DIR}" ./advanced/Scripts/COL_TABLE
+        install --owner "${USER}" -D --mode=755 --target-directory "${PI_HOLE_BIN_DIR}" pihole
+        install -D --mode=644 ./advanced/bash-completion/pihole.bash /etc/bash_completion.d/pihole
+        install -D --mode=644 ./advanced/bash-completion/pihole-ftl.bash /etc/bash_completion.d/pihole-FTL
         printf "%b  %b %s\\n" "${OVER}" "${TICK}" "${str}"
 
     else
@@ -1205,15 +1205,15 @@ installConfigs() {
 
     # Install empty custom.list file if it does not exist
     if [[ ! -r "${PI_HOLE_CONFIG_DIR}/hosts/custom.list" ]]; then
-        if ! install -D -T -o pihole -g pihole -m 660 /dev/null "${PI_HOLE_CONFIG_DIR}/hosts/custom.list" &>/dev/null; then
+        if ! install -D --owner pihole --group pihole --mode 660 /dev/null "${PI_HOLE_CONFIG_DIR}/hosts/custom.list" &>/dev/null; then
             printf "  %b Error: Unable to initialize configuration file %s/custom.list\\n" "${COL_RED}" "${PI_HOLE_CONFIG_DIR}/hosts"
             return 1
         fi
     fi
 
     # Install pihole-FTL systemd or init.d service, based on whether systemd is the init system or not
-    if ps -p 1 -o comm= | grep -q systemd; then
-        install -T -m 0644 "${PI_HOLE_LOCAL_REPO}/advanced/Templates/pihole-FTL.systemd" '/etc/systemd/system/pihole-FTL.service'
+    if [[ "$(cat /proc/1/comm 2>/dev/null)" == "systemd" ]]; then
+        install --mode 0644 "${PI_HOLE_LOCAL_REPO}/advanced/Templates/pihole-FTL.systemd" '/etc/systemd/system/pihole-FTL.service'
 
         # Remove init.d service if present
         if [[ -e '/etc/init.d/pihole-FTL' ]]; then
@@ -1229,10 +1229,10 @@ installConfigs() {
             INIT="openrc"
         fi
 
-        install -T -m 0755 "${PI_HOLE_LOCAL_REPO}/advanced/Templates/pihole-FTL.${INIT}" '/etc/init.d/pihole-FTL'
+        install --mode 0755 "${PI_HOLE_LOCAL_REPO}/advanced/Templates/pihole-FTL.${INIT}" '/etc/init.d/pihole-FTL'
     fi
-    install -T -m 0755 "${PI_HOLE_LOCAL_REPO}/advanced/Templates/pihole-FTL-prestart.sh" "${PI_HOLE_INSTALL_DIR}/pihole-FTL-prestart.sh"
-    install -T -m 0755 "${PI_HOLE_LOCAL_REPO}/advanced/Templates/pihole-FTL-poststop.sh" "${PI_HOLE_INSTALL_DIR}/pihole-FTL-poststop.sh"
+    install --mode 0755 "${PI_HOLE_LOCAL_REPO}/advanced/Templates/pihole-FTL-prestart.sh" "${PI_HOLE_INSTALL_DIR}/pihole-FTL-prestart.sh"
+    install --mode 0755 "${PI_HOLE_LOCAL_REPO}/advanced/Templates/pihole-FTL-poststop.sh" "${PI_HOLE_INSTALL_DIR}/pihole-FTL-poststop.sh"
 }
 
 install_manpage() {
@@ -1251,10 +1251,10 @@ install_manpage() {
     fi
     if [[ ! -d "/usr/local/share/man/man8" ]]; then
         # if not present, create man8 directory
-        install -d -m 755 /usr/local/share/man/man8
+        install --directory --mode 755 /usr/local/share/man/man8
     fi
     # Testing complete, copy the files & update the man db
-    install -D -m 644 -T ${PI_HOLE_LOCAL_REPO}/manpages/pihole.8 /usr/local/share/man/man8/pihole.8
+    install -D --mode 644 -T ${PI_HOLE_LOCAL_REPO}/manpages/pihole.8 /usr/local/share/man/man8/pihole.8
 
     # remove previously installed man pages
     if [[ -f "/usr/local/share/man/man5/pihole-FTL.conf.5" ]]; then
@@ -1363,7 +1363,7 @@ disable_resolved_stublistener() {
         # Disable the DNSStubListener to unbind it from port 53
         # Note that this breaks dns functionality on host until FTL is up and running
         printf "%b  %b Disabling systemd-resolved DNSStubListener\\n" "${OVER}" "${TICK}"
-        mkdir -p /etc/systemd/resolved.conf.d
+        mkdir --parents /etc/systemd/resolved.conf.d
         cat > /etc/systemd/resolved.conf.d/90-pi-hole-disable-stub-listener.conf << EOF
 [Resolve]
 DNSStubListener=no
@@ -1439,7 +1439,7 @@ install_dependent_packages() {
         printf "%b  %b %s" "${OVER}" "${INFO}" "${repo_str}"
 
         local pattern='^\s*#(.*/community/?)\s*$'
-        sed -Ei "s:${pattern}:\1:" /etc/apk/repositories
+        sed --regexp-extended --in-place "s:${pattern}:\1:" /etc/apk/repositories
         if grep -Eq "${pattern}" /etc/apk/repositories; then
             # Repo still commented out = Failure
             printf "%b  %b %s\\n" "${OVER}" "${CROSS}" "${repo_str}"
@@ -1472,11 +1472,11 @@ installCron() {
     printf "\\n  %b %s..." "${INFO}" "${str}"
     # Copy the cron file over from the local repo
     # File must not be world or group writeable and must be owned by root
-    install -D -m 644 -T -o root -g root ${PI_HOLE_LOCAL_REPO}/advanced/Templates/pihole.cron /etc/cron.d/pihole
+    install -D --mode 644 -T --owner root --group root ${PI_HOLE_LOCAL_REPO}/advanced/Templates/pihole.cron /etc/cron.d/pihole
     # Randomize gravity update time
-    sed -i "s/59 1 /$((1 + RANDOM % 58)) $((3 + RANDOM % 2))/" /etc/cron.d/pihole
+    sed --in-place "s/59 1 /$((1 + RANDOM % 58)) $((3 + RANDOM % 2))/" /etc/cron.d/pihole
     # Randomize update checker time
-    sed -i "s/59 17/$((1 + RANDOM % 58)) $((12 + RANDOM % 8))/" /etc/cron.d/pihole
+    sed --in-place "s/59 17/$((1 + RANDOM % 58)) $((12 + RANDOM % 8))/" /etc/cron.d/pihole
     printf "%b  %b %s\\n" "${OVER}" "${TICK}" "${str}"
 
     # Switch off of busybox cron on alpine
@@ -1516,7 +1516,7 @@ create_pihole_user() {
                 local str="Adding user 'pihole' to group 'pihole'"
                 printf "  %b %s..." "${INFO}" "${str}"
                 # if pihole user can be added to group pihole
-                if usermod -g pihole pihole; then
+                if usermod --gid pihole pihole; then
                     printf "%b  %b %s\\n" "${OVER}" "${TICK}" "${str}"
                 else
                     printf "%b  %b %s\\n" "${OVER}" "${CROSS}" "${str}"
@@ -1536,7 +1536,7 @@ create_pihole_user() {
             # then create and add her to the pihole group
             local str="Creating user 'pihole'"
             printf "%b  %b %s..." "${OVER}" "${INFO}" "${str}"
-            if useradd -r --no-user-group -g pihole -s "$(command -v nologin)" pihole; then
+            if useradd --system --no-user-group --gid pihole --shell "$(command -v nologin)" pihole; then
                 printf "%b  %b %s\\n" "${OVER}" "${TICK}" "${str}"
             else
                 printf "%b  %b %s\\n" "${OVER}" "${CROSS}" "${str}"
@@ -1551,7 +1551,7 @@ create_pihole_user() {
                 # create and add pihole user to the pihole group
                 local str="Creating user 'pihole'"
                 printf "%b  %b %s..." "${OVER}" "${INFO}" "${str}"
-                if useradd -r --no-user-group -g pihole -s "$(command -v nologin)" pihole; then
+                if useradd --system --no-user-group --gid pihole --shell "$(command -v nologin)" pihole; then
                     printf "%b  %b %s\\n" "${OVER}" "${TICK}" "${str}"
                 else
                     printf "%b  %b %s\\n" "${OVER}" "${CROSS}" "${str}"
@@ -1575,8 +1575,8 @@ installLogrotate() {
 
         # Account for changed logfile paths from /var/log -> /var/log/pihole/ made in core v5.11.
         if grep -q "/var/log/pihole.log" ${target} || grep -q "/var/log/pihole-FTL.log" ${target}; then
-            sed -i 's/\/var\/log\/pihole.log/\/var\/log\/pihole\/pihole.log/g' ${target}
-            sed -i 's/\/var\/log\/pihole-FTL.log/\/var\/log\/pihole\/FTL.log/g' ${target}
+            sed --in-place 's/\/var\/log\/pihole.log/\/var\/log\/pihole\/pihole.log/g' ${target}
+            sed --in-place 's/\/var\/log\/pihole-FTL.log/\/var\/log\/pihole\/FTL.log/g' ${target}
 
             printf "\\n\\t%b Old log file paths updated in existing logrotate file. \\n" "${INFO}"
             logfileUpdate=true
@@ -1605,7 +1605,7 @@ nomail
     else
         # Copy the file over from the local repo
         # Logrotate config file must be owned by root and not writable by group or other
-        install -o root -g root -D -m 644 -T "${PI_HOLE_LOCAL_REPO}"/advanced/Templates/logrotate ${target}
+        install --owner root --group root -D --mode 644 -T "${PI_HOLE_LOCAL_REPO}"/advanced/Templates/logrotate ${target}
     fi
 
     # Different operating systems have different user / group
@@ -1618,7 +1618,7 @@ nomail
     # If there is a usergroup for log rotation,
     if [[ -n "${logusergroup}" ]]; then
         # replace the line in the logrotate script with that usergroup.
-        sed -i "s/# su #/su ${logusergroup}/g;" ${target}
+        sed --in-place "s/ # su #/su ${logusergroup}/g;" ${target}
     fi
     printf "%b  %b %s\\n" "${OVER}" "${TICK}" "${str}"
 }
@@ -1856,16 +1856,16 @@ FTLinstall() {
         url="https://ftl.pi-hole.net/${ftlBranch}"
     fi
 
-    if curl -sSL --fail "${url}/${binary}" -o "${binary}"; then
+    if curl --silent --show-error --location --fail "${url}/${binary}" -o "${binary}"; then
         # If the download worked, get sha1 of the binary we just downloaded for verification.
-        curl -sSL --fail "${url}/${binary}.sha1" -o "${binary}.sha1"
+        curl --silent --show-error --location --fail "${url}/${binary}.sha1" -o "${binary}.sha1"
 
         # If we downloaded binary file (as opposed to text),
-        if sha1sum --status --quiet -c "${binary}".sha1; then
+        if sha1sum -s -c "${binary}".sha1; then
             printf "transferred... "
 
             # Before stopping FTL, we download the macvendor database
-            curl -sSL "https://ftl.pi-hole.net/macvendor.db" -o "${PI_HOLE_CONFIG_DIR}/macvendor.db" || true
+            curl --silent --show-error --location "https://ftl.pi-hole.net/macvendor.db" -o "${PI_HOLE_CONFIG_DIR}/macvendor.db" || true
 
 
             # If the binary already exists in /usr/bin, then we need to stop the service
@@ -1875,7 +1875,7 @@ FTLinstall() {
             fi
 
             # Install the new version with the correct permissions
-            install -T -m 0755 "${binary}" /usr/bin/pihole-FTL
+            install --mode 0755 "${binary}" /usr/bin/pihole-FTL
 
             # Move back into the original directory the user was in
             popd >/dev/null || {
@@ -2063,7 +2063,7 @@ FTLcheckUpdate() {
 
             # Get the latest version from the GitHub API
             local FTLlatesttag
-            FTLlatesttag=$(curl -s https://api.github.com/repos/pi-hole/FTL/releases/latest | jq -sRr 'fromjson? | .tag_name | values')
+            FTLlatesttag=$(curl -s https://api.github.com/repos/pi-hole/FTL/releases/latest | jq --slurp --raw-input --raw-output 'fromjson? | .tag_name | values')
 
             if [ -z "${FTLlatesttag}" ]; then
                 # There was an issue while retrieving the latest version
@@ -2262,7 +2262,7 @@ main() {
             # when run via curl piping
             if [[ "$0" == "bash" ]]; then
                 # Download the install script and run it with admin rights
-                exec curl -sSL https://install.pi-hole.net | sudo bash "$@"
+                exec curl --silent --show-error --location https://install.pi-hole.net | sudo bash "$@"
             else
                 # when run via calling local bash script
                 exec sudo bash "$0" "$@"
@@ -2333,7 +2333,7 @@ main() {
         # Display welcome dialogs
         welcomeDialogs
         # Create directory for Pi-hole storage (/etc/pihole/)
-        install -d -m 755 "${PI_HOLE_CONFIG_DIR}"
+        install --directory --mode 755 "${PI_HOLE_CONFIG_DIR}"
         # Determine available interfaces
         get_available_interfaces
         # Find interfaces and let the user choose one

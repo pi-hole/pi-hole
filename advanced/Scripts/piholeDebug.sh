@@ -486,8 +486,8 @@ ping_gateway() {
     # Find the first default route
     default_route=$(ip -j -"${protocol}" route show default)
     if echo "$default_route" | grep 'gateway' | grep -q 'dev'; then
-        gateway_addr=$(echo "$default_route" | jq -r -c '.[0].gateway')
-        gateway_iface=$(echo "$default_route" | jq -r -c '.[0].dev')
+        gateway_addr=$(echo "$default_route" | jq --raw-output -c '.[0].gateway')
+        gateway_iface=$(echo "$default_route" | jq --raw-output -c '.[0].dev')
     else
         log_write "     Unable to determine gateway address for IPv${protocol}"
     fi
@@ -846,7 +846,7 @@ parse_file() {
             # skip empty and comment lines line
             [[ "${file_lines}" =~ ^[[:space:]]*\#.*$  || ! "${file_lines}" ]] && continue
             # remove the password hash from the output (*"pwhash = "*)
-            [[ "${file_lines}" == *"pwhash ="* ]] && file_lines=$(echo "${file_lines}" | sed -e 's/\(pwhash = \).*/\1<removed>/')
+            [[ "${file_lines}" == *"pwhash ="* ]] && file_lines=$(echo "${file_lines}" | sed --expression 's/\(pwhash = \).*/\1<removed>/')
             # otherwise, display the lines of the file
             log_write "    ${file_lines}"
         fi

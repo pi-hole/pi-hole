@@ -23,3 +23,27 @@ The build_stage tests have to run first to create the docker images, followed by
 # How do I debug python?
 
 Highly recommended: Setup PyCharm on a **Docker enabled** machine. Having a python debugger like PyCharm changes your life if you've never used it :)
+
+## BusyBox compatibility probe
+
+This repository includes a shell option compatibility probe that:
+
+- scans repository shell scripts for command options,
+- discovers BusyBox applets from pinned container images, and
+- checks whether options used with BusyBox applets are accepted.
+
+Run it from repository root:
+
+- `bash test/check-busybox-compat.sh`
+
+Useful options:
+
+- `--verbose` to print detailed scan and probe logs
+- `--no-strict` to report incompatibilities without failing
+- `--image IMAGE` to add extra probe images
+- `--diff-base REF` to scan only changed shell files in `REF...HEAD`
+
+Examples:
+
+- `bash test/check-busybox-compat.sh --diff-base origin/master`
+- `bash test/check-busybox-compat.sh --diff-base origin/${GITHUB_BASE_REF}`

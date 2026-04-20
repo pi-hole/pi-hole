@@ -193,7 +193,7 @@ Authentication() {
 
     # obtain validity, session ID, sessionMessage and error message from
     # session response, apply default values if none returned
-    result=$(echo "${sessionResponse}" | jq -r '
+    result=$(echo "${sessionResponse}" | jq --raw-output '
         (.session.valid // false),
         (.session.sid // null),
         (.session.message // null),

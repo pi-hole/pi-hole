@@ -1,0 +1,36 @@
+name: BusyBox Compatibility
+
+on:
+  pull_request:
+    paths:
+      - '**/*.sh'
+      - 'test/check-busybox-compat.sh'
+      - '.github/workflows/busybox-compat.yml'
+  workflow_dispatch:
+  schedule:
+    - cron: '17 6 * * 1'
+
+permissions:
+  contents: read
+
+jobs:
+  busybox-compat:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Fetch base branch for diff mode
+        if: github.event_name == 'pull_request'
+        run: git fetch --no-tags --prune origin "${{ github.base_ref }}"
+
+      - name: Run differential BusyBox compatibility check (PR)
+        if: github.event_name == 'pull_request'
+        run: bash test/check-busybox-compat.sh --verbose --diff-base "origin/${{ github.base_ref }}"
+
+      - name: Run full BusyBox compatibility check
+        if: github.event_name != 'pull_request'
+        run: bash test/check-busybox-compat.sh --verbose

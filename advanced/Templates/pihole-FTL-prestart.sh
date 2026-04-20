@@ -12,7 +12,7 @@ FTL_PID_FILE="${FTL_PID_FILE:-/run/pihole-FTL.pid}"
 
 
 # Ensure that permissions are set so that pihole-FTL can edit all necessary files
-mkdir -p /var/log/pihole
+mkdir --parents /var/log/pihole
 chown -R pihole:pihole /etc/pihole/ /var/log/pihole/
 
 # allow all users read version file (and use pihole -v)
@@ -30,5 +30,5 @@ find /etc/pihole/ -type f \( -name '*.pem' -o -name '*.crt' \) -exec chmod 0600 
 chown root:root /etc/pihole/logrotate
 
 # Touch files to ensure they exist (create if non-existing, preserve if existing)
-[ -f "${FTL_PID_FILE}" ] || install -D -m 644 -o pihole -g pihole /dev/null "${FTL_PID_FILE}"
-[ -f /etc/pihole/dhcp.leases ] || install -m 644 -o pihole -g pihole /dev/null /etc/pihole/dhcp.leases
+[ -f "${FTL_PID_FILE}" ] || install -D --mode 644 --owner pihole --group pihole /dev/null "${FTL_PID_FILE}"
+[ -f /etc/pihole/dhcp.leases ] || install --mode 644 --owner pihole --group pihole /dev/null /etc/pihole/dhcp.leases

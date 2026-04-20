@@ -30,7 +30,7 @@ function get_local_hash() {
 function get_remote_version() {
     # if ${2} is = "master" we need to use the "latest" endpoint, otherwise, we simply return null
     if [[ "${2}" == "master" ]]; then
-        curl -s "https://api.github.com/repos/pi-hole/${1}/releases/latest" 2>/dev/null | jq --raw-output .tag_name || echo "null"
+        curl --silent "https://api.github.com/repos/pi-hole/${1}/releases/latest" 2>/dev/null | jq --raw-output .tag_name || echo "null"
     else
         echo "null"
     fi

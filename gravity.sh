@@ -145,7 +145,7 @@ gravity_swap_databases() {
   else
     # Check if the backup directory exists
     if [ ! -d "${gravityBCKdir}" ]; then
-      mkdir -p "${gravityBCKdir}" && chown pihole:pihole "${gravityBCKdir}"
+      mkdir --parents "${gravityBCKdir}" && chown pihole:pihole "${gravityBCKdir}"
     fi
 
     # If multiple gravityBCKfile's are present (appended with a number), rotate them
@@ -248,7 +248,7 @@ database_table_from_file() {
   fi
 
   # Move source file to backup directory, create directory if not existing
-  mkdir -p "${backup_path}"
+  mkdir --parents "${backup_path}"
   mv "${src}" "${backup_file}" 2>/dev/null ||
     echo -e "  ${CROSS} Unable to backup ${src} to ${backup_path}"
 
@@ -592,7 +592,7 @@ compareLists() {
 
   # Verify checksum when an older checksum exists
   if [[ -s "${target}.sha1" ]]; then
-    if ! sha1sum --check --status --strict "${target}.sha1"; then
+    if ! sha1sum -c -s -w "${target}.sha1"; then
       # The list changed upstream, we need to update the checksum
       sha1sum "${target}" >"${target}.sha1"
       fix_owner_permissions "${target}.sha1"
@@ -1046,7 +1046,7 @@ migrate_to_listsCache_dir() {
   # If not, we need to migrate the old files to the new directory
   local str="Migrating the list's cache directory to new location"
   echo -ne "  ${INFO} ${str}..."
-  mkdir -p "${listsCacheDir}" && chown pihole:pihole "${listsCacheDir}"
+  mkdir --parents "${listsCacheDir}" && chown pihole:pihole "${listsCacheDir}"
 
   # Move the old files to the new directory
   if mv "${piholeDir}"/list.* "${listsCacheDir}/" 2>/dev/null; then
@@ -1056,7 +1056,7 @@ migrate_to_listsCache_dir() {
   fi
 
   # Update the list's paths in the corresponding .sha1 files to the new location
-  sed -i "s|${piholeDir}/|${listsCacheDir}/|g" "${listsCacheDir}"/*.sha1 2>/dev/null
+  sed --in-place "s|${piholeDir}/|${listsCacheDir}/|g" "${listsCacheDir}"/*.sha1 2>/dev/null
 }
 
 helpFunc() {
