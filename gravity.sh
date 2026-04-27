@@ -782,9 +782,8 @@ gravity_DownloadBlocklistFromUrl() {
     # Compatibility notes:
     #   Busybox doesn't support some long flags:
     #   - "sort -V" is short form of "sort --version-sort"
-    # Note: "sed '1q'" returns only the first line (like "head -n1"), but it doesn't generate an error message.
-    # (see https://github.com/pi-hole/pi-hole/issues/6615)
-    if [[ "$(printf '%s\n' "${curlVersion}" "7.75" | sort -V | sed '1q')" == 7.75 ]]; then
+    #   - "head -n1" is short form of "head --lines=1"
+    if [[ "$(printf '%s\n' "${curlVersion}" "7.75" | sort -V | head -n1)" == 7.75 ]]; then
         # Use the error message returned by curl
         curlOutputFormat='%{http_code};%{errormsg}'
     fi
