@@ -27,6 +27,11 @@ DBFILE=$(getFTLConfigValue "files.database")
 if [ -z "$DBFILE" ]; then
     DBFILE="/etc/pihole/pihole-FTL.db"
 fi
+# Validate DBFILE path to prevent manipulation of the target database
+if [[ ! "$DBFILE" =~ ^/[a-zA-Z0-9/_.-]+$ ]]; then
+    echo "  Error: Invalid database file path: ${DBFILE}"
+    exit 1
+fi
 
 # Determine log file location
 LOGFILE=$(getFTLConfigValue "files.log.dnsmasq")
