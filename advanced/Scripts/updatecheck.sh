@@ -8,36 +8,34 @@
 # This file is copyright under the latest version of the EUPL.
 # Please see LICENSE file for your rights under this license.
 
-set -o pipefail
-
 function get_local_branch() {
     # Return active branch
-    cd "${1}" 2>/dev/null || { echo "null"; return; }
-    git rev-parse --abbrev-ref HEAD || echo "null"
+    cd "${1}" 2>/dev/null || return 1
+    git rev-parse --abbrev-ref HEAD || return 1
 }
 
 function get_local_version() {
     # Return active version
-    cd "${1}" 2>/dev/null || { echo "null"; return; }
-    git describe --tags --always 2>/dev/null || echo "null"
+    cd "${1}" 2>/dev/null || return 1
+    git describe --tags --always 2>/dev/null || return 1
 }
 
 function get_local_hash() {
-    cd "${1}" 2>/dev/null || { echo "null"; return; }
-    git rev-parse --short=8 HEAD || echo "null"
+    cd "${1}" 2>/dev/null || return 1
+    git rev-parse --short=8 HEAD || return 1
 }
 
 function get_remote_version() {
     # if ${2} is = "master" we need to use the "latest" endpoint, otherwise, we simply return null
     if [[ "${2}" == "master" ]]; then
-        curl -s "https://api.github.com/repos/pi-hole/${1}/releases/latest" 2>/dev/null | jq --raw-output .tag_name || echo "null"
+        curl -s "https://api.github.com/repos/pi-hole/${1}/releases/latest" 2>/dev/null | jq --raw-output .tag_name || return 1
     else
         echo "null"
     fi
 }
 
 function get_remote_hash() {
-    git ls-remote "https://github.com/pi-hole/${1}" --tags "${2}" | awk '{print substr($0, 1,8);}' || echo "null"
+    git ls-remote "https://github.com/pi-hole/${1}" --tags "${2}" | awk '{print substr($0, 1,8);}' || return 1
 }
 
 # Source the utils file for addOrEditKeyValPair()
@@ -52,10 +50,9 @@ rm -f "/etc/pihole/GitHubVersions"
 rm -f "/etc/pihole/localbranches"
 rm -f "/etc/pihole/localversions"
 
+# Create new versions file if it does not exist
 VERSION_FILE="/etc/pihole/versions"
-
-# Truncates the file to zero length if it exists to clear it up, otherwise creates an empty file.
-truncate -s 0 "${VERSION_FILE}"
+touch "${VERSION_FILE}"
 chmod 644 "${VERSION_FILE}"
 
 # if /pihole.docker.tag file exists, we will use it's value later in this script

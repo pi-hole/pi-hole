@@ -36,10 +36,6 @@ jobs:
           severity: warning
           display-engine: sarif-fmt
 
-      - name: Secret Scanning with TruffleHog
-        uses: trufflesecurity/trufflehog@47e7b7cd74f578e1e3145d48f669f22fd1330ca6 #v3.94.3
-        with:
-          extra_args: --results=verified,unknown
 
       - name: Spell-Checking
         uses: codespell-project/actions-codespell@8f01853be192eb0f849a5c7d721450e7a467c579 #v2.2

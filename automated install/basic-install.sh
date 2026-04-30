@@ -112,19 +112,15 @@ fi
 r=20
 c=70
 
-# Version of Pi-hole's meta package on APT based systems
-# Must be incremented whenever dependencies in PIHOLE_META_PACKAGE_CONTROL_APT change
-PIHOLE_META_VERSION_APT=0.7
-
 # Content of Pi-hole's meta package control file on APT based systems
 PIHOLE_META_PACKAGE_CONTROL_APT=$(
     cat <<EOM
 Package: pihole-meta
-Version: ${PIHOLE_META_VERSION_APT}
+Version: 0.6
 Maintainer: Pi-hole team <adblock@pi-hole.net>
 Architecture: all
 Description: Pi-hole dependency meta package
-Depends: awk,bash-completion,binutils,ca-certificates,cron|cron-daemon,curl,dialog,bind9-dnsutils|dnsutils,dns-root-data,git,grep,iproute2,iputils-ping,jq,libcap2,libcap2-bin,logrotate,lshw,procps,psmisc,sudo,unzip
+Depends: awk,bash-completion,binutils,ca-certificates,cron|cron-daemon,curl,dialog,bind9-dnsutils|dnsutils,dns-root-data,git,grep,iproute2,iputils-ping,jq,libcap2,libcap2-bin,lshw,procps,psmisc,sudo,unzip
 Section: contrib/metapackages
 Priority: optional
 EOM
@@ -134,12 +130,12 @@ EOM
 PIHOLE_META_PACKAGE_CONTROL_RPM=$(
     cat <<EOM
 Name: pihole-meta
-Version: 0.4
+Version: 0.3
 Release: 1
 License: EUPL
 BuildArch: noarch
 Summary: Pi-hole dependency meta package
-Requires: bash-completion,bind-utils,binutils,ca-certificates,chkconfig,cronie,curl,dialog,findutils,gawk,git,grep,iproute,jq,libcap,logrotate,lshw,procps-ng,psmisc,sudo,unzip
+Requires: bash-completion,bind-utils,binutils,ca-certificates,chkconfig,cronie,curl,dialog,findutils,gawk,git,grep,iproute,jq,libcap,lshw,procps-ng,psmisc,sudo,unzip
 %description
 Pi-hole dependency meta package
 %prep
@@ -147,9 +143,6 @@ Pi-hole dependency meta package
 %files
 %install
 %changelog
-* Thu Dec 18 2025 Pi-hole Team - 0.4
-- Add logrotate to the list of dependencies
-
 * Mon Jul 14 2025 Pi-hole Team - 0.3
 - Remove nmap-ncat from the list of dependencies
 
@@ -287,6 +280,8 @@ package_manager_detect() {
         UPDATE_PKG_CACHE="${PKG_MANAGER} update"
         # The command we will use to actually install packages
         PKG_INSTALL="${PKG_MANAGER} -qq --no-install-recommends install"
+        # grep -c will return 1 if there are no matches. This is an acceptable condition, so we OR TRUE to prevent set -e exiting the script.
+        PKG_COUNT="${PKG_MANAGER} -s -o Debug::NoLocking=true upgrade | grep -c ^Inst || true"
         # The command we will use to remove packages (used in the uninstaller)
         PKG_REMOVE="${PKG_MANAGER} -y remove --purge"
 
@@ -301,6 +296,8 @@ package_manager_detect() {
 
         # These variable names match the ones for apt-get. See above for an explanation of what they are for.
         PKG_INSTALL="${PKG_MANAGER} install -y"
+        # CentOS package manager returns 100 when there are packages to update so we need to || true to prevent the script from exiting.
+        PKG_COUNT="${PKG_MANAGER} check-update | grep -E '(.i686|.x86|.noarch|.arm|.src|.riscv64)' | wc -l || true"
         # The command we will use to remove packages (used in the uninstaller)
         PKG_REMOVE="${PKG_MANAGER} remove -y"
 
@@ -309,6 +306,7 @@ package_manager_detect() {
         PKG_MANAGER="apk"
         UPDATE_PKG_CACHE="${PKG_MANAGER} update"
         PKG_INSTALL="${PKG_MANAGER} add"
+        PKG_COUNT="${PKG_MANAGER} list --upgradable -q | wc -l"
         PKG_REMOVE="${PKG_MANAGER} del"
 
     else
@@ -1375,8 +1373,8 @@ EOF
 }
 
 update_package_cache() {
-    # Update package cache on apt based OSes. Only called when pihole-meta is
-    # absent or outdated, so new dependencies can be resolved by apt.
+    # Update package cache on apt based OSes. Do this every time since
+    # it's quick and packages can be updated at any time.
 
     # Local, named variables
     local str="Update local cache of available packages"
@@ -1395,6 +1393,23 @@ update_package_cache() {
         printf "%b  %b %s\\n" "${OVER}" "${CROSS}" "${str}"
         printf "  %b Error: Unable to update package cache. Please try \"%s\"%b\\n" "${COL_RED}" "sudo ${UPDATE_PKG_CACHE}" "${COL_NC}"
         return 1
+    fi
+}
+
+# Let user know if they have outdated packages on their system and
+# advise them to run a package update at soonest possible.
+notify_package_updates_available() {
+    # Local, named variables
+    local str="Checking ${PKG_MANAGER} for upgraded packages"
+    printf "\\n  %b %s..." "${INFO}" "${str}"
+    # Store the list of packages in a variable
+    updatesToInstall=$(eval "${PKG_COUNT}")
+
+    if [[ "${updatesToInstall}" -eq 0 ]]; then
+        printf "%b  %b %s... up to date!\\n\\n" "${OVER}" "${TICK}" "${str}"
+    else
+        printf "%b  %b %s... %s updates available\\n" "${OVER}" "${TICK}" "${str}" "${updatesToInstall}"
+        printf "  %b %bIt is recommended to update your OS after installing the Pi-hole!%b\\n\\n" "${INFO}" "${COL_GREEN}" "${COL_NC}"
     fi
 }
 
@@ -2290,18 +2305,13 @@ main() {
     # Check for supported package managers so that we may install dependencies
     package_manager_detect
 
-    # Only update the apt package cache when pihole-meta is absent or outdated.
-    # On a fresh install the package won't exist yet so the cache update always
-    # runs. On upgrades it only runs when the meta version has bumped, meaning
-    # new dependencies may have been added. This saves time and I/O on
-    # resource-constrained hardware (e.g. SD cards).
+    # Update package cache only on apt based systems
     if is_command apt-get; then
-        local installed_meta_version
-        installed_meta_version=$(dpkg-query -W -f='${Version}' pihole-meta 2>/dev/null) || true
-        if dpkg --compare-versions "${installed_meta_version}" lt "${PIHOLE_META_VERSION_APT}"; then
             update_package_cache || exit 1
-        fi
     fi
+
+    # Notify user of package availability
+    notify_package_updates_available
 
     # Build dependency package
     build_dependency_package

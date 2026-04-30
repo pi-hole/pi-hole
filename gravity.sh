@@ -71,10 +71,8 @@ fix_owner_permissions() {
   chown pihole:pihole "${1}"
   chmod 664 "${1}"
 
-  # Ensure the containing directory is owned by pihole:pihole
-  # so the pihole user can write to it without requiring group-write
-  # permissions (which would change the directory mode unexpectedly)
-  chown pihole:pihole "$(dirname -- "${1}")"
+  # Ensure the containing directory is group writable
+  chmod g+w "$(dirname -- "${1}")"
 }
 
 # Generate new SQLite3 file from schema template
@@ -614,8 +612,8 @@ compareLists() {
 # Download specified URL and perform checks on HTTP status and file content
 gravity_DownloadBlocklistFromUrl() {
   local url="${1}" adlistID="${2}" saveLocation="${3}" compression="${4}" gravity_type="${5}" domain="${6}"
-  local listCurlBuffer str curlVersion curlOutput httpCode curlErrorMsg="" curlExitCode="" curlOutputFormat=""
-  local success="" ip customUpstreamResolver="" file_path ip_addr port blocked=false download=true
+  local listCurlBuffer str httpCode success="" ip customUpstreamResolver=""
+  local file_path permissions ip_addr port blocked=false download=true
   # modifiedOptions is an array to store all the options used to check if the adlist has been changed upstream
   local modifiedOptions=()
 
@@ -724,40 +722,29 @@ gravity_DownloadBlocklistFromUrl() {
     fi
   fi
 
-  # If we "download" a local file (file://), verify read access before using it.
-  # When running as root (e.g., via pihole -g), check that the 'pihole' user can read the file
-  # to match the effective runtime user of FTL; otherwise, check the current user's read access
-  # (e.g., in Docker or when invoked by a non-root user). The target must
-  # resolve to a regular file and be readable by the evaluated user.
-  if [[ "${url}" == "file:/"* ]]; then
+  # If we are going to "download" a local file, we first check if the target
+  # file has a+r permission. We explicitly check for all+read because we want
+  # to make sure that the file is readable by everyone and not just the user
+  # running the script.
+  if [[ $url == "file://"* ]]; then
     # Get the file path
-    file_path=$(echo "${url}" | cut -d'/' -f3-)
+    file_path=$(echo "$url" | cut -d'/' -f3-)
     # Check if the file exists and is a regular file (i.e. not a socket, fifo, tty, block). Might still be a symlink.
-    if [[ ! -f ${file_path} ]]; then
-        # Output that the file does not exist
-        echo -e "${OVER}  ${CROSS} ${file_path} does not exist"
-        download=false
+    if [[ ! -f $file_path ]]; then
+      # Output that the file does not exist
+      echo -e "${OVER}  ${CROSS} ${file_path} does not exist"
+      download=false
     else
-        if [ "$(id -un)" == "root" ]; then
-            # If we are root, we need to check if the pihole user has read permission
-            #  otherwise, we might read files that the pihole user should not be able to read
-            if sudo -u pihole test -r "${file_path}"; then
-                echo -e "${OVER}  ${INFO} Using local file ${file_path}"
-            else
-                echo -e "${OVER}  ${CROSS} Cannot read file (user 'pihole' lacks read permission)"
-                download=false
-            fi
-        else
-            # If we are not root, we just check if the current user has read permission
-            if [[ -r "${file_path}" ]]; then
-                # Output that we are using the local file
-                echo -e "${OVER}  ${INFO} Using local file ${file_path}"
-            else
-                # Output that the file is not readable by the current user
-                echo -e "${OVER}  ${CROSS} Cannot read file (current user '$(id -un)' lacks read permission)"
-                download=false
-            fi
-        fi
+      # Check if the file or a file referenced by the symlink has a+r permissions
+      permissions=$(stat -L -c "%a" "$file_path")
+      if [[ $permissions == *4 || $permissions == *5 || $permissions == *6 || $permissions == *7 ]]; then
+        # Output that we are using the local file
+        echo -e "${OVER}  ${INFO} Using local file ${file_path}"
+      else
+        # Output that the file does not have the correct permissions
+        echo -e "${OVER}  ${CROSS} Cannot read file (file needs to have a+r permission)"
+        download=false
+      fi
     fi
   fi
 
@@ -769,37 +756,8 @@ gravity_DownloadBlocklistFromUrl() {
   fi
 
   if [[ "${download}" == true ]]; then
-    # Define the generic error message
-    curlOutputFormat='%{http_code};No message available. Non supported curl version.'
-
-    # Check if the installed curl version supports the "-w %{errormsg}" option (available as of curl 7.75.0)
-    # (https://github.com/pi-hole/pi-hole/pull/6605#discussion_r3112153347)
-    # First we get the current curl version.
-    curlVersion=$(curl --version | awk '{print $2;exit}')
-    # After that, we pipe the current version along with the string '7.75' (the minimum version supporting the required option.)
-    # Then we sort the list in natural (version) order and return the first item which will be the lowest version seen.
-    # If it is "7.75" then the current version is greater than or equal to "7.75.0".
-    # Compatibility notes:
-    #   Busybox doesn't support some long flags:
-    #   - "sort -V" is short form of "sort --version-sort"
-    #   - "head -n1" is short form of "head --lines=1"
-    if [[ "$(printf '%s\n' "${curlVersion}" "7.75" | sort -V | head -n1)" == 7.75 ]]; then
-        # Use the error message returned by curl
-        curlOutputFormat='%{http_code};%{errormsg}'
-    fi
-
-    # This command will output the HTTP code and an error message, if available.
-    # Error messages are suppressed by "-s" option.
-    # By default curl returns exitcode=0 even an HTTP code happens (403, 404, 500, etc). To fix
-    # this, we use the "--fail" option to force curl to return a non-zero exit code.
-    # If curl version is older than 7.75.0, curl can't generate the errormsg output. In this case,
-    # a generic message is returned.
-    curlOutput=$(curl --connect-timeout ${curl_connect_timeout} -s --fail -L ${compression:+${compression}} ${customUpstreamResolver:+${customUpstreamResolver}} "${modifiedOptions[@]}" -w "${curlOutputFormat}" "${url}" -o "${listCurlBuffer}")
-    curlExitCode="$?"
+    httpCode=$(curl --connect-timeout ${curl_connect_timeout} -s -L ${compression:+${compression}} ${customUpstreamResolver:+${customUpstreamResolver}} "${modifiedOptions[@]}" -w "%{http_code}" "${url}" -o "${listCurlBuffer}" 2>/dev/null)
   fi
-
-  # Retrieve http_code and errormsg values, returned by curl command
-  IFS=";" read -r httpCode curlErrorMsg <<<"$curlOutput"
 
   case $url in
   # Did we "download" a local file?
@@ -813,28 +771,27 @@ gravity_DownloadBlocklistFromUrl() {
     ;;
   # Did we "download" a remote file?
   *)
-    # Use the exit code to determine if curl was successful or not.
-    # Use HTTP code only to select the correct error message.
-    if [[ "${curlExitCode}" == "0" ]]; then
-      case "${httpCode}" in
-        "200") echo -e "${OVER}  ${TICK} ${str} Retrieval successful" ;;
-        "304") echo -e "${OVER}  ${TICK} ${str} No changes detected"  ;;
-        *) echo -e "${OVER}  ${TICK} ${str} Success (http_code=${COL_CYAN}${httpCode}${COL_NC})"  ;;
-      esac
+    # Determine "Status:" output based on HTTP response
+    case "${httpCode}" in
+    "200")
+      echo -e "${OVER}  ${TICK} ${str} Retrieval successful"
       success=true
-    else
-      case "${httpCode}" in
-        "403") echo -e "${OVER}  ${CROSS} ${str} Forbidden" ;;
-        "404") echo -e "${OVER}  ${CROSS} ${str} Not found" ;;
-        "408") echo -e "${OVER}  ${CROSS} ${str} Time-out" ;;
-        "451") echo -e "${OVER}  ${CROSS} ${str} Unavailable For Legal Reasons" ;;
-        "500") echo -e "${OVER}  ${CROSS} ${str} Internal Server Error" ;;
-        "504") echo -e "${OVER}  ${CROSS} ${str} Connection Timed Out (Gateway)" ;;
-        "521") echo -e "${OVER}  ${CROSS} ${str} Web Server Is Down (Cloudflare)" ;;
-        "522") echo -e "${OVER}  ${CROSS} ${str} Connection Timed Out (Cloudflare)" ;;
-        *) echo -e "${OVER}  ${CROSS} ${str} Retrieval failed (exit_code=${COL_CYAN}${curlExitCode}${COL_NC} Msg: ${COL_CYAN}${curlErrorMsg}${COL_NC})" ;;
-      esac
-    fi
+      ;;
+    "304")
+      echo -e "${OVER}  ${TICK} ${str} No changes detected"
+      success=true
+      ;;
+    "000") echo -e "${OVER}  ${CROSS} ${str} Connection Refused" ;;
+    "403") echo -e "${OVER}  ${CROSS} ${str} Forbidden" ;;
+    "404") echo -e "${OVER}  ${CROSS} ${str} Not found" ;;
+    "408") echo -e "${OVER}  ${CROSS} ${str} Time-out" ;;
+    "451") echo -e "${OVER}  ${CROSS} ${str} Unavailable For Legal Reasons" ;;
+    "500") echo -e "${OVER}  ${CROSS} ${str} Internal Server Error" ;;
+    "504") echo -e "${OVER}  ${CROSS} ${str} Connection Timed Out (Gateway)" ;;
+    "521") echo -e "${OVER}  ${CROSS} ${str} Web Server Is Down (Cloudflare)" ;;
+    "522") echo -e "${OVER}  ${CROSS} ${str} Connection Timed Out (Cloudflare)" ;;
+    *) echo -e "${OVER}  ${CROSS} ${str} ${url} (${httpCode})" ;;
+    esac
     ;;
   esac
 
@@ -855,10 +812,6 @@ gravity_DownloadBlocklistFromUrl() {
       fix_owner_permissions "${saveLocation}"
       # Compare lists if they are identical
       compareLists "${adlistID}" "${saveLocation}"
-      # Set permissions for the *.etag file
-      if [[ -f "${saveLocation}.etag" ]]; then
-          fix_owner_permissions "${saveLocation}.etag"
-      fi
       # Add domains to database table file
       pihole-FTL "${gravity_type}" parseList "${saveLocation}" "${gravityTEMPfile}" "${adlistID}"
       done="true"

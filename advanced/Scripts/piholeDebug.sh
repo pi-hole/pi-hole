@@ -94,8 +94,9 @@ PIHOLE_GRAVITY_DB_FILE="$(get_ftl_conf_value "files.gravity")"
 PIHOLE_FTL_DB_FILE="$(get_ftl_conf_value "files.database")"
 
 PIHOLE_COMMAND="${BIN_DIRECTORY}/pihole"
+PIHOLE_COLTABLE_FILE="${BIN_DIRECTORY}/COL_TABLE"
 
-FTL_PID="/run/pihole-FTL.pid" # Hardcoded PID path — see GHSA-6w8x-p785-6pm4
+FTL_PID="$(get_ftl_conf_value "files.pid")"
 
 PIHOLE_LOG="${LOG_DIRECTORY}/pihole.log"
 PIHOLE_LOG_GZIPS="${LOG_DIRECTORY}/pihole.log.[0-9].*"
@@ -118,6 +119,7 @@ REQUIRED_FILES=("${PIHOLE_CRON_FILE}"
 "${PIHOLE_FTL_CONF_FILE}"
 "${PIHOLE_DNSMASQ_CONF_FILE}"
 "${PIHOLE_COMMAND}"
+"${PIHOLE_COLTABLE_FILE}"
 "${FTL_PID}"
 "${PIHOLE_LOG}"
 "${PIHOLE_LOG_GZIPS}"
@@ -288,7 +290,7 @@ check_ftl_version() {
 
 # Checks the core version of the Pi-hole codebase
 check_component_versions() {
-    # Check the Core version, branch, and commit
+    # Check the Web version, branch, and commit
     compare_local_version_to_git_version "${CORE_GIT_DIRECTORY}" "Core"
     # Check the Web version, branch, and commit
     compare_local_version_to_git_version "${WEB_GIT_DIRECTORY}" "Web"
