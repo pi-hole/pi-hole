@@ -2,7 +2,6 @@ def test_key_val_replacement_works(host):
     """Confirms addOrEditKeyValPair either adds or replaces a key value pair in a given file"""
     host.run("""
     source /opt/pihole/utils.sh
-    touch ./testoutput
     addOrEditKeyValPair "./testoutput" "KEY_ONE" "value1"
     addOrEditKeyValPair "./testoutput" "KEY_TWO" "value2"
     addOrEditKeyValPair "./testoutput" "KEY_ONE" "value3"

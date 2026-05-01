@@ -30,6 +30,9 @@ addOrEditKeyValPair() {
   local key="${2}"
   local value="${3}"
 
+  # touch file to prevent grep error if file does not exist yet
+  touch "${file}"
+
   if grep -q "^${key}=" "${file}"; then
     # Key already exists in file, modify the value
     sed -i "/^${key}=/c\\${key}=${value}" "${file}"
