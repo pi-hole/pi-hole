@@ -97,12 +97,12 @@ loadVersionFile() {
 # Example getFTLPID "/run/pihole-FTL.pid"
 #######################
 getFTLPID() {
-    local FTL_PID_FILE="${1}"
+    local _ftl_pid_file="${1}"
     local FTL_PID
 
-    if [ -s "${FTL_PID_FILE}" ]; then
+    if [ -s "${_ftl_pid_file}" ]; then
         # -s: FILE exists and has a size greater than zero
-        FTL_PID="$(cat "${FTL_PID_FILE}")"
+        FTL_PID="$(cat "${_ftl_pid_file}")"
         # Exploit prevention: unset the variable if there is malicious content
         # Verify that the value read from the file is numeric
         expr "${FTL_PID}" : "[^[:digit:]]" > /dev/null && unset FTL_PID
