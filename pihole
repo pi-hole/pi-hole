@@ -79,10 +79,11 @@ debugFunc() {
     for value in "$@"; do
         [[ "$value"  == *"-a"* ]] && automated="true"
         [[ "$value"  == *"-c"* ]] && check_database_integrity="true"
+        [[ "$value"  == *"--crash_report"* ]] && crash_report="true"
         [[ "$value" == *"--check_database"* ]] && check_database_integrity="true"
     done
 
-  AUTOMATED=${automated:-} CHECK_DATABASE=${check_database_integrity:-} "${PI_HOLE_SCRIPT_DIR}"/piholeDebug.sh
+  AUTOMATED=${automated:-} CHECK_DATABASE=${check_database_integrity:-} CRASH_REPORT=${crash_report} "${PI_HOLE_SCRIPT_DIR}"/piholeDebug.sh
   exit 0
 }
 
@@ -492,6 +493,7 @@ Debugging Options:
   -d, debug           Start a debugging session
                         Add '-c' or '--check-database' to include a Pi-hole database integrity check
                         Add '-a' to automatically upload the log to tricorder.pi-hole.net
+                        Add '--crash_report' to generate a FTL crashreport, including the necessary lines
   -f, flush           Flush the Pi-hole log
   -r, repair          Repair Pi-hole subsystems
   -t, tail [arg]      View the live output of the Pi-hole log.

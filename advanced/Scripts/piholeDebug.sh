@@ -1297,31 +1297,59 @@ upload_to_tricorder() {
     log_write "   * A local copy of the debug log can be found at: ${COL_CYAN}${PIHOLE_DEBUG_LOG}${COL_NC}\\n"
 }
 
+get_FTL_crash_log(){
+    echo_current_diagnostic "Crash Report - FTL.log"
+
+    # Store the original Field Separator into another variable so it can be restored later
+    local OLD_IFS="$IFS"
+    IFS=$'\r\n'
+
+    # Get the lines that are in FTL.log and store them in an array for parsing later
+    local lines=()
+    # Executed in 2 parts:
+    # - first read the whole file into an array of lines. lastCrash holds the most recent line containing "!!!!!!!!!!"
+    # - after the file is completely read, prints lines starting 12 lines before "lastCrash", until the end of the file
+    #   there is an "if" to avoid errors if there are less than 12 lines before the last "!!!!!!!!!!"
+    mapfile -t lines < <(awk '/!!!!!!!!!!/ {lastCrash=NR} {lines[NR]=$0} END {for(i=lastCrash - 12; i<=NR; i++) if(i in lines) print lines[i]}' "${PIHOLE_FTL_LOG}")
+    for line in "${lines[@]}"; do
+        log_write "   ${line}"
+    done
+
+    # Restore IFS original value
+    IFS="$OLD_IFS"
+}
+
 # Run through all the functions we made
 make_temporary_log
 initialize_debug
 check_component_versions
-# check_critical_program_versions
-diagnose_operating_system
-check_selinux
-check_firewalld
-hardware_check
-disk_usage
-check_ip_command
-check_networking
-check_name_resolution
-check_dhcp_servers
-process_status
-ftl_full_status
-analyze_ftl_db
-analyze_gravity_list
-show_groups
-show_domainlist
-show_clients
-show_adlists
-show_content_of_pihole_files
-show_messages
-parse_locale
-analyze_pihole_log
+
+if [[ "${CRASH_REPORT}" ]]; then
+  ftl_full_status
+  get_FTL_crash_log
+else
+  diagnose_operating_system
+  check_selinux
+  check_firewalld
+  hardware_check
+  disk_usage
+  check_ip_command
+  check_networking
+  check_name_resolution
+  check_dhcp_servers
+  process_status
+  ftl_full_status
+  analyze_ftl_db
+  analyze_gravity_list
+  show_groups
+  show_domainlist
+  show_clients
+  show_adlists
+  show_content_of_pihole_files
+  show_messages
+  parse_locale
+  analyze_pihole_log
+fi
+
 copy_to_debug_log
 upload_to_tricorder
