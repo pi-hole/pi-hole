@@ -76,14 +76,18 @@ debugFunc() {
     # Pull off the `debug` leaving passed call augmentation flags in $1
     shift
 
-    for value in "$@"; do
-        [[ "$value"  == *"-a"* ]] && automated="true"
-        [[ "$value"  == *"-c"* ]] && check_database_integrity="true"
-        [[ "$value"  == *"--crash_report"* ]] && crash_report="true"
-        [[ "$value" == *"--check_database"* ]] && check_database_integrity="true"
+    while [ "$#" -gt 0 ]; do
+        case "$1" in
+            "-a") automated="true";;
+            "-c") check_database_integrity="true";;
+            "--crash_report") crash_report="true";;
+            "--lines_before") lines_before="${2}"; shift;;
+            "--check_database") check_database_integrity="true";;
+        esac
+        shift
     done
 
-  AUTOMATED=${automated:-} CHECK_DATABASE=${check_database_integrity:-} CRASH_REPORT=${crash_report} "${PI_HOLE_SCRIPT_DIR}"/piholeDebug.sh
+  AUTOMATED=${automated:-} CHECK_DATABASE=${check_database_integrity:-} CRASH_REPORT=${crash_report:-} LINES_BEFORE=${lines_before:-} "${PI_HOLE_SCRIPT_DIR}"/piholeDebug.sh
   exit 0
 }
 

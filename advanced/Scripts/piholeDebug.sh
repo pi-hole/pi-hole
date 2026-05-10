@@ -1300,17 +1300,27 @@ upload_to_tricorder() {
 get_FTL_crash_log(){
     echo_current_diagnostic "Crash Report - FTL.log"
 
+    # Find the line number where we will start to print
+    #
+    # awk command details:
+    # - read the file line by line, using a regex to search for the text.
+    # - if found, store the line number in "last". Keep searching until the end of the file.
+    # - when the file ends, "last" will contain the number of the last header line found.
+    # - Second part: check (using "n" variable) if the value is greater than or equal to $LINES_BEFORE,
+    #   to guarantee the return is positive.
+    # $LINES_BEFORE contains how many lines should be included before the crash header (defaults to 11 lines)
+    # If the command fails, do not print an error message and use "1". This will print the entire log.
+    local lineNum
+    lineNum=$(awk -v n="${LINES_BEFORE:-11}" '/FTL crashed/ {last=NR} END {if (last > n) print last - n; else print 1 }' "${PIHOLE_FTL_LOG}" 2>/dev/null || echo 1)
+
     # Store the original Field Separator into another variable so it can be restored later
     local OLD_IFS="$IFS"
     IFS=$'\r\n'
 
-    # Get the lines that are in FTL.log and store them in an array for parsing later
+    # Tail the file starting at lineNum. Store the lines in an array
     local lines=()
-    # Executed in 2 parts:
-    # - first read the whole file into an array of lines. lastCrash holds the most recent line containing "!!!!!!!!!!"
-    # - after the file is completely read, prints lines starting 12 lines before "lastCrash", until the end of the file
-    #   there is an "if" to avoid errors if there are less than 12 lines before the last "!!!!!!!!!!"
-    mapfile -t lines < <(awk '/!!!!!!!!!!/ {lastCrash=NR} {lines[NR]=$0} END {for(i=lastCrash - 12; i<=NR; i++) if(i in lines) print lines[i]}' "${PIHOLE_FTL_LOG}")
+    mapfile -t lines < <(tail -n +"${lineNum}" "${PIHOLE_FTL_LOG}")
+    # Print the lines
     for line in "${lines[@]}"; do
         log_write "   ${line}"
     done
