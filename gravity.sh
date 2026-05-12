@@ -163,7 +163,7 @@ gravity_swap_databases() {
   mv "${gravityTEMPfile}" "${gravityDBfile}"
   echo -e "${OVER}  ${TICK} ${str}"
 
-  if $oldAvail; then
+  if ${oldAvail}; then
     echo -e "  ${TICK} The old database remains available"
   fi
 }
@@ -217,7 +217,7 @@ database_table_from_file() {
   # Get MAX(id) from domainlist when INSERTing into this table
   if [[ "${table}" == "domainlist" ]]; then
     rowid="$(pihole-FTL sqlite3 -ni "${gravityDBfile}" "SELECT MAX(id) FROM domainlist;")"
-    if [[ -z "$rowid" ]]; then
+    if [[ -z "${rowid}" ]]; then
       rowid=0
     fi
     rowid+=1
@@ -541,10 +541,10 @@ gravity_DownloadBlocklists() {
 
   # Loop through $sources and download each one
   for ((i = 0; i < "${#sources[@]}"; i++)); do
-    url="${sources[$i]}"
-    domain="${sourceDomains[$i]}"
-    id="${sourceIDs[$i]}"
-    if [[ "${sourceTypes[$i]}" -eq "0" ]]; then
+    url="${sources[${i}]}"
+    domain="${sourceDomains[${i}]}"
+    id="${sourceIDs[${i}]}"
+    if [[ "${sourceTypes[${i}]}" -eq "0" ]]; then
       # Gravity list
       str="blocklist"
       adlist_type="gravity"
@@ -583,12 +583,12 @@ gravity_DownloadBlocklists() {
 
     # this will remove first @ that is after schema and before domain
     # \1 is optional schema, \2 is userinfo
-    check_url="$(sed -re 's#([^:/]*://)?([^/]+)@#\1\2#' <<<"$url")"
+    check_url="$(sed -re 's#([^:/]*://)?([^/]+)@#\1\2#' <<<"${url}")"
 
     if [[ "${check_url}" =~ ${regex} ]]; then
       echo -e "  ${CROSS} Invalid Target"
     else
-      timeit gravity_DownloadBlocklistFromUrl "${url}" "${sourceIDs[$i]}" "${saveLocation}" "${compression}" "${adlist_type}" "${domain}"
+      timeit gravity_DownloadBlocklistFromUrl "${url}" "${sourceIDs[${i}]}" "${saveLocation}" "${compression}" "${adlist_type}" "${domain}"
     fi
     echo ""
   done
@@ -636,7 +636,7 @@ gravity_DownloadBlocklistFromUrl() {
 
   # For all remote files, we try to determine if the file has changed to skip
   # downloading them whenever possible.
-  if [[ $url != "file"* ]]; then
+  if [[ ${url} != "file"* ]]; then
     # Use the HTTP ETag header to determine if the file has changed if supported
     # by curl. Using ETags is supported by raw.githubusercontent.com URLs.
     if [[ "${etag_support}" == true ]]; then
@@ -672,7 +672,7 @@ gravity_DownloadBlocklistFromUrl() {
   blocked=false
   # Check if this domain is blocked by Pi-hole but only if the domain is not a
   # local file or empty
-  if [[ $url != "file"* ]] && [[ -n "${domain}" ]]; then
+  if [[ ${url} != "file"* ]] && [[ -n "${domain}" ]]; then
     case $(getFTLConfigValue dns.blocking.mode) in
     "IP-NODATA-AAAA" | "IP")
       # Get IP address of this domain
@@ -729,7 +729,7 @@ gravity_DownloadBlocklistFromUrl() {
       fi
       echo -e "${OVER}  ${CROSS} ${str} ${domain} is blocked by one of your lists. Using DNS server ${upstream} instead"
       echo -ne "  ${INFO} ${str} Pending..."
-      customUpstreamResolver="--resolve $domain:$port:$ip"
+      customUpstreamResolver="--resolve ${domain}:${port}:${ip}"
     fi
   fi
 
@@ -771,7 +771,7 @@ gravity_DownloadBlocklistFromUrl() {
   fi
 
   # Check for allowed protocols
-  if [[ $url != "http"* && $url != "https"* && $url != "file"* && $url != "ftp"* && $url != "ftps"* && $url != "sftp"* ]]; then
+  if [[ ${url} != "http"* && ${url} != "https"* && ${url} != "file"* && ${url} != "ftp"* && ${url} != "ftps"* && ${url} != "sftp"* ]]; then
     echo -e "${OVER}  ${CROSS} ${str} Invalid protocol specified. Ignoring list."
     echo -e "      Ensure your URL starts with a valid protocol like http:// , https:// or file:// ."
     download=false
@@ -812,9 +812,9 @@ gravity_DownloadBlocklistFromUrl() {
 
 
     # Retrieve http_code and errormsg values, returned by curl command
-    IFS=";" read -r httpCode curlErrorMsg <<<"$curlOutput"
+    IFS=";" read -r httpCode curlErrorMsg <<<"${curlOutput}"
 
-    case $url in
+    case ${url} in
     # Did we "download" a local file?
     "file"*)
       if [[ -s "${listCurlBuffer}" ]]; then
@@ -994,11 +994,11 @@ database_recovery() {
       fi
     else
       echo -e "${OVER}  ${CROSS} ${str} - errors found:"
-      while IFS= read -r line; do echo "  - $line"; done <<<"$result"
+      while IFS= read -r line; do echo "  - ${line}"; done <<<"${result}"
     fi
   else
     echo -e "${OVER}  ${CROSS} ${str} - errors found:"
-    while IFS= read -r line; do echo "  - $line"; done <<<"$result"
+    while IFS= read -r line; do echo "  - ${line}"; done <<<"${result}"
   fi
 
   str="Trying to recover existing gravity database"
@@ -1013,7 +1013,7 @@ database_recovery() {
     echo -ne " ${INFO} The old ${gravityDBfile} has been moved to ${gravityDBfile}.old"
   else
     echo -e "${OVER}  ${CROSS} ${str} - the following errors happened:"
-    while IFS= read -r line; do echo "  - $line"; done <<<"$result"
+    while IFS= read -r line; do echo "  - ${line}"; done <<<"${result}"
     echo -e "  ${CROSS} Recovery failed. Try \"pihole -g -r recreate\" instead."
     gravity_Cleanup "error"
   fi
@@ -1069,7 +1069,7 @@ timeit(){
   ret=$?
 
   if [[ "${timed:-}" != true ]]; then
-    return $ret
+    return ${ret}
   fi
 
   # Capture the end time
@@ -1081,7 +1081,7 @@ timeit(){
   # Display the elapsed time
   printf "  %b--> took %d.%03d seconds%b\n" "${COL_BLUE}" $((elapsed_time / 1000)) $((elapsed_time % 1000)) "${COL_NC}"
 
-  return $ret
+  return ${ret}
 }
 
 migrate_to_listsCache_dir() {
