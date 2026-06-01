@@ -1,0 +1,29 @@
+# Pi-hole dev/test stack — not for production network DNS.
+# Docs: https://docs.pi-hole.net/docker/configuration/
+services:
+  pihole:
+    container_name: pihole-dev
+    image: pihole/pihole:latest
+    hostname: pi.hole
+    ports:
+      # Host 8053 avoids conflict with systemd-resolved (53) and mDNS (5353)
+      - "8053:53/tcp"
+      - "8053:53/udp"
+      - "8080:80/tcp"
+      - "8443:443/tcp"
+    environment:
+      TZ: ${TZ:-UTC}
+      FTLCONF_webserver_api_password: ${FTLCONF_webserver_api_password:-devpassword}
+      FTLCONF_dns_upstreams: ${FTLCONF_dns_upstreams:-8.8.8.8;8.8.4.4}
+      # Bridge network: listen on all interfaces inside the container
+      FTLCONF_dns_listeningMode: ALL
+    volumes:
+      - ./etc-pihole:/etc/pihole
+      # Live-reload web UI changes without rebuilding the image.
+      # Remove this line once changes are merged into the upstream web repo.
+      - ../../../pihole-web:/var/www/html/admin
+      # Mount the locally built FTL binary (built inside the container — see instructions below):
+      # - ../../../pihole-FTL/cmake/pihole-FTL:/usr/bin/pihole-FTL
+    cap_add:
+      - NET_ADMIN
+    restart: unless-stopped
