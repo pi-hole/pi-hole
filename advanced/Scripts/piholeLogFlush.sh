@@ -17,11 +17,6 @@ utilsfile="${PI_HOLE_SCRIPT_DIR}/utils.sh"
 # shellcheck source="./advanced/Scripts/utils.sh"
 source "${utilsfile}"
 
-# In case we're running at the same time as a system logrotate, use a
-# separate logrotate state file to prevent stepping on each other's
-# toes.
-STATEFILE="/var/lib/logrotate/pihole"
-
 # Determine database location
 DBFILE=$(getFTLConfigValue "files.database")
 if [ -z "$DBFILE" ]; then
@@ -65,8 +60,10 @@ if [[ "$*" == *"once"* ]]; then
     if [[ "$*" != *"quiet"* ]]; then
         echo -ne "  ${INFO} Running logrotate ..."
     fi
-    mkdir -p "${STATEFILE%/*}"
-    /usr/sbin/logrotate --force --state "${STATEFILE}" /etc/logrotate.d/pihole
+    # Use logrotate's default state file so this run and the system's own
+    # scheduled logrotate (which also reads /etc/logrotate.d/pihole) agree on
+    # what's already been rotated, instead of rotating our logs twice.
+    /usr/sbin/logrotate --force /etc/logrotate.d/pihole
 else
     # Manual flushing
     flush_log "${LOGFILE}"

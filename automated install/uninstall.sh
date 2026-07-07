@@ -158,6 +158,12 @@ removePiholeFiles() {
     # Remove logrotate configuration for Pi-hole
     rm -f /etc/logrotate.d/pihole &> /dev/null
 
+    # Remove remnants from older Pi-hole versions: the logrotate config used to
+    # live in /etc/pihole/, and logrotate state was tracked in a Pi-hole-specific
+    # file instead of the system's default state file
+    rm -f /etc/pihole/logrotate &> /dev/null
+    rm -f /var/lib/logrotate/pihole &> /dev/null
+
     echo -e "  ${TICK} Removed config files"
 }
 
