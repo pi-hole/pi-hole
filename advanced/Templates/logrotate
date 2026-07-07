@@ -7,6 +7,7 @@
     delaycompress
     notifempty
     nomail
+    nodateext
     postrotate
         kill -USR2 $(cat /run/pihole-FTL.pid 2>/dev/null) 2>/dev/null || true
     endscript
@@ -22,6 +23,7 @@
     delaycompress
     notifempty
     nomail
+    nodateext
 }
 
 /var/log/pihole/webserver.log {
@@ -33,4 +35,5 @@
     delaycompress
     notifempty
     nomail
+    nodateext
 }
