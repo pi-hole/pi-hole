@@ -1615,6 +1615,13 @@ installLogrotate() {
     local str="Installing latest logrotate script"
     local target=/etc/logrotate.d/pihole
 
+    # Remove remnants from older Pi-hole versions: the logrotate config used to
+    # live in /etc/pihole/, and logrotate state was tracked in a Pi-hole-specific
+    # file instead of the system's default state file. Leaving these around is
+    # harmless but can be confusing when debugging.
+    rm -f /etc/pihole/logrotate
+    rm -f /var/lib/logrotate/pihole
+
     printf "\\n  %b %s..." "${INFO}" "${str}"
     if [[ -f ${target} ]]; then
         if diff -q "$target" "${PI_HOLE_LOCAL_REPO}/advanced/Templates/logrotate" >/dev/null; then
