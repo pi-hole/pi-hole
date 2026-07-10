@@ -20,8 +20,6 @@ updates:
     interval: weekly
     day: saturday
     time: "10:00"
-  cooldown:
-    default-days: 7
   open-pull-requests-limit: 10
   target-branch: development
   groups:
