@@ -13,7 +13,6 @@
     endscript
 }
 
-# FTL.log and webserver.log are opened and closed for each line, therefore no postrotate is needed
 /var/log/pihole/FTL.log {
     # su #
     weekly
@@ -24,6 +23,9 @@
     notifempty
     nomail
     nodateext
+    postrotate
+        kill -USR2 $(cat /run/pihole-FTL.pid 2>/dev/null) 2>/dev/null || true
+    endscript
 }
 
 /var/log/pihole/webserver.log {
@@ -36,4 +38,7 @@
     notifempty
     nomail
     nodateext
+    postrotate
+        kill -USR2 $(cat /run/pihole-FTL.pid 2>/dev/null) 2>/dev/null || true
+    endscript
 }
