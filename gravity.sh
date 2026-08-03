@@ -81,7 +81,7 @@ fix_owner_permissions() {
 generate_gravity_database() {
   if ! pihole-FTL sqlite3 -ni "${gravityDBfile}" <"${gravityDBschema}"; then
     echo -e "   ${CROSS} Unable to create ${gravityDBfile}"
-    return 1
+    gravity_Cleanup "error"
   fi
   fix_owner_permissions "${gravityDBfile}"
 }
@@ -101,7 +101,7 @@ gravity_build_tree() {
     echo -e "\\n  ${CROSS} Unable to build ${table} tree in ${gravityTEMPfile}\\n"
     echo -e "  ${CROSS} ${output}\\n"
     echo -e "  ${INFO} If you have a large amount of domains, make sure your Pi-hole has enough RAM available\\n"
-    return 1
+    gravity_Cleanup "error"
   fi
   echo -e "${OVER}  ${TICK} ${str}"
 }
@@ -176,7 +176,7 @@ update_gravity_timestamp() {
   if [[ "${status}" -ne 0 ]]; then
     echo -e "\\n  ${CROSS} Unable to update gravity timestamp in database ${gravityTEMPfile}\\n"
     echo -e "  ${CROSS} ${output}\\n"
-    return 1
+    gravity_Cleanup "error"
   fi
   return 0
 }
@@ -311,7 +311,7 @@ migrate_to_database() {
     echo -e "  ${INFO} Creating new gravity database"
     if ! generate_gravity_database; then
       echo -e "   ${CROSS} Error creating new gravity database. Please contact support."
-      return 1
+      gravity_Cleanup "error"
     fi
 
     # Check if gravity database needs to be updated
@@ -374,7 +374,8 @@ gravity_CheckDNSResolutionAvailable() {
   done
 
   # DNS resolution is still unavailable after 120 seconds
-  return 1
+    echo -e "   ${CROSS} No DNS resolution available. Please contact support."
+    gravity_Cleanup "error"
 
 }
 
@@ -481,10 +482,11 @@ gravity_DownloadBlocklists() {
       done
     fi
 
-    # If none of the attempts worked, return 1
+    # If none of the attempts worked, exit
     if [[ "${success}" == false ]]; then
-      pihole-FTL sqlite3 "${gravityTEMPfile}" "INSERT OR REPLACE INTO info (property,value) values ('gravity_restored','failed');"
-      return 1
+        pihole-FTL sqlite3 "${gravityTEMPfile}" "INSERT OR REPLACE INTO info (property,value) values ('gravity_restored','failed');"
+        echo -e "   ${CROSS} Unable to create gravity database. Please try again later. If the problem persists, please contact support."
+        gravity_Cleanup "error"
     fi
 
     echo -e "  ${TICK} ${str}"
@@ -958,7 +960,7 @@ gravity_Cleanup() {
       fi
     done
   fi
-  # Delete the temporary gravity database if it still exists (e.g. in case of early exit due ti error or user abort)
+  # Delete the temporary gravity database if it still exists (e.g. in case of early exit due to error or user abort)
   rm -f "${gravityTEMPfile}" 2>/dev/null
 
   echo -e "${OVER}  ${TICK} ${str}"
@@ -1168,10 +1170,7 @@ for var in "$@"; do
 done
 
 # Check if DNS is available, no need to do any database manipulation if we're not able to download adlists
-if ! timeit gravity_CheckDNSResolutionAvailable; then
-  echo -e "   ${CROSS} No DNS resolution available. Please contact support."
-  gravity_Cleanup "error"
-fi
+timeit gravity_CheckDNSResolutionAvailable
 
 # Remove OLD (backup) gravity file, if it exists
 if [[ -f "${gravityOLDfile}" ]]; then
@@ -1213,29 +1212,17 @@ if [[ "${forceDelete:-}" == true ]]; then
 fi
 
 # Gravity downloads blocklists next
-if ! gravity_DownloadBlocklists; then
-  echo -e "   ${CROSS} Unable to create gravity database. Please try again later. If the problem persists, please contact support."
-  gravity_Cleanup "error"
-fi
+gravity_DownloadBlocklists
 
 # Update gravity timestamp
-if ! update_gravity_timestamp; then
-  echo -e "   ${CROSS} Unable to update gravity timestamp. Please contact support."
-  gravity_Cleanup "error"
-fi
+update_gravity_timestamp
 
 # Ensure proper permissions are set for the database
 fix_owner_permissions "${gravityTEMPfile}"
 
 # Build the tree
-if ! timeit gravity_build_tree gravity; then
-  echo -e "   ${CROSS} Unable to create database. Please contact support."
-  gravity_Cleanup "error"
-fi
-if ! timeit gravity_build_tree antigravity; then
-  echo -e "   ${CROSS} Unable to create database. Please contact support."
-  gravity_Cleanup "error"
-fi
+timeit gravity_build_tree gravity
+timeit gravity_build_tree antigravity
 
 # Compute numbers to be displayed (do this after building the tree to get the
 # numbers quickly from the tree instead of having to scan the whole database)
