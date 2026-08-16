@@ -17,7 +17,13 @@ StartLimitIntervalSec=60s
 
 [Service]
 User=pihole
-AmbientCapabilities=CAP_NET_BIND_SERVICE CAP_NET_RAW CAP_NET_ADMIN CAP_SYS_NICE CAP_IPC_LOCK CAP_CHOWN CAP_SYS_TIME
+# CAP_CHOWN is deliberately not granted through the ambient set. The ambient
+# set is inherited across execve(), so it would hand CAP_CHOWN to every process
+# FTL starts - a DHCP script, anything a Lua page spawns - and taking ownership
+# of a root-owned file is a short step from root. FTL itself receives CAP_CHOWN
+# from the file capabilities on its binary (setcap ...+eip), which a child that
+# is not pihole-FTL does not inherit, and drops it once startup is done.
+AmbientCapabilities=CAP_NET_BIND_SERVICE CAP_NET_RAW CAP_NET_ADMIN CAP_SYS_NICE CAP_IPC_LOCK CAP_SYS_TIME
 
 # Run prestart with elevated permissions
 ExecStartPre=+/opt/pihole/pihole-FTL-prestart.sh
@@ -36,6 +42,10 @@ ProtectSystem=full
 # This merely retains r/w access rights, it does not add any new.
 # Must still be writable on the host!
 ReadWriteDirectories=/etc/pihole
+# ProtectSystem=full does not cover /opt, where the root-run prestart script
+# and the helper scripts live. Keep it read-only for the service so they cannot
+# be tampered with from within it. FTL only ever reads and executes from here.
+ReadOnlyPaths=/opt/pihole
 
 [Install]
 WantedBy=multi-user.target
