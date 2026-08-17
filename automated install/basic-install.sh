@@ -52,6 +52,11 @@ Quad9 (filtered, DNSSEC);9.9.9.9;149.112.112.112;2620:fe::fe;2620:fe::9
 Quad9 (unfiltered, no DNSSEC);9.9.9.10;149.112.112.10;2620:fe::10;2620:fe::fe:10
 Quad9 (filtered, ECS, DNSSEC);9.9.9.11;149.112.112.11;2620:fe::11;2620:fe::fe:11
 Cloudflare (DNSSEC);1.1.1.1;1.0.0.1;2606:4700:4700::1111;2606:4700:4700::1001
+DNS4EU (unfiltered);86.54.11.100;;;
+DNS4EU (filtered);86.54.11.1;;;
+DNS4EU (filtered + child);86.54.11.12;;;
+DNS4EU (filtered + ads);86.54.11.13;;;
+DNS4EU (filtered + child + ads);86.54.11.11;;;
 EOM
 )
 
