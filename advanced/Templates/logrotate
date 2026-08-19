@@ -13,21 +13,7 @@
     endscript
 }
 
-/var/log/pihole/FTL.log {
-    # su #
-    weekly
-    create 640 pihole pihole
-    rotate 3
-    compress
-    delaycompress
-    notifempty
-    nomail
-    nodateext
-    postrotate
-        kill -USR2 $(cat /run/pihole-FTL.pid 2>/dev/null) 2>/dev/null || true
-    endscript
-}
-
+/var/log/pihole/FTL.log
 /var/log/pihole/webserver.log {
     # su #
     weekly
@@ -38,6 +24,7 @@
     notifempty
     nomail
     nodateext
+    sharedscripts
     postrotate
         kill -USR2 $(cat /run/pihole-FTL.pid 2>/dev/null) 2>/dev/null || true
     endscript
