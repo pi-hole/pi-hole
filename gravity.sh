@@ -215,7 +215,7 @@ database_adlist_table_from_array() {
     status="$?"
 
   if [[ "${status}" -ne 0 ]]; then
-    echo -e "\\n  ${CROSS} Unable to fill table ${table}${list_type} in database ${gravityDBfile}\\n"
+    echo -e "\\n  ${CROSS} Unable to fill adlist table in database ${gravityDBfile}\\n"
     echo -e "  ${CROSS} ${output}\\n"
     gravity_Cleanup "error"
   fi
