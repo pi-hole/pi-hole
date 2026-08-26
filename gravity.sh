@@ -81,7 +81,7 @@ fix_owner_permissions() {
 generate_gravity_database() {
   if ! pihole-FTL sqlite3 -ni "${gravityDBfile}" <"${gravityDBschema}"; then
     echo -e "   ${CROSS} Unable to create ${gravityDBfile}"
-    return 1
+    gravity_Cleanup "error"
   fi
   fix_owner_permissions "${gravityDBfile}"
 }
@@ -98,9 +98,10 @@ gravity_build_tree() {
   status="$?"
 
   if [[ "${status}" -ne 0 ]]; then
-    echo -e "\\n  ${CROSS} Unable to build ${table} tree in ${gravityTEMPfile}\\n  ${output}"
+    echo -e "\\n  ${CROSS} Unable to build ${table} tree in ${gravityTEMPfile}\\n"
+    echo -e "  ${CROSS} ${output}\\n"
     echo -e "  ${INFO} If you have a large amount of domains, make sure your Pi-hole has enough RAM available\\n"
-    return 1
+    gravity_Cleanup "error"
   fi
   echo -e "${OVER}  ${TICK} ${str}"
 }
@@ -141,7 +142,8 @@ gravity_swap_databases() {
   status="$?"
 
   if [[ "${status}" -ne 0 ]]; then
-    echo -e "\\n  ${CROSS} Unable to clean current database for backup\\n  ${output}"
+    echo -e "\\n  ${CROSS} Unable to clean current database for backup\\n"
+    echo -e "  ${CROSS} ${output}\\n"
   else
     # Check if the backup directory exists
     if [ ! -d "${gravityBCKdir}" ]; then
@@ -161,7 +163,7 @@ gravity_swap_databases() {
   mv "${gravityTEMPfile}" "${gravityDBfile}"
   echo -e "${OVER}  ${TICK} ${str}"
 
-  if $oldAvail; then
+  if ${oldAvail}; then
     echo -e "  ${TICK} The old database remains available"
   fi
 }
@@ -172,8 +174,9 @@ update_gravity_timestamp() {
   status="$?"
 
   if [[ "${status}" -ne 0 ]]; then
-    echo -e "\\n  ${CROSS} Unable to update gravity timestamp in database ${gravityTEMPfile}\\n  ${output}"
-    return 1
+    echo -e "\\n  ${CROSS} Unable to update gravity timestamp in database ${gravityTEMPfile}\\n"
+    echo -e "  ${CROSS} ${output}\\n"
+    gravity_Cleanup "error"
   fi
   return 0
 }
@@ -212,7 +215,7 @@ database_table_from_file() {
   # Get MAX(id) from domainlist when INSERTing into this table
   if [[ "${table}" == "domainlist" ]]; then
     rowid="$(pihole-FTL sqlite3 -ni "${gravityDBfile}" "SELECT MAX(id) FROM domainlist;")"
-    if [[ -z "$rowid" ]]; then
+    if [[ -z "${rowid}" ]]; then
       rowid=0
     fi
     rowid+=1
@@ -241,7 +244,8 @@ database_table_from_file() {
   status="$?"
 
   if [[ "${status}" -ne 0 ]]; then
-    echo -e "\\n  ${CROSS} Unable to fill table ${table}${list_type} in database ${gravityDBfile}\\n  ${output}"
+    echo -e "\\n  ${CROSS} Unable to fill table ${table}${list_type} in database ${gravityDBfile}\\n"
+    echo -e "  ${CROSS} ${output}\\n"
     gravity_Cleanup "error"
   fi
 
@@ -276,7 +280,8 @@ database_adlist_number() {
   status="$?"
 
   if [[ "${status}" -ne 0 ]]; then
-    echo -e "\\n  ${CROSS} Unable to update number of domains in adlist with ID ${1} in database ${gravityTEMPfile}\\n  ${output}"
+    echo -e "\\n  ${CROSS} Unable to update number of domains in adlist with ID ${1} in database ${gravityTEMPfile}\\n "
+    echo -e "  ${CROSS} ${output}\\n"
     gravity_Cleanup "error"
   fi
 }
@@ -292,7 +297,8 @@ database_adlist_status() {
   status="$?"
 
   if [[ "${status}" -ne 0 ]]; then
-    echo -e "\\n  ${CROSS} Unable to update status of adlist with ID ${1} in database ${gravityTEMPfile}\\n  ${output}"
+    echo -e "\\n  ${CROSS} Unable to update status of adlist with ID ${1} in database ${gravityTEMPfile}\\n"
+    echo -e "  ${CROSS} ${output}\\n"
     gravity_Cleanup "error"
   fi
 }
@@ -305,7 +311,7 @@ migrate_to_database() {
     echo -e "  ${INFO} Creating new gravity database"
     if ! generate_gravity_database; then
       echo -e "   ${CROSS} Error creating new gravity database. Please contact support."
-      return 1
+      gravity_Cleanup "error"
     fi
 
     # Check if gravity database needs to be updated
@@ -368,7 +374,8 @@ gravity_CheckDNSResolutionAvailable() {
   done
 
   # DNS resolution is still unavailable after 120 seconds
-  return 1
+    echo -e "   ${CROSS} No DNS resolution available. Please contact support."
+    gravity_Cleanup "error"
 
 }
 
@@ -397,7 +404,8 @@ try_restore_backup () {
 
       # Error checking
       if [[ "${status}" -ne 0 ]]; then
-        echo -e "\\n  ${CROSS} Unable to copy data from ${gravityDBfile} to ${gravityTEMPfile}\\n  ${output}"
+        echo -e "\\n  ${CROSS} Unable to copy data from ${gravityDBfile} to ${gravityTEMPfile}\\n"
+        echo -e "  ${CROSS} ${output}\\n"
         gravity_Cleanup "error"
       fi
 
@@ -439,7 +447,8 @@ gravity_DownloadBlocklists() {
   status="$?"
 
   if [[ "${status}" -ne 0 ]]; then
-    echo -e "\\n  ${CROSS} Unable to create new database ${gravityTEMPfile}\\n  ${output}"
+    echo -e "\\n  ${CROSS} Unable to create new database ${gravityTEMPfile}\\n"
+    echo -e " {CROSS} ${output}\\n"
     gravity_Cleanup "error"
   else
     echo -e "${OVER}  ${TICK} ${str}"
@@ -459,7 +468,8 @@ gravity_DownloadBlocklists() {
   status="$?"
 
   if [[ "${status}" -ne 0 ]]; then
-    echo -e "\\n  ${CROSS} Unable to copy data from ${gravityDBfile} to ${gravityTEMPfile}\\n  ${output}"
+    echo -e "\\n  ${CROSS} Unable to copy data from ${gravityDBfile} to ${gravityTEMPfile}\\n"
+    echo -e "  ${CROSS} ${output}\\n"
 
     # Try to attempt a backup restore
     success=false
@@ -472,10 +482,11 @@ gravity_DownloadBlocklists() {
       done
     fi
 
-    # If none of the attempts worked, return 1
+    # If none of the attempts worked, exit
     if [[ "${success}" == false ]]; then
-      pihole-FTL sqlite3 "${gravityTEMPfile}" "INSERT OR REPLACE INTO info (property,value) values ('gravity_restored','failed');"
-      return 1
+        pihole-FTL sqlite3 "${gravityTEMPfile}" "INSERT OR REPLACE INTO info (property,value) values ('gravity_restored','failed');"
+        echo -e "   ${CROSS} Unable to create gravity database. Please try again later. If the problem persists, please contact support."
+        gravity_Cleanup "error"
     fi
 
     echo -e "  ${TICK} ${str}"
@@ -530,10 +541,10 @@ gravity_DownloadBlocklists() {
 
   # Loop through $sources and download each one
   for ((i = 0; i < "${#sources[@]}"; i++)); do
-    url="${sources[$i]}"
-    domain="${sourceDomains[$i]}"
-    id="${sourceIDs[$i]}"
-    if [[ "${sourceTypes[$i]}" -eq "0" ]]; then
+    url="${sources[${i}]}"
+    domain="${sourceDomains[${i}]}"
+    id="${sourceIDs[${i}]}"
+    if [[ "${sourceTypes[${i}]}" -eq "0" ]]; then
       # Gravity list
       str="blocklist"
       adlist_type="gravity"
@@ -572,12 +583,12 @@ gravity_DownloadBlocklists() {
 
     # this will remove first @ that is after schema and before domain
     # \1 is optional schema, \2 is userinfo
-    check_url="$(sed -re 's#([^:/]*://)?([^/]+)@#\1\2#' <<<"$url")"
+    check_url="$(sed -re 's#([^:/]*://)?([^/]+)@#\1\2#' <<<"${url}")"
 
     if [[ "${check_url}" =~ ${regex} ]]; then
       echo -e "  ${CROSS} Invalid Target"
     else
-      timeit gravity_DownloadBlocklistFromUrl "${url}" "${sourceIDs[$i]}" "${saveLocation}" "${compression}" "${adlist_type}" "${domain}"
+      timeit gravity_DownloadBlocklistFromUrl "${url}" "${sourceIDs[${i}]}" "${saveLocation}" "${compression}" "${adlist_type}" "${domain}"
     fi
     echo ""
   done
@@ -624,7 +635,7 @@ gravity_DownloadBlocklistFromUrl() {
 
   # For all remote files, we try to determine if the file has changed to skip
   # downloading them whenever possible.
-  if [[ $url != "file"* ]]; then
+  if [[ ${url} != "file"* ]]; then
     # Use the HTTP ETag header to determine if the file has changed if supported
     # by curl. Using ETags is supported by raw.githubusercontent.com URLs.
     if [[ "${etag_support}" == true ]]; then
@@ -660,7 +671,7 @@ gravity_DownloadBlocklistFromUrl() {
   blocked=false
   # Check if this domain is blocked by Pi-hole but only if the domain is not a
   # local file or empty
-  if [[ $url != "file"* ]] && [[ -n "${domain}" ]]; then
+  if [[ ${url} != "file"* ]] && [[ -n "${domain}" ]]; then
     case $(getFTLConfigValue dns.blocking.mode) in
     "IP-NODATA-AAAA" | "IP")
       # Get IP address of this domain
@@ -717,7 +728,7 @@ gravity_DownloadBlocklistFromUrl() {
       fi
       echo -e "${OVER}  ${CROSS} ${str} ${domain} is blocked by one of your lists. Using DNS server ${upstream} instead"
       echo -ne "  ${INFO} ${str} Pending..."
-      customUpstreamResolver="--resolve $domain:$port:$ip"
+      customUpstreamResolver="--resolve ${domain}:${port}:${ip}"
     fi
   fi
 
@@ -759,7 +770,7 @@ gravity_DownloadBlocklistFromUrl() {
   fi
 
   # Check for allowed protocols
-  if [[ $url != "http"* && $url != "https"* && $url != "file"* && $url != "ftp"* && $url != "ftps"* && $url != "sftp"* ]]; then
+  if [[ ${url} != "http"* && ${url} != "https"* && ${url} != "file"* && ${url} != "ftp"* && ${url} != "ftps"* && ${url} != "sftp"* ]]; then
     echo -e "${OVER}  ${CROSS} ${str} Invalid protocol specified. Ignoring list."
     echo -e "      Ensure your URL starts with a valid protocol like http:// , https:// or file:// ."
     download=false
@@ -800,9 +811,9 @@ gravity_DownloadBlocklistFromUrl() {
 
 
     # Retrieve http_code and errormsg values, returned by curl command
-    IFS=";" read -r httpCode curlErrorMsg <<<"$curlOutput"
+    IFS=";" read -r httpCode curlErrorMsg <<<"${curlOutput}"
 
-    case $url in
+    case ${url} in
     # Did we "download" a local file?
     "file"*)
       if [[ -s "${listCurlBuffer}" ]]; then
@@ -931,24 +942,26 @@ gravity_Cleanup() {
   echo -ne "  ${INFO} ${str}..."
 
   # Delete tmp content generated by Gravity
-  rm ${piholeDir}/pihole.*.txt 2>/dev/null
-  rm ${piholeDir}/*.tmp 2>/dev/null
+  rm -f ${piholeDir}/pihole.*.txt 2>/dev/null
+  rm -f ${piholeDir}/*.tmp 2>/dev/null
   # listCurlBuffer location
-  rm "${GRAVITY_TMPDIR}"/*.phgpb 2>/dev/null
+  rm -f "${GRAVITY_TMPDIR}"/*.phgpb 2>/dev/null
   # list to database parsing location
-  rm "${GRAVITY_TMPDIR}"/*.gravity 2>/dev/null
+  rm -f "${GRAVITY_TMPDIR}"/*.gravity 2>/dev/null
 
   # Ensure this function only runs when gravity_DownloadBlocklists() has completed
   if [[ "${DownloadBlocklists_done:-}" == true ]]; then
     # Remove any unused .domains/.etag/.sha files
     for file in "${listsCacheDir}"/*."${domainsExtension}"; do
       # If list is not in active array, then remove it and all associated files
-      if [[ ! "${activeDomains[*]}" == *"${file}"* ]]; then
+      if [[ "${activeDomains[*]}" != *"${file}"* ]]; then
         rm -f "${file}"* 2>/dev/null ||
           echo -e "  ${CROSS} Failed to remove ${file##*/}"
       fi
     done
   fi
+  # Delete the temporary gravity database if it still exists (e.g. in case of early exit due to error or user abort)
+  rm -f "${gravityTEMPfile}" 2>/dev/null
 
   echo -e "${OVER}  ${TICK} ${str}"
 
@@ -982,11 +995,11 @@ database_recovery() {
       fi
     else
       echo -e "${OVER}  ${CROSS} ${str} - errors found:"
-      while IFS= read -r line; do echo "  - $line"; done <<<"$result"
+      while IFS= read -r line; do echo "  - ${line}"; done <<<"${result}"
     fi
   else
     echo -e "${OVER}  ${CROSS} ${str} - errors found:"
-    while IFS= read -r line; do echo "  - $line"; done <<<"$result"
+    while IFS= read -r line; do echo "  - ${line}"; done <<<"${result}"
   fi
 
   str="Trying to recover existing gravity database"
@@ -1005,14 +1018,14 @@ database_recovery() {
       echo -ne " ${INFO} The old ${gravityDBfile} has been moved to ${gravityDBfile}.old"
     else
       echo -e "${OVER}  ${CROSS} ${str} - the following errors happened:"
-      while IFS= read -r line; do echo "  - $line"; done <<<"$result"
+      while IFS= read -r line; do echo "  - ${line}"; done <<<"${result}"
       echo -e "  ${CROSS} Recovery failed. Try \"pihole -g -r recreate\" instead."
-      return 1
+      gravity_Cleanup "error"
     fi
   else
     echo -e "${OVER}  ${CROSS} ${str} - .recover command failed"
     echo -e "  ${CROSS} Recovery failed. Try \"pihole -g -r recreate\" instead."
-    return 1
+    gravity_Cleanup "error"
   fi
   echo ""
 }
@@ -1028,7 +1041,8 @@ gravity_optimize() {
     status="$?"
 
     if [[ "${status}" -ne 0 ]]; then
-        echo -e "\\n  ${CROSS} Unable to optimize database ${gravityTEMPfile}\\n  ${output}"
+        echo -e "\\n  ${CROSS} Unable to optimize database ${gravityTEMPfile}\\n"
+        echo -e "  ${CROSS} ${output}\\n"
         gravity_Cleanup "error"
     else
         echo -e "${OVER}  ${TICK} ${str}"
@@ -1065,7 +1079,7 @@ timeit(){
   ret=$?
 
   if [[ "${timed:-}" != true ]]; then
-    return $ret
+    return ${ret}
   fi
 
   # Capture the end time
@@ -1077,7 +1091,7 @@ timeit(){
   # Display the elapsed time
   printf "  %b--> took %d.%03d seconds%b\n" "${COL_BLUE}" $((elapsed_time / 1000)) $((elapsed_time % 1000)) "${COL_NC}"
 
-  return $ret
+  return ${ret}
 }
 
 migrate_to_listsCache_dir() {
@@ -1156,10 +1170,7 @@ for var in "$@"; do
 done
 
 # Check if DNS is available, no need to do any database manipulation if we're not able to download adlists
-if ! timeit gravity_CheckDNSResolutionAvailable; then
-  echo -e "   ${CROSS} No DNS resolution available. Please contact support."
-  exit 1
-fi
+timeit gravity_CheckDNSResolutionAvailable
 
 # Remove OLD (backup) gravity file, if it exists
 if [[ -f "${gravityOLDfile}" ]]; then
@@ -1189,7 +1200,7 @@ migrate_to_listsCache_dir
 # Move possibly existing legacy files to the gravity database
 if ! timeit migrate_to_database; then
   echo -e "   ${CROSS} Unable to migrate to database. Please contact support."
-  exit 1
+  gravity_Cleanup "error"
 fi
 
 if [[ "${forceDelete:-}" == true ]]; then
@@ -1201,10 +1212,7 @@ if [[ "${forceDelete:-}" == true ]]; then
 fi
 
 # Gravity downloads blocklists next
-if ! gravity_DownloadBlocklists; then
-  echo -e "   ${CROSS} Unable to create gravity database. Please try again later. If the problem persists, please contact support."
-  exit 1
-fi
+gravity_DownloadBlocklists
 
 # Update gravity timestamp
 update_gravity_timestamp
@@ -1213,12 +1221,8 @@ update_gravity_timestamp
 fix_owner_permissions "${gravityTEMPfile}"
 
 # Build the tree
-if ! timeit gravity_build_tree gravity; then
-  exit 1
-fi
-if ! timeit gravity_build_tree antigravity; then
-  exit 1
-fi
+timeit gravity_build_tree gravity
+timeit gravity_build_tree antigravity
 
 # Compute numbers to be displayed (do this after building the tree to get the
 # numbers quickly from the tree instead of having to scan the whole database)
@@ -1231,7 +1235,7 @@ timeit gravity_optimize
 # IMPORTANT: Swapping the databases must be the last step before the cleanup
 if ! timeit gravity_swap_databases; then
   echo -e "   ${CROSS} Unable to create database. Please contact support."
-  exit 1
+  gravity_Cleanup "error"
 fi
 
 timeit gravity_Cleanup
