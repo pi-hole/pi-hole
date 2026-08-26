@@ -187,9 +187,9 @@ database_adlist_table_from_array() {
     local tmpFile
     local -a blocklists=("$@")
 
-  # Create a temporary file with random filename with '.gravity' suffix.
-  # Note: '--suffix' requires GNU mktemp (coreutils), which is not pre-installed on Alpine, but it is installed as Pi-hole dependency.
-  tmpFile="$(mktemp -p "${GRAVITY_TMPDIR}" --suffix=".gravity")"
+    # Create a temporary file with random filename with '.gravity' suffix.
+    # Note: '--suffix' requires GNU mktemp (coreutils), which is not pre-installed on Alpine, but it is installed as Pi-hole dependency.
+    tmpFile="$(mktemp -p "${GRAVITY_TMPDIR}" --suffix=".gravity")"
 
     local timestamp
     timestamp="$(date --utc +'%s')"
