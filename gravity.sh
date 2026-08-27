@@ -180,7 +180,7 @@ database_adlist_table_from_array() {
     # Check if the gravity database exists
     if [[ ! -f "${gravityDBfile}" ]]; then
         echo -e "  ${CROSS} Gravity database ${gravityDBfile} does not exist"
-        return 1
+        gravity_Cleanup "error"
     fi
 
     # Add adlists to gravity database
@@ -221,8 +221,7 @@ database_adlist_table_from_array() {
   fi
 
     # Delete tmpFile
-    rm -f "${tmpFile}" >/dev/null 2>&1 ||
-        echo -e "  ${CROSS} Unable to remove ${tmpFile}"
+    rm -f "${tmpFile}" 2>/dev/null
 }
 
 # Check if a column with name ${2} exists in gravity table with name ${1}
@@ -277,7 +276,7 @@ create_or_update_database() {
     echo -e "  ${INFO} Creating new gravity database"
     if ! generate_gravity_database; then
       echo -e "   ${CROSS} Error creating new gravity database. Please contact support."
-      return 1
+      gravity_Cleanup "error"
     fi
   fi
 
@@ -387,7 +386,7 @@ gravity_DownloadBlocklists() {
 
   if [[ "${status}" -ne 0 ]]; then
     echo -e "\\n  ${CROSS} Unable to create new database ${gravityTEMPfile}\\n"
-    echo -e " {CROSS} ${output}\\n"
+    echo -e "  ${CROSS} ${output}\\n"
     gravity_Cleanup "error"
   else
     echo -e "${OVER}  ${TICK} ${str}"
@@ -886,8 +885,6 @@ gravity_Cleanup() {
   # listCurlBuffer location
   rm -f "${GRAVITY_TMPDIR}"/*.phgpb 2>/dev/null
   # list to database parsing location
-  rm -f "${GRAVITY_TMPDIR}"/*.gravity 2>/dev/null
-  # temporary adlist URL file location
   rm -f "${GRAVITY_TMPDIR}"/*.gravity 2>/dev/null
 
   # Ensure this function only runs when gravity_DownloadBlocklists() has completed
