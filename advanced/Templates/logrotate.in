@@ -1,0 +1,32 @@
+@PIHOLE_INSTALL_LOGDIR@/pihole.log {
+    # su #
+    daily
+    copytruncate
+    rotate 5
+    compress
+    delaycompress
+    notifempty
+    nomail
+}
+
+@PIHOLE_INSTALL_LOGDIR@/FTL.log {
+    # su #
+    weekly
+    copytruncate
+    rotate 3
+    compress
+    delaycompress
+    notifempty
+    nomail
+}
+
+@PIHOLE_INSTALL_LOGDIR@/webserver.log {
+    # su #
+    weekly
+    copytruncate
+    rotate 3
+    compress
+    delaycompress
+    notifempty
+    nomail
+}
