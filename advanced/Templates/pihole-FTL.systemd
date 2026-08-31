@@ -1,3 +1,7 @@
+##################################################################################
+#                     FILE AUTOMATICALLY POPULATED BY PI-HOLE                    #
+#    ANY CHANGES MADE TO THIS FILE MAY BE LOST DURING UPDATES TO PIHOLE          #
+##################################################################################
 [Unit]
 Description=Pi-hole FTL
 # This unit is supposed to indicate when network functionality is available, but it is only
@@ -17,9 +21,9 @@ StartLimitIntervalSec=60s
 
 [Service]
 User=pihole
-AmbientCapabilities=CAP_NET_BIND_SERVICE CAP_NET_RAW CAP_NET_ADMIN CAP_SYS_NICE CAP_IPC_LOCK CAP_CHOWN CAP_SYS_TIME
 
-# Run prestart with elevated permissions
+# Prestart and Poststop scripts
+# (+ indicates run prestart with elevated permissions)
 ExecStartPre=+/opt/pihole/pihole-FTL-prestart.sh
 ExecStart=/usr/bin/pihole-FTL -f
 Restart=on-failure
@@ -30,12 +34,167 @@ ExecStopPost=+/opt/pihole/pihole-FTL-poststop.sh
 # Use graceful shutdown with a reasonable timeout
 TimeoutStopSec=60s
 
+# Service Hardening
+#
+# The aims of these sections are to provide no more privilege than is
+# required for Pi-hole to function
+#
+# Based on feature request and discussion at
+# https://discourse.pi-hole.net/t/suggestions-for-systemd-service-file
+#
+# The approaches here aim to work with Pi-hole's existing
+# feature set and configurability.
+#
+# There are notes at the end, and on some options throughout
+# about some specific hardening that can not take place while
+# maintaining this compatibility. (Advanced users may wish to
+# enable these options in overrides).
+#
+# Note that these restrictions apply only to FTL running as daemon/service,
+# and do not have any effect upon command-line execution of pihole-FTL
+#
+
+# Set capabilities and bound to initial set
+AmbientCapabilities=CAP_NET_BIND_SERVICE CAP_NET_RAW CAP_NET_ADMIN CAP_SYS_NICE CAP_IPC_LOCK CAP_CHOWN CAP_SYS_TIME
+CapabilityBoundingSet=CAP_NET_BIND_SERVICE CAP_NET_RAW CAP_NET_ADMIN CAP_SYS_NICE CAP_IPC_LOCK CAP_CHOWN CAP_SYS_TIME
+SecureBits=keep-caps
+
+# Limit allowable system calls
+SystemCallFilter=~@known
+SystemCallFilter=@system-service
+SystemCallFilter=@clock
+
+# Only permit native system calls
+SystemCallArchitectures=native
+SystemCallErrorNumber=EPERM
+
+# Ignore setuid and setgid bits, and prevent them from being set by Pi-hole
+NoNewPrivileges=yes
+RestrictSUIDSGID=yes
+
+# Prevent loading any additional kernel modules
+ProtectKernelModules=yes
+# Deny access to kernel logs
+ProtectKernelLogs=yes
+
+# Restrict address families
+RestrictAddressFamilies=AF_INET AF_INET6 AF_LOCAL AF_NETLINK
+
 # Make /usr, /boot, /etc and possibly some more folders read-only...
 ProtectSystem=full
 # ... except /etc/pihole
 # This merely retains r/w access rights, it does not add any new.
 # Must still be writable on the host!
 ReadWriteDirectories=/etc/pihole
+# Prevent writing to /home hierarchy
+# Read access is permitted to allow users to have locally maintained lists
+# which are updated via gravity
+# ADVANCED  Overriding to ProtectHome=true will break the ability to access
+#           local lists stored under /home
+ProtectHome=read-only
+
+# Limit which files the service may execute
+# Allow the gravity update to execute via web-UI
+NoExecPaths=/
+ExecPaths=/opt/pihole/gravity.sh
+
+# Let the pihole-FTL process see a read-only view of Pi-hole's local repo
+ReadOnlyPaths=/opt/pihole
+
+# Device Policies - restrict Pi-Hole to pseudo devices (eg /dev/null, /dev/random, /dev/urandom etc)
+# and those devices specifically permitted below
+DevicePolicy=closed
+# Allow access to RTC devices to adjust the system's real time clock
+DeviceAllow=/dev/efirtc*
+DeviceAllow=/dev/misc/efirtc*
+DeviceAllow=/dev/rtc*
+DeviceAllow=/dev/misc/rtc*
+
+# Limit access to /proc, make most of /proc readonly, and deny access to /proc/kallsyms and /proc/kcore
+ProtectKernelTunables=yes
+
+# Don't create globally or group readable files by default
+UMask=0077
+
+# Isolate Pi-hole's temporary files
+PrivateTmp=yes
+
+# Prevent modification to CGROUP hierarchies
+ProtectControlGroups=yes
+# Restrict namespaces
+RestrictNamespaces=yes
+
+# Prevent switching personality
+LockPersonality=yes
+
+# Prevent access to keyring
+KeyringMode=private
+
+# Prevent altering the system's hostname or NIS domain name
+ProtectHostname=yes
+
+# Protect IPC
+PrivateIPC=true
+# Clear IPC at unload
+RemoveIPC=yes
+
+# Prevent creation of memory blocks that are simultaneously writeable
+# and executable
+MemoryDenyWriteExecute=yes
+
+### The following can't be enabled or overridden without causing potential
+# breakage to people who have altered file paths in the pi-hole configuration
+#
+# LogsDirectory=pihole
+#
+# Log file locations are configurable
+# via files.log.ftl, files.log.dnsmasq, files.log.webserver
+# and can appear at any location
+#
+# ReadOnlyPaths=/var/www/html/admin
+#
+# Web UI file location is configurable
+# via webserver.paths.webroot and webserver.paths.webhome
+# There is also the option to serve other content in /var/www
+# via webserver.serve_all
+#
+# RuntimeDirectory=pihole
+#
+# Pid file location is configurable
+# via files.pid
+#
+# ProtectSystem=strict
+#
+# As any of the above files can be specified for any location
+# which may be write protected by strict
+#
+
+### NTP Incompatibility
+# The following options may be implemented as overrides by advanced users,
+# note that these overrides will interfere with Pi-hole's NTP functionality.
+#
+# ProtectProc=invisible
+#
+# Setting this to 'invisible' will prevent Pi-hole
+# from detecting existing disciplining NTP clients
+#
+# ProtectClock=yes
+# Setting this option to "yes" will prevent Pi-hole's NTP time
+# synchronisation features from working
+#
+# (Also see notes under /dev and /proc in main file body)
+#
+# NTP client requires the ability to adjust the system clock to work
+# So the SystemCallFilter needs to include @clock, on a system
+# not using NTP it could be omitted or replaced with the negator
+#SystemCallFilter=~@clock
+
+### Not enabled yet - requires systemd v258
+# (In practical terms, Debian Trixie is on v257 as of 2025-12,
+# so it will be some time (years) until it would be available on all supported distros)
+#
+# Limit access to BPF
+# PrivateBPF=yes
 
 [Install]
 WantedBy=multi-user.target
