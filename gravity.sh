@@ -504,8 +504,13 @@ gravity_DownloadBlocklists() {
   mapfile -t sourceDomains <<<"$(
     # Logic: Split by folder/port
     awk -F '[/:]' '{
-      # Remove URL protocol & optional username:password@
-      gsub(/(.*:\/\/|.*:.*@)/, "", $0)
+      # Remove URL protocol
+      gsub(/^.*:\/\//, "", $0)
+
+      # Remove optional credentials "username:password@", but keep other "@" characters,
+      # if present (see https://github.com/pi-hole/pi-hole/issues/6685)
+      gsub(/^[^\/]*@/, "", $0)
+
       if(length($1)>0){print $1}
       else {print "local"}
     }' <<<"$(printf '%s\n' "${sources[@]}")" 2>/dev/null
