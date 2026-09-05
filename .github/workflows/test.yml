@@ -32,7 +32,7 @@ jobs:
           display-engine: sarif-fmt
 
       - name: Secret Scanning with TruffleHog
-        uses: trufflesecurity/trufflehog@20652fbbdefffcdaa493a5bf57ab2ac6b1db715b #v3.97.1
+        uses: trufflesecurity/trufflehog@cc1fe982afc515d2991365ce8d4d0dd07170fcad #v3.97.2
         with:
           extra_args: --results=verified,unknown
 
@@ -42,7 +42,7 @@ jobs:
           ignore_words_file: .codespellignore
 
       - name: Get editorconfig-checker
-        uses: editorconfig-checker/action-editorconfig-checker@840e866d93b8e032123c23bac69dece044d4d84c #v2.2.0
+        uses: editorconfig-checker/action-editorconfig-checker@51f63319f592f97930c73d9c46184d20bd206393 #v3.0.0
 
       - name: Run editorconfig-checker
         run: editorconfig-checker
