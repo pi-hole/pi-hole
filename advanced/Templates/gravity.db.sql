@@ -46,7 +46,8 @@ CREATE TABLE adlist_by_group
     adlist_id INTEGER NOT NULL REFERENCES adlist (id) ON DELETE CASCADE,
     group_id INTEGER NOT NULL REFERENCES "group" (id) ON DELETE CASCADE,
     PRIMARY KEY (adlist_id, group_id)
-);
+) WITHOUT ROWID;
+CREATE INDEX idx_adlist_by_group_gid ON adlist_by_group (group_id, adlist_id);
 
 CREATE TABLE gravity
 (
@@ -64,7 +65,7 @@ CREATE TABLE info
 (
     property TEXT PRIMARY KEY,
     value TEXT NOT NULL
-);
+) WITHOUT ROWID;
 
 INSERT INTO "info" VALUES('version','20');
 /* This is a flag to indicate if gravity was restored from a backup
@@ -78,7 +79,8 @@ CREATE TABLE domainlist_by_group
     domainlist_id INTEGER NOT NULL REFERENCES domainlist (id) ON DELETE CASCADE,
     group_id INTEGER NOT NULL REFERENCES "group" (id) ON DELETE CASCADE,
     PRIMARY KEY (domainlist_id, group_id)
-);
+) WITHOUT ROWID;
+CREATE INDEX idx_domainlist_by_group_gid ON domainlist_by_group (group_id, domainlist_id);
 
 CREATE TABLE client
 (
@@ -94,7 +96,7 @@ CREATE TABLE client_by_group
     client_id INTEGER NOT NULL REFERENCES client (id) ON DELETE CASCADE,
     group_id INTEGER NOT NULL REFERENCES "group" (id) ON DELETE CASCADE,
     PRIMARY KEY (client_id, group_id)
-);
+) WITHOUT ROWID;
 
 CREATE TRIGGER tr_adlist_update AFTER UPDATE OF address,enabled,comment ON adlist
     BEGIN
@@ -103,45 +105,50 @@ CREATE TRIGGER tr_adlist_update AFTER UPDATE OF address,enabled,comment ON adlis
 
 CREATE TRIGGER tr_client_update AFTER UPDATE ON client
     BEGIN
-      UPDATE client SET date_modified = (cast(strftime('%s', 'now') as int)) WHERE ip = NEW.ip;
+      UPDATE client SET date_modified = (cast(strftime('%s', 'now') as int)) WHERE id = NEW.id;
     END;
 
 CREATE TRIGGER tr_domainlist_update AFTER UPDATE ON domainlist
     BEGIN
-      UPDATE domainlist SET date_modified = (cast(strftime('%s', 'now') as int)) WHERE domain = NEW.domain;
+      UPDATE domainlist SET date_modified = (cast(strftime('%s', 'now') as int)) WHERE id = NEW.id;
     END;
 
+-- Views use LEFT JOINs deliberately: groups can be removed from entries at
+-- runtime, leaving zero rows in the *_by_group junction tables. LEFT JOIN + IS
+-- NULL makes such entries match all clients (safe default). Do NOT convert to
+-- INNER JOIN — entries with no group assignments would silently vanish.
+--
+-- These views are queried on every DNS lookup (cache miss) via carray()-based
+-- shared statements in gravity-db.c. The JOINs live-check enabled flags and
+-- group assignments, ensuring runtime changes take effect immediately without a
+-- full gravity reload.
 CREATE VIEW vw_allowlist AS SELECT domain, domainlist.id AS id, domainlist_by_group.group_id AS group_id
     FROM domainlist
     LEFT JOIN domainlist_by_group ON domainlist_by_group.domainlist_id = domainlist.id
     LEFT JOIN "group" ON "group".id = domainlist_by_group.group_id
     WHERE domainlist.enabled = 1 AND (domainlist_by_group.group_id IS NULL OR "group".enabled = 1)
-    AND domainlist.type = 0
-    ORDER BY domainlist.id;
+    AND domainlist.type = 0;
 
 CREATE VIEW vw_denylist AS SELECT domain, domainlist.id AS id, domainlist_by_group.group_id AS group_id
     FROM domainlist
     LEFT JOIN domainlist_by_group ON domainlist_by_group.domainlist_id = domainlist.id
     LEFT JOIN "group" ON "group".id = domainlist_by_group.group_id
     WHERE domainlist.enabled = 1 AND (domainlist_by_group.group_id IS NULL OR "group".enabled = 1)
-    AND domainlist.type = 1
-    ORDER BY domainlist.id;
+    AND domainlist.type = 1;
 
 CREATE VIEW vw_regex_allowlist AS SELECT domain, domainlist.id AS id, domainlist_by_group.group_id AS group_id
     FROM domainlist
     LEFT JOIN domainlist_by_group ON domainlist_by_group.domainlist_id = domainlist.id
     LEFT JOIN "group" ON "group".id = domainlist_by_group.group_id
     WHERE domainlist.enabled = 1 AND (domainlist_by_group.group_id IS NULL OR "group".enabled = 1)
-    AND domainlist.type = 2
-    ORDER BY domainlist.id;
+    AND domainlist.type = 2;
 
 CREATE VIEW vw_regex_denylist AS SELECT domain, domainlist.id AS id, domainlist_by_group.group_id AS group_id
     FROM domainlist
     LEFT JOIN domainlist_by_group ON domainlist_by_group.domainlist_id = domainlist.id
     LEFT JOIN "group" ON "group".id = domainlist_by_group.group_id
     WHERE domainlist.enabled = 1 AND (domainlist_by_group.group_id IS NULL OR "group".enabled = 1)
-    AND domainlist.type = 3
-    ORDER BY domainlist.id;
+    AND domainlist.type = 3;
 
 CREATE VIEW vw_gravity AS SELECT domain, adlist.id AS adlist_id, adlist_by_group.group_id AS group_id
     FROM gravity
