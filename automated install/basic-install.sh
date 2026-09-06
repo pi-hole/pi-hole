@@ -1614,6 +1614,9 @@ create_pihole_user() {
 installLogrotate() {
     local str="Installing latest logrotate script"
     local target=/etc/logrotate.d/pihole
+    local template="${PI_HOLE_LOCAL_REPO}/advanced/Templates/logrotate"
+    local rendered current rendered_643 current_643
+    local logusergroup
 
     # Remove remnants from older Pi-hole versions: the logrotate config used to
     # live in /etc/pihole/, and logrotate state was tracked in a Pi-hole-specific
@@ -1622,21 +1625,48 @@ installLogrotate() {
     rm -f /etc/pihole/logrotate
     rm -f /var/lib/logrotate/pihole
 
-    printf "\\n  %b %s..." "${INFO}" "${str}"
-    if [[ -f ${target} ]]; then
-        if diff -q "$target" "${PI_HOLE_LOCAL_REPO}/advanced/Templates/logrotate" >/dev/null; then
-            printf "\\n\\t%b logrotate file is up to date.\\n" "${TICK}"
-            return
-        else
-            printf "\\n\\t%b logrotate file is outdated. Not updating.\\n" "${INFO}"
-            return
-        fi
-    else
-        # Copy the file over from the local repo
-        # Logrotate config file must be owned by root and not writable by group or other
-        install -o root -g root -D -m 644 -T "${PI_HOLE_LOCAL_REPO}"/advanced/Templates/logrotate ${target}
-    fi
+    # The v6.4.3 template is the one shape that is both broken under FTL's cached
+    # file descriptor (no postrotate for FTL.log and webserver.log) and unmodified
+    # by the user on systems that installed v6.4.3. Render it to detect and replace.
+    rendered_643="$(mktemp /tmp/pihole-logrotate-643.XXXXXX)"
+    cat > "${rendered_643}" << 'EOF'
+/var/log/pihole/pihole.log {
+    # su #
+    daily
+    create 640 pihole pihole
+    rotate 5
+    compress
+    delaycompress
+    notifempty
+    nomail
+    postrotate
+        kill -USR2 $(cat /run/pihole-FTL.pid 2>/dev/null) 2>/dev/null || true
+    endscript
+}
 
+# FTL.log and webserver.log are opened and closed for each line, therefore no postrotate is needed
+/var/log/pihole/FTL.log {
+    # su #
+    weekly
+    create 640 pihole pihole
+    rotate 3
+    compress
+    delaycompress
+    notifempty
+    nomail
+}
+
+/var/log/pihole/webserver.log {
+    # su #
+    weekly
+    create 640 pihole pihole
+    rotate 3
+    compress
+    delaycompress
+    notifempty
+    nomail
+}
+EOF
     # Different operating systems have different user / group
     # settings for logrotate that makes it impossible to create
     # a static logrotate file that will work with e.g.
@@ -1644,11 +1674,54 @@ installLogrotate() {
     # customize the logrotate script here in order to reflect
     # the local properties of the /var/log directory
     logusergroup="$(stat -c '%U %G' /var/log)"
-    # If there is a usergroup for log rotation,
+
+    # If there is a usergroup for log rotation, replace the placeholder with it
     if [[ -n "${logusergroup}" ]]; then
-        # replace the line in the logrotate script with that usergroup.
-        sed -i "s/# su #/su ${logusergroup}/g;" ${target}
+        sed -i "s/# su #/su ${logusergroup}/g;" "${rendered_643}"
     fi
+    current_643="${rendered_643}"
+
+    # Render the current template with the su line substituted. The installed copy
+    # always carries the substituted line while the raw template holds the "# su #"
+    # placeholder, so comparing against the raw template would always report a diff.
+    rendered="$(mktemp /tmp/pihole-logrotate.XXXXXX)"
+    install -o root -g root -m 644 -T "${template}" "${rendered}"
+    # If there is a usergroup for log rotation, replace the placeholder with it
+    if [[ -n "${logusergroup}" ]]; then
+        sed -i "s/# su #/su ${logusergroup}/g;" "${rendered}"
+    fi
+    current="${rendered}"
+
+    printf "\\n  %b %s..." "${INFO}" "${str}"
+    if [[ -f ${target} ]]; then
+        if diff -q "${target}" "${current}" >/dev/null; then
+            printf "\\n\\t%b logrotate file is up to date.\\n" "${TICK}"
+            rm -f "${rendered}" "${rendered_643}"
+            return
+        elif diff -q "${target}" "${current_643}" >/dev/null; then
+            # The installed file is the unmodified v6.4.3 version, which lacks
+            # the postrotate signal for FTL.log and webserver.log. Replace it
+            # with the current template so those logs get rotated correctly.
+            install -o root -g root -m 644 -T "${current}" "${target}"
+            printf "\\n\\t%b Upgraded the unmodified v6.4.3 logrotate file.\\n" "${TICK}"
+            rm -f "${rendered}" "${rendered_643}"
+            return
+        else
+            # The file was customized by the user. Do not touch it, but tell
+            # them what is missing so they can fix it themselves.
+            printf "\\n\\t%b logrotate file is outdated and differs from the default. Not updating.\\n" "${INFO}"
+            printf "\\n\\t%b Ensure all logfiles send the %bUSR2%b signal to FTL after rotation (postrotate).\\n" "${INFO}" "${COL_RED}" "${COL_NC}"
+            rm -f "${rendered}" "${rendered_643}"
+            return
+        fi
+    else
+        # Copy the rendered file over. It already carries the substituted su
+        # line, so no further customization is needed.
+        # Logrotate config file must be owned by root and not writable by group or other
+        install -o root -g root -D -m 644 -T "${current}" "${target}"
+    fi
+
+    rm -f "${rendered}" "${rendered_643}"
     printf "%b  %b %s\\n" "${OVER}" "${TICK}" "${str}"
 }
 
