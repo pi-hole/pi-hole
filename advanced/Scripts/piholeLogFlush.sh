@@ -65,6 +65,12 @@ if [[ "$*" == *"once"* ]]; then
     # what's already been rotated, instead of rotating our logs twice.
     /usr/sbin/logrotate --force /etc/logrotate.d/pihole
 else
+    # Validate DBFILE path before making any changes
+    if [[ ! "${DBFILE}" =~ ^[a-zA-Z0-9/_.-]+$ ]]; then
+        echo -e "  ${COL_RED}[✗] Invalid database file path: ${DBFILE}${COL_NC}"
+        exit 1
+    fi
+
     # Manual flushing
     flush_log "${LOGFILE}"
     flush_log "${FTLFILE}"
@@ -78,7 +84,7 @@ else
     service pihole-FTL stop
 
     # Delete most recent 24 hours from FTL's database, leave even older data intact (don't wipe out all history)
-    deleted=$(pihole-FTL sqlite3 -ni "${DBFILE}" "DELETE FROM query_storage WHERE timestamp >= strftime('%s','now')-86400; select changes() from query_storage limit 1")
+    deleted=$(pihole-FTL sqlite3 -ni -- "${DBFILE}" "DELETE FROM query_storage WHERE timestamp >= strftime('%s','now')-86400; select changes() from query_storage limit 1")
 
     # Restart FTL
     service pihole-FTL restart
