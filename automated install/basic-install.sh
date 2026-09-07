@@ -576,6 +576,26 @@ resetRepo() {
     return 0
 }
 
+mark_repos_safe() {
+    # The updatechecker cron job runs as the unprivileged "pihole" user so that
+    # root never writes into the pihole-owned /etc/pihole directory (see
+    # GHSA-xch2-4qxw-g5vj). git refuses to operate in the root-owned local repos
+    # when invoked by another user ("detected dubious ownership"), which would
+    # break local version detection, so record them in git's system-wide
+    # safe.directory list (safe.directory is only honoured from system/global
+    # config, hence --system).
+    local repo
+    for repo in "${PI_HOLE_LOCAL_REPO}" "${webInterfaceDir}"; do
+        [[ -n "${repo}" ]] || continue
+        if ! git config --system --get-all safe.directory 2>/dev/null | grep -qxF "${repo}"; then
+            # Non-fatal: a missing entry only degrades version reporting, and
+            # the installer runs under 'set -e'.
+            git config --system --add safe.directory "${repo}" || true
+        fi
+    done
+    return 0
+}
+
 find_IPv4_information() {
     # Detects IPv4 address used for communication to WAN addresses.
     # Accepts no arguments, returns no values.
@@ -1924,6 +1944,9 @@ clone_or_reset_repos() {
                 exit 1
             }
     fi
+
+    # Let the "pihole"-user updatechecker cron job read these root-owned repos
+    mark_repos_safe
 }
 
 # Download FTL binary to random temp directory and install FTL binary

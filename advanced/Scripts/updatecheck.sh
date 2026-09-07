@@ -54,9 +54,13 @@ rm -f "/etc/pihole/localversions"
 
 VERSION_FILE="/etc/pihole/versions"
 
-# Truncates the file to zero length if it exists to clear it up, otherwise creates an empty file.
-truncate -s 0 "${VERSION_FILE}"
-chmod 644 "${VERSION_FILE}"
+# Assemble the versions file in a private temporary file and atomically move it
+# into place at the very end of this script. Operating on "${VERSION_FILE}"
+# directly would follow a symlink that a compromised pihole user could plant in
+# the pihole-owned /etc/pihole directory (GHSA-xch2-4qxw-g5vj); renaming a fresh
+# file over the path replaces such a symlink instead of writing through it.
+VERSION_FILE_TMP="$(mktemp "${VERSION_FILE}.XXXXXX")" || exit 1
+trap 'rm -f "${VERSION_FILE_TMP}"' EXIT
 
 # if /pihole.docker.tag file exists, we will use it's value later in this script
 DOCKER_TAG=$(cat /pihole.docker.tag 2>/dev/null)
@@ -75,58 +79,58 @@ fi
 # get Core versions
 
 CORE_VERSION="$(get_local_version /etc/.pihole)"
-addOrEditKeyValPair "${VERSION_FILE}" "CORE_VERSION" "${CORE_VERSION}"
+addOrEditKeyValPair "${VERSION_FILE_TMP}" "CORE_VERSION" "${CORE_VERSION}"
 
 CORE_BRANCH="$(get_local_branch /etc/.pihole)"
-addOrEditKeyValPair "${VERSION_FILE}" "CORE_BRANCH" "${CORE_BRANCH}"
+addOrEditKeyValPair "${VERSION_FILE_TMP}" "CORE_BRANCH" "${CORE_BRANCH}"
 
 CORE_HASH="$(get_local_hash /etc/.pihole)"
-addOrEditKeyValPair "${VERSION_FILE}" "CORE_HASH" "${CORE_HASH}"
+addOrEditKeyValPair "${VERSION_FILE_TMP}" "CORE_HASH" "${CORE_HASH}"
 
 GITHUB_CORE_VERSION="$(get_remote_version pi-hole "${CORE_BRANCH}")"
-addOrEditKeyValPair "${VERSION_FILE}" "GITHUB_CORE_VERSION" "${GITHUB_CORE_VERSION}"
+addOrEditKeyValPair "${VERSION_FILE_TMP}" "GITHUB_CORE_VERSION" "${GITHUB_CORE_VERSION}"
 
 GITHUB_CORE_HASH="$(get_remote_hash pi-hole "${CORE_BRANCH}")"
-addOrEditKeyValPair "${VERSION_FILE}" "GITHUB_CORE_HASH" "${GITHUB_CORE_HASH}"
+addOrEditKeyValPair "${VERSION_FILE_TMP}" "GITHUB_CORE_HASH" "${GITHUB_CORE_HASH}"
 
 # get Web versions
 
 WEB_VERSION="$(get_local_version "${ADMIN_INTERFACE_DIR}")"
-addOrEditKeyValPair "${VERSION_FILE}" "WEB_VERSION" "${WEB_VERSION}"
+addOrEditKeyValPair "${VERSION_FILE_TMP}" "WEB_VERSION" "${WEB_VERSION}"
 
 WEB_BRANCH="$(get_local_branch "${ADMIN_INTERFACE_DIR}")"
-addOrEditKeyValPair "${VERSION_FILE}" "WEB_BRANCH" "${WEB_BRANCH}"
+addOrEditKeyValPair "${VERSION_FILE_TMP}" "WEB_BRANCH" "${WEB_BRANCH}"
 
 WEB_HASH="$(get_local_hash "${ADMIN_INTERFACE_DIR}")"
-addOrEditKeyValPair "${VERSION_FILE}" "WEB_HASH" "${WEB_HASH}"
+addOrEditKeyValPair "${VERSION_FILE_TMP}" "WEB_HASH" "${WEB_HASH}"
 
 GITHUB_WEB_VERSION="$(get_remote_version web "${WEB_BRANCH}")"
-addOrEditKeyValPair "${VERSION_FILE}" "GITHUB_WEB_VERSION" "${GITHUB_WEB_VERSION}"
+addOrEditKeyValPair "${VERSION_FILE_TMP}" "GITHUB_WEB_VERSION" "${GITHUB_WEB_VERSION}"
 
 GITHUB_WEB_HASH="$(get_remote_hash web "${WEB_BRANCH}")"
-addOrEditKeyValPair "${VERSION_FILE}" "GITHUB_WEB_HASH" "${GITHUB_WEB_HASH}"
+addOrEditKeyValPair "${VERSION_FILE_TMP}" "GITHUB_WEB_HASH" "${GITHUB_WEB_HASH}"
 
 # get FTL versions
 
 FTL_VERSION="$(pihole-FTL version)"
-addOrEditKeyValPair "${VERSION_FILE}" "FTL_VERSION" "${FTL_VERSION}"
+addOrEditKeyValPair "${VERSION_FILE_TMP}" "FTL_VERSION" "${FTL_VERSION}"
 
 FTL_BRANCH="$(pihole-FTL branch)"
-addOrEditKeyValPair "${VERSION_FILE}" "FTL_BRANCH" "${FTL_BRANCH}"
+addOrEditKeyValPair "${VERSION_FILE_TMP}" "FTL_BRANCH" "${FTL_BRANCH}"
 
 FTL_HASH="$(pihole-FTL --hash)"
-addOrEditKeyValPair "${VERSION_FILE}" "FTL_HASH" "${FTL_HASH}"
+addOrEditKeyValPair "${VERSION_FILE_TMP}" "FTL_HASH" "${FTL_HASH}"
 
 GITHUB_FTL_VERSION="$(get_remote_version FTL "${FTL_BRANCH}")"
-addOrEditKeyValPair "${VERSION_FILE}" "GITHUB_FTL_VERSION" "${GITHUB_FTL_VERSION}"
+addOrEditKeyValPair "${VERSION_FILE_TMP}" "GITHUB_FTL_VERSION" "${GITHUB_FTL_VERSION}"
 
 GITHUB_FTL_HASH="$(get_remote_hash FTL "${FTL_BRANCH}")"
-addOrEditKeyValPair "${VERSION_FILE}" "GITHUB_FTL_HASH" "${GITHUB_FTL_HASH}"
+addOrEditKeyValPair "${VERSION_FILE_TMP}" "GITHUB_FTL_HASH" "${GITHUB_FTL_HASH}"
 
 # get Docker versions
 
 if [[ "${DOCKER_TAG}" ]]; then
-    addOrEditKeyValPair "${VERSION_FILE}" "DOCKER_VERSION" "${DOCKER_TAG}"
+    addOrEditKeyValPair "${VERSION_FILE_TMP}" "DOCKER_VERSION" "${DOCKER_TAG}"
 
     # Remote version check only if the tag is a valid release version
     docker_branch=""
@@ -135,5 +139,15 @@ if [[ "${DOCKER_TAG}" ]]; then
     fi
 
     GITHUB_DOCKER_VERSION="$(get_remote_version docker-pi-hole "${docker_branch}")"
-    addOrEditKeyValPair "${VERSION_FILE}" "GITHUB_DOCKER_VERSION" "${GITHUB_DOCKER_VERSION}"
+    addOrEditKeyValPair "${VERSION_FILE_TMP}" "GITHUB_DOCKER_VERSION" "${GITHUB_DOCKER_VERSION}"
 fi
+
+# Publish the assembled file. The rename() replaces the target path itself, so a
+# symlink planted at "${VERSION_FILE}" is swapped out rather than followed
+# (GHSA-xch2-4qxw-g5vj). "other" needs read access so any local user can run
+# `pihole -v`; keep it pihole-owned when this script happens to run as root.
+chmod 644 "${VERSION_FILE_TMP}"
+if [ "$(id -u)" -eq 0 ]; then
+    chown pihole:pihole "${VERSION_FILE_TMP}" 2>/dev/null || true
+fi
+mv -f "${VERSION_FILE_TMP}" "${VERSION_FILE}"
