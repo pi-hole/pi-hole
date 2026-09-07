@@ -80,9 +80,16 @@ if [[ "$*" == *"once"* ]]; then
     # Use logrotate's default state file so this run and the system's own
     # scheduled logrotate (which also reads /etc/logrotate.d/pihole) agree on
     # what's already been rotated, instead of rotating our logs twice.
-    logrotate_cmd="/usr/sbin/logrotate"
-    if [[ ! -x "${logrotate_cmd}" ]] && command -v logrotate > /dev/null 2>&1; then
-        logrotate_cmd="$(command -v logrotate)"
+    logrotate_cmd="logrotate"
+    if ! command -v "${logrotate_cmd}" > /dev/null 2>&1; then
+        if [[ -x "/usr/sbin/logrotate" ]]; then
+            logrotate_cmd="/usr/sbin/logrotate"
+        fi
+    fi
+
+    if ! command -v "${logrotate_cmd}" > /dev/null 2>&1 && [[ ! -x "${logrotate_cmd}" ]]; then
+        echo -e "${OVER}  ${CROSS} logrotate command not found" >&2
+        exit 1
     fi
 
     if "${logrotate_cmd}" --force /etc/logrotate.d/pihole; then
