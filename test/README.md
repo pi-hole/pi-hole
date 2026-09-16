@@ -4,6 +4,7 @@ The test suite is implemented with BATS and runs inside distro-specific Docker c
 
 ## Requirements
 
+
 - Docker (with buildx support)
 - Bash shell
 
