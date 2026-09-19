@@ -67,7 +67,7 @@ CREATE TABLE info
     value TEXT NOT NULL
 ) WITHOUT ROWID;
 
-INSERT INTO "info" VALUES('version','20');
+INSERT INTO "info" VALUES('version','21');
 /* This is a flag to indicate if gravity was restored from a backup
     false = not restored,
     failed = restoration failed due to no backup
