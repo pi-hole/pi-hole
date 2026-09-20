@@ -142,12 +142,16 @@ if [[ "${DOCKER_TAG}" ]]; then
     addOrEditKeyValPair "${VERSION_FILE_TMP}" "GITHUB_DOCKER_VERSION" "${GITHUB_DOCKER_VERSION}"
 fi
 
-# Publish the assembled file. The rename() replaces the target path itself, so a
-# symlink planted at "${VERSION_FILE}" is swapped out rather than followed
-# (GHSA-xch2-4qxw-g5vj). "other" needs read access so any local user can run
-# `pihole -v`; keep it pihole-owned when this script happens to run as root.
-chmod 644 "${VERSION_FILE_TMP}"
+# Make the assembled file world-readable ("other" needs read access so any local
+# user can run `pihole -v`) and, if this script happens to be running as root,
+# hand ownership to the pihole user so it can be replaced on the next run.
+chmod 0644 "${VERSION_FILE_TMP}"
 if [ "$(id -u)" -eq 0 ]; then
     chown pihole:pihole "${VERSION_FILE_TMP}" 2>/dev/null || true
 fi
+
+# Publish the assembled file. mv on a single file within the same filesystem
+# calls rename(2), which replaces the directory entry at "${VERSION_FILE}"
+# itself. A symlink planted there is therefore swapped out rather than followed
+# (GHSA-xch2-4qxw-g5vj).
 mv -f "${VERSION_FILE_TMP}" "${VERSION_FILE}"
