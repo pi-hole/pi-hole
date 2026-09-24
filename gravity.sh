@@ -847,7 +847,7 @@ gravity_DownloadBlocklistFromUrl() {
       # Set list status to "unchanged/cached"
       database_adlist_status "${adlistID}" "2"
       # Add domains to database table file
-      pihole-FTL "${gravity_type}" parseList "${saveLocation}" "${gravityTEMPfile}" "${adlistID}"
+      pihole-FTL "${gravity_type}" parseList "${saveLocation}" "${gravityTEMPfile}" "${adlistID}" "${url}"
       done="true"
     # Check if $listCurlBuffer is a non-zero length file
     elif [[ -s "${listCurlBuffer}" ]]; then
@@ -862,7 +862,7 @@ gravity_DownloadBlocklistFromUrl() {
           fix_owner_permissions "${saveLocation}.etag"
       fi
       # Add domains to database table file
-      pihole-FTL "${gravity_type}" parseList "${saveLocation}" "${gravityTEMPfile}" "${adlistID}"
+      pihole-FTL "${gravity_type}" parseList "${saveLocation}" "${gravityTEMPfile}" "${adlistID}" "${url}"
       done="true"
     else
       # Fall back to previously cached list if $listCurlBuffer is empty
@@ -878,7 +878,7 @@ gravity_DownloadBlocklistFromUrl() {
       # Set list status to "download-failed/cached"
       database_adlist_status "${adlistID}" "3"
       # Add domains to database table file
-      pihole-FTL "${gravity_type}" parseList "${saveLocation}" "${gravityTEMPfile}" "${adlistID}"
+      pihole-FTL "${gravity_type}" parseList "${saveLocation}" "${gravityTEMPfile}" "${adlistID}" "${url}"
     else
       echo -e "  ${CROSS} List download failed: ${COL_RED}no cached list available${COL_NC}"
       # Manually reset these two numbers because we do not call parseList here
