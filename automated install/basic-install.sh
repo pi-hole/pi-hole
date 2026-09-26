@@ -1452,12 +1452,24 @@ install_dependent_packages() {
     # Install Debian/Ubuntu packages
     if is_command apt-get; then
         if [ -f /tmp/pihole-meta.deb ]; then
-            if eval "${PKG_INSTALL}" "/tmp/pihole-meta.deb" &>/dev/null; then
+            local apt_output
+            local apt_exit_code=0
+
+            # Execute apt-get to install the package. If the installation fails, capture the exact exit code.
+            # We don't use PKG_INSTALL variable here because we don't want the quiet flag
+            # when apt installs the meta package, to explicitly show errors on failure.
+            apt_output=$(apt-get --no-install-recommends --yes install /tmp/pihole-meta.deb 2>&1) || apt_exit_code=$?
+
+            if [ "${apt_exit_code}" -eq 0 ]; then
+                # Package installed
                 printf "%b  %b %s\\n" "${OVER}" "${TICK}" "${str}"
                 rm /tmp/pihole-meta.deb
             else
-                printf "%b  %b %s\\n" "${OVER}" "${CROSS}" "${str}"
-                printf "  %b Error: Unable to install Pi-hole dependency package.\\n" "${COL_RED}"
+                # In case of failure, show the full error output
+                printf "%b  %b %s\\n" "${OVER}" "${CROSS}" "Pi-hole dependency package installation failed."
+                printf "  %b %bError: Unable to install Pi-hole dependency package.%b\\n" "${CROSS}" "${COL_RED}" "${COL_NC}"
+                printf "\\n---------- apt-get output %b(Code: ${apt_exit_code})%b ----------\\n" "${COL_RED}" "${COL_NC}"
+                printf "${apt_output}\\n\\n"
                 return 1
             fi
         else
