@@ -1452,24 +1452,30 @@ install_dependent_packages() {
     # Install Debian/Ubuntu packages
     if is_command apt-get; then
         if [ -f /tmp/pihole-meta.deb ]; then
-            local apt_output
+            local apt_output installed_package_status installed_package_version err_msg_version
             local apt_exit_code=0
 
-            # Execute apt-get to install the package. If the installation fails, capture the exact exit code.
-            # We don't use PKG_INSTALL variable here because we don't want the quiet flag
-            # when apt installs the meta package, to explicitly show errors on failure.
+            # Execute apt-get to install the package.
+            # We don't use PKG_INSTALL variable here because we don't want the quiet flag now.
+            # If apt-get fails, we store stdout, stderr, and the exact exit code, but the installer will not terminate.
             apt_output=$(apt-get --no-install-recommends --yes install /tmp/pihole-meta.deb 2>&1) || apt_exit_code=$?
 
-            if [ "${apt_exit_code}" -eq 0 ]; then
-                # Package installed
+            # Check if the package is installed and its version
+            installed_package_status=$(dpkg-query -W -f='${Status}' pihole-meta 2>/dev/null) || true
+            installed_package_version=$(dpkg-query -W -f='${Version}' pihole-meta 2>/dev/null) || true
+            err_msg_version=${installed_package_version:-"not found"}
+
+            if [[ "${installed_package_status}" == *"ok installed"* ]] && [[ "${installed_package_version}" == "${PIHOLE_META_VERSION_APT}" ]]; then
+                # Package installed - correct version
                 printf "%b  %b %s\\n" "${OVER}" "${TICK}" "${str}"
                 rm /tmp/pihole-meta.deb
             else
-                # In case of failure, show the full error output
+                # Not installed
                 printf "%b  %b %s\\n" "${OVER}" "${CROSS}" "Pi-hole dependency package installation failed."
                 printf "  %b %bError: Unable to install Pi-hole dependency package.%b\\n" "${CROSS}" "${COL_RED}" "${COL_NC}"
+                printf "      Expected version: %s - Installed version: %b%s%b\\n" "${PIHOLE_META_VERSION_APT}" "${COL_RED}" "${err_msg_version}" "${COL_NC}"
                 printf "\\n---------- apt-get output %b(Code: ${apt_exit_code})%b ----------\\n" "${COL_RED}" "${COL_NC}"
-                printf "${apt_output}\\n\\n"
+                printf "%s\\n\\n" "${apt_output}"
                 return 1
             fi
         else
