@@ -170,6 +170,10 @@ main() {
                 echo -e "  ${INFO} FTL:\\t\\t${COL_RED}Something has gone wrong, cannot reach download server${COL_NC}"
                 exit 1
                 ;;
+            5)
+                echo -e "  ${INFO} FTL:\\t\\t${COL_RED}GitHub API rate limit exceeded, please try again later${COL_NC}"
+                exit 1
+                ;;
             *)
                 echo -e "  ${INFO} FTL:\\t\\t${COL_RED}Something has gone wrong, contact support${COL_NC}"
                 exit 1
