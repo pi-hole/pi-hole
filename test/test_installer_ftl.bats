@@ -85,6 +85,46 @@ _test_ftl_arch() {
     _test_ftl_arch "mips" "mips" "false"
 }
 
+# ---------------------------------------------------------------------------
+# FTLcheckUpdate — errors while asking the GitHub API for the latest release
+# ---------------------------------------------------------------------------
+
+_run_ftl_check_update_on_master() {
+    # The GitHub API is only asked on the master branch, and only when
+    # pihole-FTL is already installed, so put a placeholder binary on the PATH
+    echo "master" > /etc/pihole/ftlbranch
+    mkdir -p "${BATS_TEST_TMPDIR}/bin"
+    printf '#!/bin/sh\n' >"${BATS_TEST_TMPDIR}/bin/pihole-FTL"
+    chmod +x "${BATS_TEST_TMPDIR}/bin/pihole-FTL"
+
+    run bash -c "
+        PATH=\"${BATS_TEST_TMPDIR}/bin:\${PATH}\"
+        source /opt/pihole/basic-install.sh
+        FTLcheckUpdate pihole-FTL-amd64 || exit \$?
+    "
+}
+
+@test "FTLcheckUpdate reports when the GitHub API rate limit is exceeded" {
+    stub curl "-s https://api.github.com/repos/pi-hole/FTL/releases/latest : echo '{\"message\":\"API rate limit exceeded for 192.0.2.1.\"}'"
+
+    _run_ftl_check_update_on_master
+
+    assert_failure 5
+    assert_output --partial "GitHub API rate limit exceeded, please try again later"
+    unstub curl
+}
+
+@test "FTLcheckUpdate reports other failures to get the latest release" {
+    stub curl "-s https://api.github.com/repos/pi-hole/FTL/releases/latest : exit 6"
+
+    _run_ftl_check_update_on_master
+
+    assert_failure 3
+    assert_output --partial "Failed to retrieve latest FTL release metadata"
+    refute_output --partial "rate limit"
+    unstub curl
+}
+
 @test "installer provides a responsive FTL development binary" {
     echo "${FTL_BRANCH}" > /etc/pihole/ftlbranch
     bash -c "
