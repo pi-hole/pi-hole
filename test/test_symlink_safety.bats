@@ -33,6 +33,7 @@ setup() {
 teardown() {
     git config --system --unset-all safe.directory || true
     rm -rf /etc/pihole/probe
+    rm -f /etc/pihole/versions /etc/pihole/dhcp.leases
 }
 
 # Create a git repository owned by root, readable by everyone
@@ -140,6 +141,25 @@ trusted_dirs() {
 
     run trusted_dirs
     assert_output "${BATS_TEST_TMPDIR}/core"
+}
+
+@test "prestart does not follow symlinks at the version and DHCP lease file paths" {
+    # Root-only files the pihole user must not be able to influence
+    printf 'secret' > "${BATS_TEST_TMPDIR}/secret-a"
+    printf 'secret' > "${BATS_TEST_TMPDIR}/secret-b"
+    chmod 0600 "${BATS_TEST_TMPDIR}/secret-a" "${BATS_TEST_TMPDIR}/secret-b"
+    chown root:root "${BATS_TEST_TMPDIR}/secret-a" "${BATS_TEST_TMPDIR}/secret-b"
+
+    ln -sf "${BATS_TEST_TMPDIR}/secret-a" /etc/pihole/versions
+    ln -sf "${BATS_TEST_TMPDIR}/secret-b" /etc/pihole/dhcp.leases
+
+    run sh "${PRESTART}"
+    assert_success
+
+    for f in secret-a secret-b; do
+        run stat -c '%a %U' "${BATS_TEST_TMPDIR}/${f}"
+        assert_output "600 root"
+    done
 }
 
 @test "prestart does not run its permission fix-up as root" {
