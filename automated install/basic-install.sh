@@ -584,15 +584,36 @@ mark_repos_safe() {
     # break local version detection, so record them in git's system-wide
     # safe.directory list (safe.directory is only honoured from system/global
     # config, hence --system).
+    #
+    # webInterfaceDir comes from pihole.toml, which the pihole user can edit, so
+    # it must not be trusted as given. If it were, that user could point it at a
+    # directory it controls, swap in a crafted repository and have root run git
+    # in it later (e.g. during `pihole -up`). So only trust a path that
+    #   - resolves (without symlinks) to a real directory,
+    #   - and, together with its .git, is owned by root and not world-writable,
+    #     i.e. that the pihole user cannot modify.
     local repo
     for repo in "${PI_HOLE_LOCAL_REPO}" "${webInterfaceDir}"; do
         [[ -n "${repo}" ]] || continue
+        repo="$(cd "${repo}" 2>/dev/null && pwd -P)" || continue
+        [[ -n "${repo}" && -O "${repo}" && -O "${repo}/.git" ]] || continue
+        [[ -z "$(find "${repo}" "${repo}/.git" -maxdepth 0 -perm /002 2>/dev/null)" ]] || continue
         if ! git config --system --get-all safe.directory 2>/dev/null | grep -qxF "${repo}"; then
             # Non-fatal: a missing entry only degrades version reporting, and
             # the installer runs under 'set -e'.
             git config --system --add safe.directory "${repo}" || true
         fi
     done
+
+    # git silently ignores a system config file that the pihole user cannot read,
+    # which is what happens if it was just created under a restrictive umask.
+    # It applies to every user, so it is meant to be world-readable anyway.
+    local gitconfig
+    gitconfig="$(git config --system --show-origin --get-all safe.directory 2>/dev/null | head -n 1 | cut -f 1)"
+    gitconfig="${gitconfig#file:}"
+    if [[ -f "${gitconfig}" ]]; then
+        chmod a+r "${gitconfig}" || true
+    fi
     return 0
 }
 

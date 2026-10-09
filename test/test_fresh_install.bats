@@ -131,6 +131,14 @@ require_installed() {
     [[ -x /opt/pihole/updatecheck.sh && -x /usr/bin/pihole-FTL ]] || skip "needs the fresh install from the first test"
 }
 
+@test "fresh install: git trusts the Core and Web repositories for the pihole user" {
+    require_installed
+
+    run git config --system --get-all safe.directory
+    assert_line "/etc/.pihole"
+    assert_line "/var/www/html/admin"
+}
+
 @test "fresh install: updatecheck.sh started as root writes the versions file as the pihole user" {
     require_installed
     rm -f /etc/pihole/versions

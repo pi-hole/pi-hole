@@ -26,8 +26,120 @@ setup_file() {
     assert_success
 }
 
+setup() {
+    git config --system --unset-all safe.directory || true
+}
+
 teardown() {
+    git config --system --unset-all safe.directory || true
     rm -rf /etc/pihole/probe
+}
+
+# Create a git repository owned by root, readable by everyone
+make_repo() {
+    git init -q "${1}"
+    chmod 0755 "${1}" "${1}/.git"
+}
+
+# Run the installer's mark_repos_safe for the given Core and Web repository paths
+run_mark_repos_safe() {
+    run bash -c "
+        source /opt/pihole/basic-install.sh
+        PI_HOLE_LOCAL_REPO='${1}'
+        webInterfaceDir='${2}'
+        mark_repos_safe
+    "
+    assert_success
+}
+
+# One safe.directory entry per line
+trusted_dirs() {
+    git config --system --get-all safe.directory || true
+}
+
+@test "mark_repos_safe trusts the root-owned Core and Web repositories" {
+    make_repo "${BATS_TEST_TMPDIR}/core"
+    make_repo "${BATS_TEST_TMPDIR}/web"
+
+    run_mark_repos_safe "${BATS_TEST_TMPDIR}/core" "${BATS_TEST_TMPDIR}/web"
+
+    run trusted_dirs
+    assert_line "${BATS_TEST_TMPDIR}/core"
+    assert_line "${BATS_TEST_TMPDIR}/web"
+}
+
+@test "mark_repos_safe trusts the resolved path, not the symlink pointing at it" {
+    make_repo "${BATS_TEST_TMPDIR}/core"
+    make_repo "${BATS_TEST_TMPDIR}/real-web"
+    ln -s "${BATS_TEST_TMPDIR}/real-web" "${BATS_TEST_TMPDIR}/web-link"
+
+    run_mark_repos_safe "${BATS_TEST_TMPDIR}/core" "${BATS_TEST_TMPDIR}/web-link"
+
+    run trusted_dirs
+    assert_line "${BATS_TEST_TMPDIR}/real-web"
+    refute_line "${BATS_TEST_TMPDIR}/web-link"
+}
+
+@test "mark_repos_safe does not trust a repository owned by the pihole user" {
+    make_repo "${BATS_TEST_TMPDIR}/core"
+    make_repo "${BATS_TEST_TMPDIR}/web"
+    chown -R pihole "${BATS_TEST_TMPDIR}/web"
+
+    run_mark_repos_safe "${BATS_TEST_TMPDIR}/core" "${BATS_TEST_TMPDIR}/web"
+
+    run trusted_dirs
+    assert_line "${BATS_TEST_TMPDIR}/core"
+    refute_line "${BATS_TEST_TMPDIR}/web"
+}
+
+@test "mark_repos_safe does not trust a root-owned directory with a pihole-owned .git" {
+    make_repo "${BATS_TEST_TMPDIR}/core"
+    make_repo "${BATS_TEST_TMPDIR}/web"
+    chown -R pihole "${BATS_TEST_TMPDIR}/web/.git"
+
+    run_mark_repos_safe "${BATS_TEST_TMPDIR}/core" "${BATS_TEST_TMPDIR}/web"
+
+    run trusted_dirs
+    refute_line "${BATS_TEST_TMPDIR}/web"
+}
+
+@test "mark_repos_safe does not trust a world-writable directory" {
+    make_repo "${BATS_TEST_TMPDIR}/core"
+    make_repo "${BATS_TEST_TMPDIR}/web"
+    chmod 0777 "${BATS_TEST_TMPDIR}/web"
+
+    run_mark_repos_safe "${BATS_TEST_TMPDIR}/core" "${BATS_TEST_TMPDIR}/web"
+
+    run trusted_dirs
+    refute_line "${BATS_TEST_TMPDIR}/web"
+}
+
+@test "mark_repos_safe leaves the system git config readable for the pihole user under a restrictive umask" {
+    make_repo "${BATS_TEST_TMPDIR}/core"
+    rm -f /etc/gitconfig
+
+    run bash -c "
+        umask 0027
+        source /opt/pihole/basic-install.sh
+        PI_HOLE_LOCAL_REPO='${BATS_TEST_TMPDIR}/core'
+        webInterfaceDir=''
+        mark_repos_safe
+    "
+    assert_success
+
+    # git ignores a system config its user cannot read, so ask as that user
+    run su -s /bin/sh pihole -c "git config --system --get-all safe.directory"
+    assert_output "${BATS_TEST_TMPDIR}/core"
+}
+
+@test "mark_repos_safe ignores missing and empty paths and adds nothing twice" {
+    make_repo "${BATS_TEST_TMPDIR}/core"
+
+    run_mark_repos_safe "${BATS_TEST_TMPDIR}/core" "${BATS_TEST_TMPDIR}/does-not-exist"
+    run_mark_repos_safe "${BATS_TEST_TMPDIR}/core" ""
+
+    run trusted_dirs
+    assert_output "${BATS_TEST_TMPDIR}/core"
 }
 
 @test "prestart does not run its permission fix-up as root" {
