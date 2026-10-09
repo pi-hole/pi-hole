@@ -4,12 +4,24 @@
 mkdir -p /var/log/pihole
 chown -R pihole:pihole /etc/pihole/ /var/log/pihole/
 
-# allow pihole to access subdirs in /etc/pihole (sets execution bit on dirs)
-find /etc/pihole/ /var/log/pihole/ -type d -exec chmod 0755 {} +
-# Set all files (except TLS-related ones) to u+rw g+r
-find /etc/pihole/ /var/log/pihole/ -type f ! \( -name '*.pem' -o -name '*.crt' \) -exec chmod 0640 {} +
-# Set TLS-related files to a more restrictive u+rw *only* (they may contain private keys)
-find /etc/pihole/ -type f \( -name '*.pem' -o -name '*.crt' \) -exec chmod 0600 {} +
+# Set permissions on everything below /etc/pihole and /var/log/pihole:
+#   directories:           rwxr-xr-x (so pihole can access subdirs)
+#   files:                 rw-r----- (u+rw g+r)
+#   TLS .pem/.crt files:   rw------- (u+rw *only*, they may contain private keys)
+#
+# The chown above made the pihole user the owner of both trees, so pihole can
+# rearrange them freely. find only builds a list of paths and chmod acts on
+# them afterwards, so if root ran these, pihole could swap an entry for a symlink
+# in between and root's chmod would follow it, changing the permissions of a file
+# pihole has no business touching (e.g. /etc/shadow). So drop privileges and let
+# the pihole user do it: it owns everything below these directories, and a
+# symlink pointing anywhere else only results in a permission error.
+# A failure here is deliberately non-fatal so it can never prevent FTL starting.
+su -s /bin/sh pihole -c '
+    find /etc/pihole/ /var/log/pihole/ -type d -exec chmod 0755 {} +
+    find /etc/pihole/ /var/log/pihole/ -type f ! \( -name "*.pem" -o -name "*.crt" \) -exec chmod 0640 {} +
+    find /etc/pihole/ -type f \( -name "*.pem" -o -name "*.crt" \) -exec chmod 0600 {} +
+' || true
 
 # Ensure the version and DHCP lease files exist and are readable by all local
 # users (so that e.g. `pihole -v` works). This has to come after the find
