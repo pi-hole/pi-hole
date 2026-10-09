@@ -10,6 +10,20 @@
 
 set -o pipefail
 
+# This script writes into /etc/pihole, which is owned by the unprivileged
+# "pihole" user. Anything root does there by name can be redirected by a
+# symlink that user plants (GHSA-xch2-4qxw-g5vj), so never do that work as root:
+# when started as root (the installer, `pihole -up`, `pihole checkout`,
+# `sudo pihole updatechecker`, ...) hand over to the pihole user and exit with
+# its result. The pihole user can only ever damage what it already owns.
+if [[ "$(id -u)" -eq 0 ]]; then
+    # Only the literal "reboot" argument (see below) is passed on
+    reboot_arg=""
+    [[ "${1:-}" == "reboot" ]] && reboot_arg="reboot"
+    su -s /bin/sh pihole -c "/opt/pihole/updatecheck.sh ${reboot_arg}"
+    exit "$?"
+fi
+
 function get_local_branch() {
     # Return active branch
     cd "${1}" 2>/dev/null || { echo "null"; return; }
@@ -54,11 +68,10 @@ rm -f "/etc/pihole/localversions"
 
 VERSION_FILE="/etc/pihole/versions"
 
-# Assemble the versions file in a private temporary file and atomically move it
-# into place at the very end of this script. Operating on "${VERSION_FILE}"
-# directly would follow a symlink that a compromised pihole user could plant in
-# the pihole-owned /etc/pihole directory (GHSA-xch2-4qxw-g5vj); renaming a fresh
-# file over the path replaces such a symlink instead of writing through it.
+# Assemble the versions file in a temporary file next to it and move it into
+# place at the very end of this script, so readers never see a half-written
+# file. (Running as the pihole user, see above, the temporary file lives in a
+# directory only that user can modify.)
 VERSION_FILE_TMP="$(mktemp "${VERSION_FILE}.XXXXXX")" || exit 1
 trap 'rm -f "${VERSION_FILE_TMP}"' EXIT
 
@@ -143,15 +156,12 @@ if [[ "${DOCKER_TAG}" ]]; then
 fi
 
 # Make the assembled file world-readable ("other" needs read access so any local
-# user can run `pihole -v`) and, if this script happens to be running as root,
-# hand ownership to the pihole user so it can be replaced on the next run.
+# user can run `pihole -v`).
 chmod 0644 "${VERSION_FILE_TMP}"
-if [ "$(id -u)" -eq 0 ]; then
-    chown pihole:pihole "${VERSION_FILE_TMP}" 2>/dev/null || true
-fi
 
 # Publish the assembled file. mv on a single file within the same filesystem
 # calls rename(2), which replaces the directory entry at "${VERSION_FILE}"
-# itself. A symlink planted there is therefore swapped out rather than followed
-# (GHSA-xch2-4qxw-g5vj).
-mv -f "${VERSION_FILE_TMP}" "${VERSION_FILE}"
+# itself, so whatever was there before (even a symlink) is swapped out. -T
+# makes mv treat "${VERSION_FILE}" as the file to replace, never as a directory
+# to move the temporary file into.
+mv -fT "${VERSION_FILE_TMP}" "${VERSION_FILE}"
