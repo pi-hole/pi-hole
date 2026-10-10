@@ -74,13 +74,13 @@ teardown() {
 
 @test "Default adlist is successfully added to gravity database" {
     run bash -c '
-        echo "https://raw.githubusercontent.com/StevenBlack/hosts/master/hosts" >/etc/pihole/adlists.list
+        /opt/pihole/gravity.sh --newdb
+        /opt/pihole/gravity.sh --addadlist "https://raw.githubusercontent.com/StevenBlack/hosts/master/hosts"
         pihole -g
     '
     assert_success
     assert_line --partial "${INFO} Creating new gravity database"
     refute_line --partial "${INFO} No source list found, or it is empty"
-    assert_line --partial "${INFO} Migrating content of /etc/pihole/adlists.list into new database"
 
     assert_line --partial "${TICK} Status: Retrieval successful"
     assert_line --regexp "Parsed [[:digit:]]+ exact domains and [[:digit:]]+ ABP-style domains.*"
@@ -96,7 +96,6 @@ teardown() {
     assert_success
     assert_line --partial "${INFO} Creating new gravity database"
     refute_line --partial "${INFO} No source list found, or it is empty"
-    refute_line --partial "${INFO} Migrating content of /etc/pihole/adlists.list into new database"
 
     assert_line --partial "${INFO} Target: https://raw.githubusercontent.com/StevenBlack/hosts/master/hosts"
     if [ "${curl_etag_support}" = true ]; then
@@ -127,13 +126,13 @@ teardown() {
     assert_line --partial "||subdomain.domain.tld^"
     assert_line --partial "strange..domain..com"
     run bash -c '
-        echo "file:///etc/pihole/localAdlist.txt" >/etc/pihole/adlists.list
+        /opt/pihole/gravity.sh --newdb
+        /opt/pihole/gravity.sh --addadlist "file:///etc/pihole/localAdlist.txt"
         pihole -g
     '
     assert_success
     assert_line --partial "${INFO} Creating new gravity database"
     refute_line --partial "${INFO} No source list found, or it is empty"
-    assert_line --partial "${INFO} Migrating content of /etc/pihole/adlists.list into new database"
 
     assert_line --partial "${INFO} Using local file /etc/pihole/localAdlist.txt"
     assert_line --partial "${TICK} Status: Retrieval successful"
@@ -147,13 +146,13 @@ teardown() {
 
 @test "Gravity fails to download invalid protocol" {
     run bash -c '
-        echo "dadfasdfsdafsf.com" >/etc/pihole/adlists.list
+        /opt/pihole/gravity.sh --newdb
+        /opt/pihole/gravity.sh --addadlist "dadfasdfsdafsf.com"
         pihole -g
     '
     assert_success
     assert_line --partial "${INFO} Creating new gravity database"
     refute_line --partial "${INFO} No source list found, or it is empty"
-    assert_line --partial "${INFO} Migrating content of /etc/pihole/adlists.list into new database"
 
     assert_line --partial "${CROSS} Status: Invalid protocol specified. Ignoring list."
     assert_line --partial "Ensure your URL starts with a valid protocol like http:// , https:// or file:// ."
@@ -168,13 +167,13 @@ teardown() {
 
 @test "Gravity fails to download invalid target" {
     run bash -c "
-        echo '<script>alert(0)</script>' >/etc/pihole/adlists.list
+        /opt/pihole/gravity.sh --newdb
+        /opt/pihole/gravity.sh --addadlist '<script>alert(0)</script>'
         pihole -g
     "
     assert_success
     assert_line --partial "${INFO} Creating new gravity database"
     refute_line --partial "${INFO} No source list found, or it is empty"
-    assert_line --partial "${INFO} Migrating content of /etc/pihole/adlists.list into new database"
 
     assert_line --partial "${INFO} Target: <script>alert(0)</script>"
     assert_line --partial "${CROSS} Invalid Target"
@@ -187,13 +186,13 @@ teardown() {
 
 @test "Gravity fails to download non-resolvable host" {
     run bash -c "
-        echo 'https://raw.githubusercontent.df' >/etc/pihole/adlists.list
+        /opt/pihole/gravity.sh --newdb
+        /opt/pihole/gravity.sh --addadlist 'https://raw.githubusercontent.df'
         pihole -g
     "
     assert_success
     assert_line --partial "${INFO} Creating new gravity database"
     refute_line --partial "${INFO} No source list found, or it is empty"
-    assert_line --partial "${INFO} Migrating content of /etc/pihole/adlists.list into new database"
 
     assert_line --partial "${INFO} Target: https://raw.githubusercontent.df"
     if [ "${curl775}" = true ] || [ "${curl821}" = true ]; then
@@ -212,13 +211,13 @@ teardown() {
 
 @test "Gravity fails to download without host part in URL" {
     run bash -c "
-        echo 'http://' >/etc/pihole/adlists.list
+        /opt/pihole/gravity.sh --newdb
+        /opt/pihole/gravity.sh --addadlist 'http://'
         pihole -g
     "
     assert_success
     assert_line --partial "${INFO} Creating new gravity database"
     refute_line --partial "${INFO} No source list found, or it is empty"
-    assert_line --partial "${INFO} Migrating content of /etc/pihole/adlists.list into new database"
 
     assert_line --partial "${INFO} Target: http://"
     assert_line --partial "${CROSS} Status: Retrieval failed (exit_code=3 Msg:"
@@ -232,13 +231,13 @@ teardown() {
 
 @test "Gravity fails to connect to non-existing host (URL)" {
     run bash -c "
-        echo 'http://localhost:81/list' >/etc/pihole/adlists.list
+        /opt/pihole/gravity.sh --newdb
+        /opt/pihole/gravity.sh --addadlist 'http://localhost:81/list'
         pihole -g
     "
     assert_success
     assert_line --partial "${INFO} Creating new gravity database"
     refute_line --partial "${INFO} No source list found, or it is empty"
-    assert_line --partial "${INFO} Migrating content of /etc/pihole/adlists.list into new database"
 
     assert_line --partial "${INFO} Target: http://localhost:81/list"
     if [ "${curl821}" = true ]; then
@@ -259,13 +258,13 @@ teardown() {
 
 @test "Gravity fails to connect to non-existing host (IP)" {
     run bash -c "
-        echo 'http://10.0.0.1/list' >/etc/pihole/adlists.list
+        /opt/pihole/gravity.sh --newdb
+        /opt/pihole/gravity.sh --addadlist 'http://10.0.0.1/list'
         pihole -g
     "
     assert_success
     assert_line --partial "${INFO} Creating new gravity database"
     refute_line --partial "${INFO} No source list found, or it is empty"
-    assert_line --partial "${INFO} Migrating content of /etc/pihole/adlists.list into new database"
 
     assert_line --partial "${INFO} Target: http://10.0.0.1/list"
     assert_line --partial "${CROSS} Status: Retrieval failed (exit_code=28 Msg:"
@@ -279,13 +278,13 @@ teardown() {
 
 @test "Gravity fails to connect to non-SSL host for HTTPS URL" {
     run bash -c "
-        echo 'https://localhost/list' >/etc/pihole/adlists.list
+        /opt/pihole/gravity.sh --newdb
+        /opt/pihole/gravity.sh --addadlist 'https://localhost/list'
         pihole -g
     "
     assert_success
     assert_line --partial "${INFO} Creating new gravity database"
     refute_line --partial "${INFO} No source list found, or it is empty"
-    assert_line --partial "${INFO} Migrating content of /etc/pihole/adlists.list into new database"
 
     assert_line --partial "${INFO} Target: https://localhost/list"
     assert_line --partial "${CROSS} Status: Retrieval failed"
@@ -302,13 +301,13 @@ teardown() {
     assert_file_exists /etc/shadow
 
     run bash -c "
-        echo 'file:///etc/shadow' >/etc/pihole/adlists.list
+        /opt/pihole/gravity.sh --newdb
+        /opt/pihole/gravity.sh --addadlist 'file:///etc/shadow'
         pihole -g
     "
     assert_success
     assert_line --partial "${INFO} Creating new gravity database"
     refute_line --partial "${INFO} No source list found, or it is empty"
-    assert_line --partial "${INFO} Migrating content of /etc/pihole/adlists.list into new database"
 
     assert_line --partial "${INFO} Target: file:///etc/shadow"
     assert_line --partial "${CROSS} Cannot read file (user 'pihole' lacks read permission)"
@@ -325,13 +324,13 @@ teardown() {
     assert_file_exists /etc/shadow
 
     run bash -c "
-        echo 'file:/./etc/shadow' >/etc/pihole/adlists.list
+        /opt/pihole/gravity.sh --newdb
+        /opt/pihole/gravity.sh --addadlist 'file:/./etc/shadow'
         pihole -g
     "
     assert_success
     assert_line --partial "${INFO} Creating new gravity database"
     refute_line --partial "${INFO} No source list found, or it is empty"
-    assert_line --partial "${INFO} Migrating content of /etc/pihole/adlists.list into new database"
 
     assert_line --partial "${INFO} Target: file:/./etc/shadow"
     assert_line --partial "${CROSS} etc/shadow does not exist"
