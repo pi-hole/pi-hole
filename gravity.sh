@@ -987,7 +987,8 @@ database_recovery() {
     str="Checking foreign keys of existing gravity database (this can take a while)"
     echo -ne "  ${INFO} ${str}..."
     unset result
-    result="$(pihole-FTL sqlite3 -ni "${gravityDBfile}" "PRAGMA foreign_key_check" 2>&1)"
+    # Domains of a deleted list stay in gravity and antigravity until the next run
+    result="$(pihole-FTL sqlite3 -ni "${gravityDBfile}" "SELECT * FROM pragma_foreign_key_check WHERE \"table\" NOT IN ('gravity','antigravity')" 2>&1)"
     if [[ -z ${result} ]]; then
       echo -e "${OVER}  ${TICK} ${str} - no errors found"
       if [[ "${option}" != "force" ]]; then
