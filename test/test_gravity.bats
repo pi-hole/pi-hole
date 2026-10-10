@@ -334,7 +334,7 @@ teardown() {
     assert_line --partial "${INFO} Migrating content of /etc/pihole/adlists.list into new database"
 
     assert_line --partial "${INFO} Target: file:/./etc/shadow"
-    assert_line --partial "${CROSS} etc/shadow does not exist"
+    assert_line --partial "${CROSS} Cannot read file (user 'pihole' lacks read permission)"
     assert_line --partial "${CROSS} List download failed: no cached list available"
 
     refute_line --regexp "Parsed [[:digit:]]+ exact domains and [[:digit:]]+ ABP-style domains.*"
@@ -342,3 +342,4 @@ teardown() {
     assert_line --partial "${INFO} Number of gravity domains: 0 (0 unique domains)"
     assert_line --partial "${TICK} Done."
 }
+

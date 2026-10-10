@@ -738,8 +738,11 @@ gravity_DownloadBlocklistFromUrl() {
   # (e.g., in Docker or when invoked by a non-root user). The target must
   # resolve to a regular file and be readable by the evaluated user.
   if [[ "${url}" == "file:/"* ]]; then
-    # Get the file path
-    file_path=$(echo "${url}" | cut -d'/' -f3-)
+    # Safely strip both standard (file:///) and minimal (file:/) local file URI schemes
+    file_path="${url#file://}"
+    file_path="${file_path#file:}"
+    # Canonicalize path by stripping any redundant '/./' using native Bash substitution
+    file_path="${file_path//\/\.\//\/}"
     # Check if the file exists and is a regular file (i.e. not a socket, fifo, tty, block). Might still be a symlink.
     if [[ ! -f ${file_path} ]]; then
         # Output that the file does not exist
