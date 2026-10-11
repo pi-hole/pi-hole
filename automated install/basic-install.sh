@@ -1692,6 +1692,19 @@ EOF
     fi
     current="${rendered}"
 
+    # Older files signal whatever the pihole-owned PID file contains, so swap in the
+    # validated lookup. The v6.4.3 reference gets the same swap so it still matches
+    local old_kill new_kill file content
+    old_kill='kill -USR2 $(cat /run/pihole-FTL.pid 2>/dev/null) 2>/dev/null || true'
+    new_kill='. /opt/pihole/utils.sh; pid="$(getFTLPID)"; [ "${pid}" -gt 0 ] && kill -USR2 "${pid}" 2>/dev/null || true'
+    for file in "${target}" "${rendered_643}"; do
+        [[ -f "${file}" ]] || continue
+        content="$(<"${file}")"
+        if [[ "${content}" == *"${old_kill}"* ]]; then
+            printf '%s\n' "${content//"${old_kill}"/"${new_kill}"}" > "${file}"
+        fi
+    done
+
     printf "\\n  %b %s..." "${INFO}" "${str}"
     if [[ -f ${target} ]]; then
         if diff -q "${target}" "${current}" >/dev/null; then
