@@ -12,6 +12,13 @@
 
 export LC_ALL=C
 
+# Never run gravity as root, as it writes to paths taken from the pihole-owned config.
+# /etc/pihole may still be root-owned when gravity runs before the FTL prestart script
+if [[ "${EUID}" -eq 0 ]]; then
+  chown pihole:pihole /etc/pihole
+  exec sudo -u pihole bash "$0" "$@"
+fi
+
 PI_HOLE_SCRIPT_DIR="/opt/pihole"
 # Source utils.sh for GetFTLConfigValue
 utilsfile="${PI_HOLE_SCRIPT_DIR}/utils.sh"

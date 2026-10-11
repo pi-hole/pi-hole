@@ -42,17 +42,24 @@ if [ -z "$WEBFILE" ]; then
     WEBFILE="/var/log/pihole/webserver.log"
 fi
 
+# The log paths come from the pihole-owned config, so never write to them as root
+as_pihole() {
+    if [[ "${EUID}" -eq 0 ]]; then
+        sudo -u pihole "$@"
+    else
+        "$@"
+    fi
+}
+
 # Helper function to handle log flushing for a single file
 flush_log() {
     local logfile="$1"
     if [[ "$*" != *"quiet"* ]]; then
         echo -ne "  ${INFO} Flushing ${logfile} ..."
     fi
-    echo " " > "${logfile}"
-    chmod 640 "${logfile}"
+    as_pihole sh -c 'echo " " > "$1" && chmod 640 "$1"' sh "${logfile}"
     if [ -f "${logfile}.1" ]; then
-        echo " " > "${logfile}.1"
-        chmod 640 "${logfile}.1"
+        as_pihole sh -c 'echo " " > "$1" && chmod 640 "$1"' sh "${logfile}.1"
     fi
     if [[ "$*" != *"quiet"* ]]; then
         echo -e "${OVER}  ${TICK} Flushed ${logfile} ..."
