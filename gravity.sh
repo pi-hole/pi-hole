@@ -13,10 +13,11 @@
 export LC_ALL=C
 
 # Never run gravity as root, as it writes to paths taken from the pihole-owned config.
-# /etc/pihole may still be root-owned when gravity runs before the FTL prestart script
+# /etc/pihole may still be root-owned when gravity runs before the FTL prestart script.
+# Without a terminal on stdin, mv replaces leftover root-owned files instead of prompting
 if [[ "${EUID}" -eq 0 ]]; then
   chown pihole:pihole /etc/pihole
-  exec sudo -u pihole bash "$0" "$@"
+  exec sudo -u pihole bash "$0" "$@" </dev/null
 fi
 
 PI_HOLE_SCRIPT_DIR="/opt/pihole"
