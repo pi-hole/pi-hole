@@ -68,12 +68,6 @@ if [[ "$*" == *"once"* ]]; then
     mkdir -p "${STATEFILE%/*}"
     /usr/sbin/logrotate --force --state "${STATEFILE}" /etc/logrotate.d/pihole
 else
-    # Validate DBFILE path before making any changes
-    if [[ ! "${DBFILE}" =~ ^[a-zA-Z0-9/_.-]+$ ]]; then
-        echo -e "  ${COL_RED}[✗] Invalid database file path: ${DBFILE}${COL_NC}"
-        exit 1
-    fi
-
     # Manual flushing
     flush_log "${LOGFILE}"
     flush_log "${FTLFILE}"
