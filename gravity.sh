@@ -811,8 +811,20 @@ gravity_DownloadBlocklistFromUrl() {
     # this, we use the "--fail" option to force curl to return a non-zero exit code.
     # If curl version is older than 7.75.0, curl can't generate the errormsg output. In this case,
     # a generic message is returned.
-    curlOutput=$(curl --connect-timeout ${curl_connect_timeout} -s --fail -L ${compression:+${compression}} ${customUpstreamResolver:+${customUpstreamResolver}} "${modifiedOptions[@]}" -w "${curlOutputFormat}" "${url}" -o "${listCurlBuffer}")
-    curlExitCode="$?"
+    if [[ ${url} == "file"* ]]; then
+      # Read local files as the user whose access was checked above, curl would
+      # resolve the URL path on its own and possibly open a different file
+      if [[ -n "${file_path}" ]]; then
+        if [ "$(id -un)" == "root" ]; then
+          sudo -u pihole cat -- "${file_path}" >"${listCurlBuffer}"
+        else
+          cat -- "${file_path}" >"${listCurlBuffer}"
+        fi
+      fi
+    else
+      curlOutput=$(curl --connect-timeout ${curl_connect_timeout} -s --fail -L ${compression:+${compression}} ${customUpstreamResolver:+${customUpstreamResolver}} "${modifiedOptions[@]}" -w "${curlOutputFormat}" "${url}" -o "${listCurlBuffer}")
+      curlExitCode="$?"
+    fi
 
 
     # Retrieve http_code and errormsg values, returned by curl command
