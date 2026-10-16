@@ -156,4 +156,11 @@ upgrade_gravityDB(){
         pihole-FTL sqlite3 -ni "${database}" < "${scriptPath}/19_to_20.sql"
         version=20
     fi
+    if [[ "$version" == "20" ]]; then
+        # Store the junction tables and info without a rowid, index the group
+        # side of the junction tables, and match the update triggers by id
+        echo -e "  ${INFO} Upgrading gravity database from version 20 to 21"
+        pihole-FTL sqlite3 -ni "${database}" < "${scriptPath}/20_to_21.sql"
+        version=21
+    fi
 }
