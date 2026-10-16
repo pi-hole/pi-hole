@@ -90,6 +90,9 @@ EOF
     run _check_perm r /etc/pihole/dhcp.leases; assert_success
     run _check_perm r /etc/pihole/install.log; assert_success
     run _check_perm r /etc/pihole/versions; assert_success
+    # pihole -v reads the versions file as the calling user, so it has to be
+    # readable by all users, not only by the pihole user
+    run su -s /bin/bash -c "test -r /etc/pihole/versions" -p nobody; assert_success
     run _check_perm r /etc/pihole/macvendor.db; assert_success
     run _check_perm x /etc/init.d/pihole-FTL; assert_success
     run _check_perm r /etc/init.d/pihole-FTL; assert_success
