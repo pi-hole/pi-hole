@@ -134,12 +134,12 @@ EOM
 PIHOLE_META_PACKAGE_CONTROL_RPM=$(
     cat <<EOM
 Name: pihole-meta
-Version: 0.4
+Version: 0.5
 Release: 1
 License: EUPL
 BuildArch: noarch
 Summary: Pi-hole dependency meta package
-Requires: bash-completion,bind-utils,binutils,ca-certificates,chkconfig,cronie,curl,dialog,findutils,gawk,git,grep,iproute,jq,libcap,logrotate,lshw,procps-ng,psmisc,sudo,unzip
+Requires: bash-completion,bind-utils,binutils,ca-certificates,chkconfig,cronie,curl,dialog,diffutils,findutils,gawk,git,grep,iproute,jq,libcap,logrotate,lshw,procps-ng,psmisc,sudo,unzip
 %description
 Pi-hole dependency meta package
 %prep
@@ -147,6 +147,9 @@ Pi-hole dependency meta package
 %files
 %install
 %changelog
+* Sat Oct 17 2026 Pi-hole Team - 0.5
+- Add diffutils to the list of dependencies
+
 * Thu Dec 18 2025 Pi-hole Team - 0.4
 - Add logrotate to the list of dependencies
 
