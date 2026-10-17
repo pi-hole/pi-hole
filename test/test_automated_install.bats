@@ -118,7 +118,7 @@ INFO="[i]"
 
 @test "installLogrotate replaces an unmodified v6.4.3 logrotate file with the current template" {
     mkdir -p /etc/logrotate.d
-    sed -n "/cat > \"\${rendered_643}\" << 'EOF'/,/^EOF\$/{//!p}" /opt/pihole/basic-install.sh |
+    awk '/^    cat > "\$\{rendered_643\}" << .EOF.$/ {f=1; next} /^EOF$/ {f=0} f' /opt/pihole/basic-install.sh |
         sed "s/# su #/su $(stat -c '%U %G' /var/log)/" > /etc/logrotate.d/pihole
     run grep -c -F 'kill -USR2 $(cat' /etc/logrotate.d/pihole
     assert_output "1"
