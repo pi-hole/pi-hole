@@ -2165,11 +2165,18 @@ FTLcheckUpdate() {
             FTLversion=$(/usr/bin/pihole-FTL tag)
 
             # Get the latest version from the GitHub API
+            local FTLreleaseData
+            FTLreleaseData=$(curl -s https://api.github.com/repos/pi-hole/FTL/releases/latest)
             local FTLlatesttag
-            FTLlatesttag=$(curl -s https://api.github.com/repos/pi-hole/FTL/releases/latest | jq -sRr 'fromjson? | .tag_name | values')
+            FTLlatesttag=$(jq -sRr 'fromjson? | .tag_name | values' <<<"${FTLreleaseData}")
 
             if [ -z "${FTLlatesttag}" ]; then
                 # There was an issue while retrieving the latest version
+                if grep -q "rate limit" <<<"${FTLreleaseData}"; then
+                    # GitHub limits the number of API requests per IP address
+                    printf "  %b GitHub API rate limit exceeded, please try again later\\n" "${CROSS}"
+                    return 5
+                fi
                 printf "  %b Failed to retrieve latest FTL release metadata\\n" "${CROSS}"
                 return 3
             fi
@@ -2223,7 +2230,7 @@ FTLdetect() {
     else
         case $? in
             1) :;; # FTL is up-to-date
-            *) exit 1;; # 404 (2), other HTTP or curl error (3), unknown (4)
+            *) exit 1;; # 404 (2), other HTTP or curl error (3), unknown (4), GitHub API rate limit (5)
         esac
     fi
 }
