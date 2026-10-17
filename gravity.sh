@@ -37,9 +37,6 @@ PIHOLE_COMMAND="/usr/local/bin/${basename}"
 
 piholeDir="/etc/${basename}"
 
-# Gravity aux files directory
-listsCacheDir="${piholeDir}/listsCache"
-
 # Legacy (pre v5.0) list file locations
 whitelistFile="${piholeDir}/whitelist.txt"
 blacklistFile="${piholeDir}/blacklist.txt"
@@ -71,6 +68,9 @@ gravityDIR="$(dirname -- "${gravityDBfile}")"
 gravityOLDfile="${gravityDIR}/gravity_old.db"
 gravityBCKdir="${gravityDIR}/gravity_backups"
 gravityBCKfile="${gravityBCKdir}/gravity.db"
+
+# Gravity aux files directory
+listsCacheDir="${gravityDIR}/listsCache"
 
 fix_owner_permissions() {
   # Fix ownership and permissions for the specified file
@@ -1119,15 +1119,33 @@ migrate_to_listsCache_dir() {
   echo -ne "  ${INFO} ${str}..."
   mkdir -p "${listsCacheDir}" && chown pihole:pihole "${listsCacheDir}"
 
-  # Move the old files to the new directory
+  local migrated=false
+
+  # Move the old (pre v6) files to the new directory
   if mv "${piholeDir}"/list.* "${listsCacheDir}/" 2>/dev/null; then
+    migrated=true
+    # Update the list's paths in the corresponding .sha1 files to the new location
+    sed -i "s|${piholeDir}/|${listsCacheDir}/|g" "${listsCacheDir}"/*.sha1 2>/dev/null
+  fi
+
+  # The cache directory used to live in ${piholeDir}, but follows gravity.db now.
+  # If gravity.db is outside of ${piholeDir}, move the existing cache over
+  local oldListsCacheDir="${piholeDir}/listsCache"
+  if [[ "${oldListsCacheDir}" != "${listsCacheDir}" && -d "${oldListsCacheDir}" ]]; then
+    if mv "${oldListsCacheDir}"/* "${listsCacheDir}/" 2>/dev/null; then
+      migrated=true
+      # The paths in the .sha1 files still point into the old cache directory
+      sed -i "s|${oldListsCacheDir}/|${listsCacheDir}/|g" "${listsCacheDir}"/*.sha1 2>/dev/null
+    fi
+    # Remove the old directory, this only succeeds if it is empty
+    rmdir "${oldListsCacheDir}" 2>/dev/null
+  fi
+
+  if [[ "${migrated}" == true ]]; then
     echo -e "${OVER}  ${TICK} ${str}"
   else
     echo -e "${OVER}  ${CROSS} ${str}"
   fi
-
-  # Update the list's paths in the corresponding .sha1 files to the new location
-  sed -i "s|${piholeDir}/|${listsCacheDir}/|g" "${listsCacheDir}"/*.sha1 2>/dev/null
 }
 
 helpFunc() {
