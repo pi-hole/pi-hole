@@ -825,6 +825,8 @@ gravity_DownloadBlocklistFromUrl() {
       # resolve the URL path on its own and possibly open a different file
       if [[ -n "${file_path}" ]]; then
         if [ "$(id -un)" == "root" ]; then
+          # The buffer belongs to the calling user, only the read must happen as pihole
+          # shellcheck disable=SC2024
           sudo -u pihole cat -- "${file_path}" >"${listCurlBuffer}"
         else
           cat -- "${file_path}" >"${listCurlBuffer}"
