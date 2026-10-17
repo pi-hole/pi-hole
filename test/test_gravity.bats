@@ -311,7 +311,7 @@ teardown() {
     assert_line --partial "${INFO} Migrating content of /etc/pihole/adlists.list into new database"
 
     assert_line --partial "${INFO} Target: file:///etc/shadow"
-    assert_line --partial "${CROSS} Cannot read file (user 'pihole' lacks read permission)"
+    assert_line --partial "${CROSS} Cannot read file (current user 'pihole' lacks read permission)"
     assert_line --partial "${CROSS} List download failed: no cached list available"
 
     refute_line --regexp "Parsed [[:digit:]]+ exact domains and [[:digit:]]+ ABP-style domains.*"
@@ -334,11 +334,32 @@ teardown() {
     assert_line --partial "${INFO} Migrating content of /etc/pihole/adlists.list into new database"
 
     assert_line --partial "${INFO} Target: file:/./etc/shadow"
-    assert_line --partial "${CROSS} etc/shadow does not exist"
+    assert_line --partial "${CROSS} Cannot read file (current user 'pihole' lacks read permission)"
     assert_line --partial "${CROSS} List download failed: no cached list available"
 
     refute_line --regexp "Parsed [[:digit:]]+ exact domains and [[:digit:]]+ ABP-style domains.*"
     refute_line --partial "Sample of non-domain entries:"
     assert_line --partial "${INFO} Number of gravity domains: 0 (0 unique domains)"
+    assert_line --partial "${TICK} Done."
+}
+
+
+@test "Gravity reads local file the pihole user was checked against" {
+    assert_file_exists /etc/shadow
+
+    run bash -c "
+        mkdir -p /lf/a/b /lf/etc
+        ln -s /lf/a/b /lf/l
+        echo 'decoy.example.com' >/lf/etc/shadow
+        chmod 644 /lf/etc/shadow
+        echo 'file:///lf/l/../../etc/shadow' >/etc/pihole/adlists.list
+        pihole -g
+    "
+    assert_success
+    assert_line --partial "${INFO} Using local file /lf/l/../../etc/shadow"
+    assert_line --partial "${TICK} Status: Retrieval successful"
+    assert_line --partial "${TICK} Parsed 1 exact domains and 0 ABP-style domains (blocking, ignored 0 non-domain entries)"
+    refute_line --partial "Sample of non-domain entries:"
+    assert_line --partial "${INFO} Number of gravity domains: 1 (1 unique domains)"
     assert_line --partial "${TICK} Done."
 }

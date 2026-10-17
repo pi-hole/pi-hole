@@ -155,8 +155,19 @@ removePiholeFiles() {
     # Remove pihole from sudoers for compatibility with old versions
     rm -f /etc/sudoers.d/pihole &> /dev/null
 
+    # Remove the git safe.directory entries added for the "pihole"-user updatechecker
+    for repo in "${PI_HOLE_LOCAL_REPO:-/etc/.pihole}" "${ADMIN_INTERFACE_DIR:-/var/www/html/admin}"; do
+        git config --system --unset-all --fixed-value safe.directory "${repo}" &> /dev/null
+    done
+
     # Remove logrotate configuration for Pi-hole
     rm -f /etc/logrotate.d/pihole &> /dev/null
+
+    # Remove remnants from older Pi-hole versions: the logrotate config used to
+    # live in /etc/pihole/, and logrotate state was tracked in a Pi-hole-specific
+    # file instead of the system's default state file
+    rm -f /etc/pihole/logrotate &> /dev/null
+    rm -f /var/lib/logrotate/pihole &> /dev/null
 
     echo -e "  ${TICK} Removed config files"
 }

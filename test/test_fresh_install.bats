@@ -90,6 +90,9 @@ EOF
     run _check_perm r /etc/pihole/dhcp.leases; assert_success
     run _check_perm r /etc/pihole/install.log; assert_success
     run _check_perm r /etc/pihole/versions; assert_success
+    # pihole -v reads the versions file as the calling user, so it has to be
+    # readable by all users, not only by the pihole user
+    run su -s /bin/bash -c "test -r /etc/pihole/versions" -p nobody; assert_success
     run _check_perm r /etc/pihole/macvendor.db; assert_success
     run _check_perm x /etc/init.d/pihole-FTL; assert_success
     run _check_perm r /etc/init.d/pihole-FTL; assert_success
@@ -121,4 +124,82 @@ EOF
             run _check_perm r "${file}"; assert_success
         done <<< "${files}"
     done <<< "${dirs}"
+}
+
+# The tests below build on the state left behind by the install test above.
+require_installed() {
+    [[ -x /opt/pihole/updatecheck.sh && -x /usr/bin/pihole-FTL ]] || skip "needs the fresh install from the first test"
+}
+
+@test "fresh install: git trusts the Core and Web repositories for the pihole user" {
+    require_installed
+
+    run git config --system --get-all safe.directory
+    assert_line "/etc/.pihole"
+    assert_line "/var/www/html/admin"
+}
+
+@test "fresh install: updatecheck.sh started as root writes the versions file as the pihole user" {
+    require_installed
+    rm -f /etc/pihole/versions
+
+    run /opt/pihole/updatecheck.sh
+    assert_success
+
+    run stat -c '%a %U' /etc/pihole/versions
+    assert_output "644 pihole"
+    run cat /etc/pihole/versions
+    assert_line --partial "FTL_VERSION="
+    # The local Core version needs git to trust the (root-owned) repository for the pihole user
+    refute_line "CORE_VERSION=null"
+}
+
+@test "fresh install: updatecheck.sh started as root does its work as the pihole user" {
+    require_installed
+    # Make /etc/pihole writable by root only. If the script really hands over to
+    # the pihole user it cannot create its temporary file there and must fail
+    # without writing anything; running as root it would succeed.
+    rm -f /etc/pihole/versions
+    chown root:root /etc/pihole
+
+    run /opt/pihole/updatecheck.sh
+    chown pihole:pihole /etc/pihole
+
+    assert_failure
+    assert [ ! -e /etc/pihole/versions ]
+}
+
+@test "fresh install: updatecheck.sh replaces a symlink at the versions path instead of following it" {
+    require_installed
+    printf 'secret' > /root/ghsa-canary
+    chmod 0600 /root/ghsa-canary
+    rm -f /etc/pihole/versions
+    ln -s /root/ghsa-canary /etc/pihole/versions
+
+    run /opt/pihole/updatecheck.sh
+    assert_success
+
+    run stat -c '%a %U' /root/ghsa-canary
+    assert_output "600 root"
+    run cat /root/ghsa-canary
+    assert_output "secret"
+    assert_file_exists /etc/pihole/versions
+    assert [ ! -L /etc/pihole/versions ]
+    rm -f /root/ghsa-canary
+}
+
+@test "fresh install: updatecheck.sh replaces a symlink to a directory at the versions path" {
+    require_installed
+    mkdir -p /root/ghsa-dir
+    chown pihole /root/ghsa-dir
+    rm -f /etc/pihole/versions
+    ln -s /root/ghsa-dir /etc/pihole/versions
+
+    run /opt/pihole/updatecheck.sh
+    assert_success
+
+    assert [ ! -L /etc/pihole/versions ]
+    assert [ -f /etc/pihole/versions ]
+    assert [ -z "$(ls -A /root/ghsa-dir)" ]
+    rm -rf /root/ghsa-dir
 }

@@ -100,9 +100,11 @@ getFTLPID() {
     if [ -s "${FTL_PID_FILE}" ]; then
         # -s: FILE exists and has a size greater than zero
         FTL_PID="$(cat "${FTL_PID_FILE}")"
-        # Exploit prevention: unset the variable if there is malicious content
-        # Verify that the value read from the file is numeric
-        expr "${FTL_PID}" : "[^[:digit:]]" > /dev/null && unset FTL_PID
+        # The pihole user owns this file, so only accept a plain number naming a running pihole-FTL
+        case "${FTL_PID}" in
+            ''|*[!0-9]*) unset FTL_PID ;;
+            *) [ "$(cat "/proc/${FTL_PID}/comm" 2>/dev/null)" = "pihole-FTL" ] || unset FTL_PID ;;
+        esac
     fi
 
     # If FTL is not running, or the PID file contains malicious stuff, substitute

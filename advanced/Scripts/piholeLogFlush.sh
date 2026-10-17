@@ -12,21 +12,14 @@ colfile="/opt/pihole/COL_TABLE"
 # shellcheck source="./advanced/Scripts/COL_TABLE"
 source ${colfile}
 
-readonly PI_HOLE_SCRIPT_DIR="/opt/pihole"
+PI_HOLE_SCRIPT_DIR="/opt/pihole"
 utilsfile="${PI_HOLE_SCRIPT_DIR}/utils.sh"
 # shellcheck source="./advanced/Scripts/utils.sh"
 source "${utilsfile}"
 
-# In case we're running at the same time as a system logrotate, use a
-# separate logrotate state file to prevent stepping on each other's
-# toes.
-STATEFILE="/var/lib/logrotate/pihole"
-
-# Determine database location
-DBFILE=$(getFTLConfigValue "files.database")
-if [ -z "$DBFILE" ]; then
-    DBFILE="/etc/pihole/pihole-FTL.db"
-fi
+# Source api functions
+# shellcheck source="./advanced/Scripts/api.sh"
+. "${PI_HOLE_SCRIPT_DIR}/api.sh"
 
 # Determine log file location
 LOGFILE=$(getFTLConfigValue "files.log.dnsmasq")
@@ -42,17 +35,24 @@ if [ -z "$WEBFILE" ]; then
     WEBFILE="/var/log/pihole/webserver.log"
 fi
 
+# The log paths come from the pihole-owned config, so never write to them as root
+as_pihole() {
+    if [[ "${EUID}" -eq 0 ]]; then
+        sudo -u pihole "$@"
+    else
+        "$@"
+    fi
+}
+
 # Helper function to handle log flushing for a single file
 flush_log() {
     local logfile="$1"
     if [[ "$*" != *"quiet"* ]]; then
         echo -ne "  ${INFO} Flushing ${logfile} ..."
     fi
-    echo " " > "${logfile}"
-    chmod 640 "${logfile}"
+    as_pihole sh -c 'echo " " > "$1" && chmod 640 "$1"' sh "${logfile}"
     if [ -f "${logfile}.1" ]; then
-        echo " " > "${logfile}.1"
-        chmod 640 "${logfile}.1"
+        as_pihole sh -c 'echo " " > "$1" && chmod 640 "$1"' sh "${logfile}.1"
     fi
     if [[ "$*" != *"quiet"* ]]; then
         echo -e "${OVER}  ${TICK} Flushed ${logfile} ..."
@@ -65,8 +65,10 @@ if [[ "$*" == *"once"* ]]; then
     if [[ "$*" != *"quiet"* ]]; then
         echo -ne "  ${INFO} Running logrotate ..."
     fi
-    mkdir -p "${STATEFILE%/*}"
-    /usr/sbin/logrotate --force --state "${STATEFILE}" /etc/logrotate.d/pihole
+    # Use logrotate's default state file so this run and the system's own
+    # scheduled logrotate (which also reads /etc/logrotate.d/pihole) agree on
+    # what's already been rotated, instead of rotating our logs twice.
+    /usr/sbin/logrotate --force /etc/logrotate.d/pihole
 else
     # Manual flushing
     flush_log "${LOGFILE}"
@@ -74,18 +76,31 @@ else
     flush_log "${WEBFILE}"
 
     if [[ "$*" != *"quiet"* ]]; then
-        echo -ne "  ${INFO} Flushing database, DNS resolution temporarily unavailable ..."
+        echo -ne "  ${INFO} Flushing the queries of the last 24 hours ..."
     fi
 
-    # Stop FTL to make sure it doesn't write to the database while we're deleting data
-    service pihole-FTL stop
+    # Authenticate with FTL
+    LoginAPI
 
-    # Delete most recent 24 hours from FTL's database, leave even older data intact (don't wipe out all history)
-    deleted=$(pihole-FTL sqlite3 -ni "${DBFILE}" "DELETE FROM query_storage WHERE timestamp >= strftime('%s','now')-86400; select changes() from query_storage limit 1")
+    # FTL drops the queries from memory and from its database while it keeps
+    # running, so DNS stays up and no service manager is needed
+    data=$(PostFTLData "action/flush/logs" "" "status")
 
-    # Restart FTL
-    service pihole-FTL restart
-    if [[ "$*" != *"quiet"* ]]; then
-        echo -e "${OVER}  ${TICK} Deleted ${deleted} queries from long-term query database"
+    # Separate the status from the data
+    status=$(printf %s "${data#"${data%???}"}")
+    data=$(printf %s "${data%???}")
+
+    # If there is an .error object in the returned data, display it
+    error=$(jq --compact-output <<< "${data}" '.error')
+    if [[ ${error} != "null" && ${error} != "" ]]; then
+        echo -e "${OVER}  ${CROSS} Failed to flush the queries:"
+        echo -e "      $(jq <<< "${data}" '.error')"
+        LogoutAPI
+        exit 1
+    elif [[ "${status}" == "200" && "$*" != *"quiet"* ]]; then
+        echo -e "${OVER}  ${TICK} Flushed the queries of the last 24 hours"
     fi
+
+    # Delete session
+    LogoutAPI
 fi

@@ -96,3 +96,43 @@ INFO="[i]"
     "
     assert_success
 }
+
+@test "installLogrotate replaces the raw PID kill in an existing logrotate file" {
+    mkdir -p /etc/logrotate.d
+    printf '%s\n' '/var/log/pihole/pihole.log {' '    postrotate' \
+        '        kill -USR2 $(cat /run/pihole-FTL.pid 2>/dev/null) 2>/dev/null || true' \
+        '    endscript' '}' > /etc/logrotate.d/pihole
+
+    run bash -c "
+        source /opt/pihole/basic-install.sh
+        installLogrotate
+    "
+    assert_success
+    run grep -F 'getFTLPID' /etc/logrotate.d/pihole
+    assert_output "$(grep -F -m1 'getFTLPID' /etc/.pihole/advanced/Templates/logrotate)"
+    run grep -F 'kill -USR2 $(cat' /etc/logrotate.d/pihole
+    assert_failure
+
+    rm -f /etc/logrotate.d/pihole
+}
+
+@test "installLogrotate replaces an unmodified v6.4.3 logrotate file with the current template" {
+    mkdir -p /etc/logrotate.d
+    awk '/^    cat > "\$\{rendered_643\}" << .EOF.$/ {f=1; next} /^EOF$/ {f=0} f' /opt/pihole/basic-install.sh |
+        sed "s/# su #/su $(stat -c '%U %G' /var/log)/" > /etc/logrotate.d/pihole
+    run grep -c -F 'kill -USR2 $(cat' /etc/logrotate.d/pihole
+    assert_output "1"
+
+    run bash -c "
+        source /opt/pihole/basic-install.sh
+        installLogrotate
+    "
+    assert_success
+    assert_output --partial "Upgraded the unmodified v6.4.3 logrotate file"
+    run grep -c -F 'getFTLPID' /etc/logrotate.d/pihole
+    assert_output "2"
+    run grep -F 'kill -USR2 $(cat' /etc/logrotate.d/pihole
+    assert_failure
+
+    rm -f /etc/logrotate.d/pihole
+}

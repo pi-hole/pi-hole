@@ -26,8 +26,11 @@
 #          parameter "quiet": don't print messages
 00 00   * * *   root    PATH="$PATH:/usr/sbin:/usr/local/bin/" pihole flush once quiet
 
-@reboot root /usr/sbin/logrotate --state /var/lib/logrotate/pihole /etc/logrotate.d/pihole
+@reboot root /usr/sbin/logrotate /etc/logrotate.d/pihole
 
-# Pi-hole: Grab remote and local version every 24 hours
-59 17  * * *   root    PATH="$PATH:/usr/sbin:/usr/local/bin/" pihole updatechecker
-@reboot root    PATH="$PATH:/usr/sbin:/usr/local/bin/" pihole updatechecker reboot
+# Pi-hole: Grab remote and local version every 24 hours.
+#          Runs as the unprivileged "pihole" user (like updateGravity above) so
+#          that root never writes into the pihole-owned /etc/pihole directory.
+#          See GHSA-xch2-4qxw-g5vj.
+59 17  * * *   pihole    PATH="$PATH:/usr/sbin:/usr/local/bin/" pihole updatechecker
+@reboot pihole    PATH="$PATH:/usr/sbin:/usr/local/bin/" pihole updatechecker reboot

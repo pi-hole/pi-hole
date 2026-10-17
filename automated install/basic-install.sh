@@ -134,12 +134,12 @@ EOM
 PIHOLE_META_PACKAGE_CONTROL_RPM=$(
     cat <<EOM
 Name: pihole-meta
-Version: 0.4
+Version: 0.5
 Release: 1
 License: EUPL
 BuildArch: noarch
 Summary: Pi-hole dependency meta package
-Requires: bash-completion,bind-utils,binutils,ca-certificates,chkconfig,cronie,curl,dialog,findutils,gawk,git,grep,iproute,jq,libcap,logrotate,lshw,procps-ng,psmisc,sudo,unzip
+Requires: bash-completion,bind-utils,binutils,ca-certificates,chkconfig,cronie,curl,dialog,diffutils,findutils,gawk,git,grep,iproute,jq,libcap,logrotate,lshw,procps-ng,psmisc,sudo,unzip
 %description
 Pi-hole dependency meta package
 %prep
@@ -147,6 +147,9 @@ Pi-hole dependency meta package
 %files
 %install
 %changelog
+* Sat Oct 17 2026 Pi-hole Team - 0.5
+- Add diffutils to the list of dependencies
+
 * Thu Dec 18 2025 Pi-hole Team - 0.4
 - Add logrotate to the list of dependencies
 
@@ -573,6 +576,47 @@ resetRepo() {
     # Return to where we came from
     popd &>/dev/null || return 1
     # Function succeeded, as "git reset" would have triggered a return earlier if it failed
+    return 0
+}
+
+mark_repos_safe() {
+    # The updatechecker cron job runs as the unprivileged "pihole" user so that
+    # root never writes into the pihole-owned /etc/pihole directory (see
+    # GHSA-xch2-4qxw-g5vj). git refuses to operate in the root-owned local repos
+    # when invoked by another user ("detected dubious ownership"), which would
+    # break local version detection, so record them in git's system-wide
+    # safe.directory list (safe.directory is only honoured from system/global
+    # config, hence --system).
+    #
+    # webInterfaceDir comes from pihole.toml, which the pihole user can edit, so
+    # it must not be trusted as given. If it were, that user could point it at a
+    # directory it controls, swap in a crafted repository and have root run git
+    # in it later (e.g. during `pihole -up`). So only trust a path that
+    #   - resolves (without symlinks) to a real directory,
+    #   - and, together with its .git, is owned by root and not world-writable,
+    #     i.e. that the pihole user cannot modify.
+    local repo
+    for repo in "${PI_HOLE_LOCAL_REPO}" "${webInterfaceDir}"; do
+        [[ -n "${repo}" ]] || continue
+        repo="$(cd "${repo}" 2>/dev/null && pwd -P)" || continue
+        [[ -n "${repo}" && -O "${repo}" && -O "${repo}/.git" ]] || continue
+        [[ -z "$(find "${repo}" "${repo}/.git" -maxdepth 0 -perm /002 2>/dev/null)" ]] || continue
+        if ! git config --system --get-all safe.directory 2>/dev/null | grep -qxF "${repo}"; then
+            # Non-fatal: a missing entry only degrades version reporting, and
+            # the installer runs under 'set -e'.
+            git config --system --add safe.directory "${repo}" || true
+        fi
+    done
+
+    # git silently ignores a system config file that the pihole user cannot read,
+    # which is what happens if it was just created under a restrictive umask.
+    # It applies to every user, so it is meant to be world-readable anyway.
+    local gitconfig
+    gitconfig="$(git config --system --show-origin --get-all safe.directory 2>/dev/null | head -n 1 | cut -f 1)"
+    gitconfig="${gitconfig#file:}"
+    if [[ -f "${gitconfig}" ]]; then
+        chmod a+r "${gitconfig}" || true
+    fi
     return 0
 }
 
@@ -1614,22 +1658,59 @@ create_pihole_user() {
 installLogrotate() {
     local str="Installing latest logrotate script"
     local target=/etc/logrotate.d/pihole
+    local template="${PI_HOLE_LOCAL_REPO}/advanced/Templates/logrotate"
+    local rendered current rendered_643 current_643
+    local logusergroup
 
-    printf "\\n  %b %s..." "${INFO}" "${str}"
-    if [[ -f ${target} ]]; then
-        if diff -q "$target" "${PI_HOLE_LOCAL_REPO}/advanced/Templates/logrotate" >/dev/null; then
-            printf "\\n\\t%b logrotate file is up to date.\\n" "${TICK}"
-            return
-        else
-            printf "\\n\\t%b logrotate file is outdated. Not updating.\\n" "${INFO}"
-            return
-        fi
-    else
-        # Copy the file over from the local repo
-        # Logrotate config file must be owned by root and not writable by group or other
-        install -o root -g root -D -m 644 -T "${PI_HOLE_LOCAL_REPO}"/advanced/Templates/logrotate ${target}
-    fi
+    # Remove remnants from older Pi-hole versions: the logrotate config used to
+    # live in /etc/pihole/, and logrotate state was tracked in a Pi-hole-specific
+    # file instead of the system's default state file. Leaving these around is
+    # harmless but can be confusing when debugging.
+    rm -f /etc/pihole/logrotate
+    rm -f /var/lib/logrotate/pihole
 
+    # The v6.4.3 template is the one shape that is both broken under FTL's cached
+    # file descriptor (no postrotate for FTL.log and webserver.log) and unmodified
+    # by the user on systems that installed v6.4.3. Render it to detect and replace.
+    rendered_643="$(mktemp /tmp/pihole-logrotate-643.XXXXXX)"
+    cat > "${rendered_643}" << 'EOF'
+/var/log/pihole/pihole.log {
+    # su #
+    daily
+    create 640 pihole pihole
+    rotate 5
+    compress
+    delaycompress
+    notifempty
+    nomail
+    postrotate
+        kill -USR2 $(cat /run/pihole-FTL.pid 2>/dev/null) 2>/dev/null || true
+    endscript
+}
+
+# FTL.log and webserver.log are opened and closed for each line, therefore no postrotate is needed
+/var/log/pihole/FTL.log {
+    # su #
+    weekly
+    create 640 pihole pihole
+    rotate 3
+    compress
+    delaycompress
+    notifempty
+    nomail
+}
+
+/var/log/pihole/webserver.log {
+    # su #
+    weekly
+    create 640 pihole pihole
+    rotate 3
+    compress
+    delaycompress
+    notifempty
+    nomail
+}
+EOF
     # Different operating systems have different user / group
     # settings for logrotate that makes it impossible to create
     # a static logrotate file that will work with e.g.
@@ -1637,11 +1718,67 @@ installLogrotate() {
     # customize the logrotate script here in order to reflect
     # the local properties of the /var/log directory
     logusergroup="$(stat -c '%U %G' /var/log)"
-    # If there is a usergroup for log rotation,
+
+    # If there is a usergroup for log rotation, replace the placeholder with it
     if [[ -n "${logusergroup}" ]]; then
-        # replace the line in the logrotate script with that usergroup.
-        sed -i "s/# su #/su ${logusergroup}/g;" ${target}
+        sed -i "s/# su #/su ${logusergroup}/g;" "${rendered_643}"
     fi
+    current_643="${rendered_643}"
+
+    # Render the current template with the su line substituted. The installed copy
+    # always carries the substituted line while the raw template holds the "# su #"
+    # placeholder, so comparing against the raw template would always report a diff.
+    rendered="$(mktemp /tmp/pihole-logrotate.XXXXXX)"
+    install -o root -g root -m 644 -T "${template}" "${rendered}"
+    # If there is a usergroup for log rotation, replace the placeholder with it
+    if [[ -n "${logusergroup}" ]]; then
+        sed -i "s/# su #/su ${logusergroup}/g;" "${rendered}"
+    fi
+    current="${rendered}"
+
+    # Older files signal whatever the pihole-owned PID file contains, so swap in the
+    # validated lookup. The v6.4.3 reference gets the same swap so it still matches
+    local old_kill new_kill file content
+    old_kill='kill -USR2 $(cat /run/pihole-FTL.pid 2>/dev/null) 2>/dev/null || true'
+    new_kill='. /opt/pihole/utils.sh; pid="$(getFTLPID)"; [ "${pid}" -gt 0 ] && kill -USR2 "${pid}" 2>/dev/null || true'
+    for file in "${target}" "${rendered_643}"; do
+        [[ -f "${file}" ]] || continue
+        content="$(<"${file}")"
+        if [[ "${content}" == *"${old_kill}"* ]]; then
+            printf '%s\n' "${content//"${old_kill}"/"${new_kill}"}" > "${file}"
+        fi
+    done
+
+    printf "\\n  %b %s..." "${INFO}" "${str}"
+    if [[ -f ${target} ]]; then
+        if diff -q "${target}" "${current}" >/dev/null; then
+            printf "\\n\\t%b logrotate file is up to date.\\n" "${TICK}"
+            rm -f "${rendered}" "${rendered_643}"
+            return
+        elif diff -q "${target}" "${current_643}" >/dev/null; then
+            # The installed file is the unmodified v6.4.3 version, which lacks
+            # the postrotate signal for FTL.log and webserver.log. Replace it
+            # with the current template so those logs get rotated correctly.
+            install -o root -g root -m 644 -T "${current}" "${target}"
+            printf "\\n\\t%b Upgraded the unmodified v6.4.3 logrotate file.\\n" "${TICK}"
+            rm -f "${rendered}" "${rendered_643}"
+            return
+        else
+            # The file was customized by the user. Do not touch it, but tell
+            # them what is missing so they can fix it themselves.
+            printf "\\n\\t%b logrotate file is outdated and differs from the default. Not updating.\\n" "${INFO}"
+            printf "\\n\\t%b Ensure all logfiles send the %bUSR2%b signal to FTL after rotation (postrotate).\\n" "${INFO}" "${COL_RED}" "${COL_NC}"
+            rm -f "${rendered}" "${rendered_643}"
+            return
+        fi
+    else
+        # Copy the rendered file over. It already carries the substituted su
+        # line, so no further customization is needed.
+        # Logrotate config file must be owned by root and not writable by group or other
+        install -o root -g root -D -m 644 -T "${current}" "${target}"
+    fi
+
+    rm -f "${rendered}" "${rendered_643}"
     printf "%b  %b %s\\n" "${OVER}" "${TICK}" "${str}"
 }
 
@@ -1844,6 +1981,9 @@ clone_or_reset_repos() {
                 exit 1
             }
     fi
+
+    # Let the "pihole"-user updatechecker cron job read these root-owned repos
+    mark_repos_safe
 }
 
 # Download FTL binary to random temp directory and install FTL binary
