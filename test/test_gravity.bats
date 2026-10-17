@@ -72,6 +72,27 @@ teardown() {
     assert_line --partial "${TICK} Done."
 }
 
+@test "Recovery ignores the domains a deleted list leaves in gravity and antigravity" {
+    # FTL keeps them until the next gravity run rebuilds both tables
+    run bash -c "
+        pihole -g > /dev/null &&
+        pihole-FTL sqlite3 -ni /etc/pihole/gravity.db \"PRAGMA foreign_keys = OFF; INSERT INTO gravity (domain, adlist_id) VALUES ('orphan.example', 999); INSERT INTO antigravity (domain, adlist_id) VALUES ('orphan.example', 999);\" &&
+        pihole -g -r recover
+    "
+    assert_success
+    assert_line --partial "${TICK} Checking foreign keys of existing gravity database (this can take a while) - no errors found"
+}
+
+@test "Recovery still reports foreign key violations in other tables" {
+    run bash -c "
+        pihole -g > /dev/null &&
+        pihole-FTL sqlite3 -ni /etc/pihole/gravity.db \"PRAGMA foreign_keys = OFF; INSERT INTO domainlist_by_group (domainlist_id, group_id) VALUES (999, 0);\" &&
+        pihole -g -r recover
+    "
+    assert_line --partial "${CROSS} Checking foreign keys of existing gravity database (this can take a while) - errors found:"
+    assert_line --partial "  - domainlist_by_group|"
+}
+
 @test "Default adlist is successfully added to gravity database" {
     run bash -c '
         echo "https://raw.githubusercontent.com/StevenBlack/hosts/master/hosts" >/etc/pihole/adlists.list
