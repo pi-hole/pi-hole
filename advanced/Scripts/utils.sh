@@ -126,7 +126,8 @@ getFTLConfigValue(){
 #######################
 # sets value in FTLs config file using pihole-FTL --config
 #
-# Takes two arguments: key and value
+# Takes two mandatory plus an optional argument: key and value plus whether to use stdin
+# via_stdin prevents the value being leaked via /proc/<pid>/cmdline
 # Example setFTLConfigValue dns.piholePTR PI.HOLE
 #
 # Note, for complex values such as dns.upstreams, you should wrap the value in single quotes:
@@ -134,7 +135,11 @@ getFTLConfigValue(){
 #######################
 setFTLConfigValue(){
     local err
-    { pihole-FTL --config "${1}" "${2}" >/dev/null; err="$?"; } || true
+    if [ -n "$3" ] && [ "$3" = "true" ]; then
+        { printf "%s\n" "${2}" | pihole-FTL --config "${1}" "-" >/dev/null; err="$?"; } || true
+    else
+        { pihole-FTL --config "${1}" "${2}" >/dev/null; err="$?"; } || true
+    fi
 
     case $err in
     0) ;;
