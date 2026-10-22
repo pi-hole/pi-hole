@@ -10,6 +10,12 @@
 
 set -o pipefail
 
+# Start from a directory every user can read. `su` keeps the caller's working
+# directory, and cron runs this from /root (mode 0700), which the pihole user
+# cannot read; git would then fail on repository discovery ("error reading
+# '/root/.git'") and the remote hashes would be written as "null".
+cd / || exit 1
+
 # This script writes into /etc/pihole, which is owned by the unprivileged
 # "pihole" user. Anything root does there by name can be redirected by a
 # symlink that user plants (GHSA-xch2-4qxw-g5vj), so never do that work as root:
