@@ -16,7 +16,10 @@ set -o pipefail
 # when started as root (the installer, `pihole -up`, `pihole checkout`,
 # `sudo pihole updatechecker`, ...) hand over to the pihole user and exit with
 # its result. The pihole user can only ever damage what it already owns.
-if [[ "$(id -u)" -eq 0 ]]; then
+# If the pihole user itself has UID 0 (PIHOLE_UID=0 in docker-pi-hole) `su`
+# cannot drop anything and there is no boundary to protect; handing over would
+# only re-run this branch forever, so carry on as we are.
+if [[ "$(id -u)" -eq 0 && "$(id -u pihole 2>/dev/null)" != "0" ]]; then
     # Only the literal "reboot" argument (see below) is passed on
     reboot_arg=""
     [[ "${1:-}" == "reboot" ]] && reboot_arg="reboot"
