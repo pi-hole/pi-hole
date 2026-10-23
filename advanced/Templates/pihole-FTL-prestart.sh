@@ -4,6 +4,17 @@
 mkdir -p /var/log/pihole
 chown -R pihole:pihole /etc/pihole/ /var/log/pihole/
 
+# Prefer setpriv over su: it opens no PAM session, while su's logind session
+# waits for remote-fs.target at boot, which can depend on this very DNS server.
+# BusyBox' setpriv (Alpine) cannot change the user, so fall back to su there
+as_pihole() {
+    if setpriv --reuid=pihole --regid=pihole --init-groups true 2>/dev/null; then
+        setpriv --reuid=pihole --regid=pihole --init-groups /bin/sh -c "$1"
+    else
+        su -s /bin/sh pihole -c "$1"
+    fi
+}
+
 # Set permissions on everything below /etc/pihole and /var/log/pihole:
 #   directories:           rwxr-xr-x (so pihole can access subdirs)
 #   files:                 rw-r----- (u+rw g+r)
@@ -17,7 +28,7 @@ chown -R pihole:pihole /etc/pihole/ /var/log/pihole/
 # the pihole user do it: it owns everything below these directories, and a
 # symlink pointing anywhere else only results in a permission error.
 # A failure here is deliberately non-fatal so it can never prevent FTL starting.
-su -s /bin/sh pihole -c '
+as_pihole '
     find /etc/pihole/ /var/log/pihole/ -type d -exec chmod 0755 {} +
     find /etc/pihole/ /var/log/pihole/ -type f ! \( -name "*.pem" -o -name "*.crt" \) -exec chmod 0640 {} +
     find /etc/pihole/ -type f \( -name "*.pem" -o -name "*.crt" \) -exec chmod 0600 {} +
@@ -36,8 +47,8 @@ su -s /bin/sh pihole -c '
 # Should the path be a symlink to something pihole has no rights to, both
 # commands simply fail with a permission error and the target is left untouched.
 # A failure here is deliberately non-fatal so it can never prevent FTL starting.
-# su is needed to change user; both files are handled in a single call.
-su -s /bin/sh pihole -c 'touch /etc/pihole/versions /etc/pihole/dhcp.leases && chmod 0644 /etc/pihole/versions /etc/pihole/dhcp.leases' || true
+# Both files are handled in a single call.
+as_pihole 'touch /etc/pihole/versions /etc/pihole/dhcp.leases && chmod 0644 /etc/pihole/versions /etc/pihole/dhcp.leases' || true
 
 # Touch files to ensure they exist (create if non-existing, preserve if existing)
 # Hardcoded PID path — see GHSA-6w8x-p785-6pm4
