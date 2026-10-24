@@ -186,3 +186,19 @@ trusted_dirs() {
     run stat -c '%a' /etc/pihole/probe/file
     assert_output "600"
 }
+
+@test "prestart drops privileges without opening a PAM session" {
+    # su's logind session waits for remote-fs.target at boot, setpriv opens none
+    setpriv --reuid=pihole --regid=pihole --init-groups true 2>/dev/null || skip "setpriv cannot change the user here"
+    mkdir -p "${BATS_TEST_TMPDIR}/shim"
+    printf '#!/bin/sh\ntouch %s/su-called\nexit 1\n' "${BATS_TEST_TMPDIR}" > "${BATS_TEST_TMPDIR}/shim/su"
+    chmod +x "${BATS_TEST_TMPDIR}/shim/su"
+    rm -f /etc/pihole/versions
+
+    run env PATH="${BATS_TEST_TMPDIR}/shim:${PATH}" sh "${PRESTART}"
+    assert_success
+
+    assert [ ! -e "${BATS_TEST_TMPDIR}/su-called" ]
+    run stat -c '%a %U' /etc/pihole/versions
+    assert_output "644 pihole"
+}
