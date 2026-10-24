@@ -48,6 +48,7 @@ GRAVITYDB=$(getFTLConfigValue files.gravity)
 GRAVITY_TMPDIR=$(getFTLConfigValue files.gravity_tmp)
 gravityDBschema="${piholeGitDir}/advanced/Templates/gravity.db.sql"
 gravityDBcopy="${piholeGitDir}/advanced/Templates/gravity_copy.sql"
+gravityDBresync="${piholeGitDir}/advanced/Templates/gravity_resync.sql"
 
 domainsExtension="domains"
 curl_connect_timeout=10
@@ -123,8 +124,28 @@ rotate_gravity_backup() {
   done
 }
 
+# Take over the list changes made while gravity was running, keeping what this run
+# found out about each list
+gravity_resync_lists() {
+  local resyncGravity
+  resyncGravity="$(cat "${gravityDBresync}")"
+  if [[ "${gravityDBfile}" != "${gravityDBfile_default}" ]]; then
+    resyncGravity="${resyncGravity//"${gravityDBfile_default}"/"${gravityDBfile}"}"
+  fi
+
+  output=$({ pihole-FTL sqlite3 -ni "${gravityTEMPfile}" <<<"${resyncGravity}"; } 2>&1)
+  status="$?"
+
+  if [[ "${status}" -ne 0 ]]; then
+    echo -e "\\n  ${CROSS} Unable to take over list changes made while gravity was running\\n"
+    echo -e "  ${CROSS} ${output}\\n"
+  fi
+}
+
 # Copy data from old to new database file and swap them
 gravity_swap_databases() {
+  gravity_resync_lists
+
   str="Swapping databases"
   echo -ne "  ${INFO} ${str}..."
 
