@@ -68,7 +68,14 @@ if [[ "$*" == *"once"* ]]; then
     # Use logrotate's default state file so this run and the system's own
     # scheduled logrotate (which also reads /etc/logrotate.d/pihole) agree on
     # what's already been rotated, instead of rotating our logs twice.
-    /usr/sbin/logrotate --force /etc/logrotate.d/pihole
+    # Because the state file is shared, the system's run may hold its lock.
+    # logrotate exits with status 3 in that case, so retry for a little while
+    # instead of silently skipping the rotation.
+    for attempt in 1 2 3 4 5 6; do
+        /usr/sbin/logrotate --force /etc/logrotate.d/pihole && break
+        [[ $? -eq 3 && ${attempt} -lt 6 ]] || break
+        sleep 30
+    done
 else
     # Manual flushing
     flush_log "${LOGFILE}"

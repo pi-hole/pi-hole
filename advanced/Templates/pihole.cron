@@ -20,11 +20,14 @@
 #          standard crontab job error handling.
 59 1    * * 7   pihole    PATH="$PATH:/usr/sbin:/usr/local/bin/" pihole updateGravity >/var/log/pihole/pihole_updateGravity.log || cat /var/log/pihole/pihole_updateGravity.log
 
-# Pi-hole: Flush the log daily at 00:00
+# Pi-hole: Flush the log daily at 00:10
 #          The flush script uses logrotate
 #          parameter "once": logrotate only once (default is twice)
 #          parameter "quiet": don't print messages
-00 00   * * *   root    PATH="$PATH:/usr/sbin:/usr/local/bin/" pihole flush once quiet
+#          Not scheduled at 00:00 on purpose: logrotate shares one state file
+#          (and lock) with the system's own logrotate run, which is commonly
+#          scheduled at midnight (e.g. systemd's logrotate.timer).
+10 00   * * *   root    PATH="$PATH:/usr/sbin:/usr/local/bin/" pihole flush once quiet
 
 @reboot root /usr/sbin/logrotate /etc/logrotate.d/pihole
 
