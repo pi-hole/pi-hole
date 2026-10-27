@@ -35,6 +35,11 @@ if [ -z "$WEBFILE" ]; then
     WEBFILE="/var/log/pihole/webserver.log"
 fi
 
+quiet=false
+if [[ "$*" == *"quiet"* ]]; then
+    quiet=true
+fi
+
 # The log paths come from the pihole-owned config, so never write to them as root
 as_pihole() {
     if [[ "${EUID}" -eq 0 ]]; then
@@ -47,14 +52,14 @@ as_pihole() {
 # Helper function to handle log flushing for a single file
 flush_log() {
     local logfile="$1"
-    if [[ "$*" != *"quiet"* ]]; then
+    if [[ "${quiet}" != true ]]; then
         echo -ne "  ${INFO} Flushing ${logfile} ..."
     fi
     as_pihole sh -c 'echo " " > "$1" && chmod 640 "$1"' sh "${logfile}"
     if [ -f "${logfile}.1" ]; then
         as_pihole sh -c 'echo " " > "$1" && chmod 640 "$1"' sh "${logfile}.1"
     fi
-    if [[ "$*" != *"quiet"* ]]; then
+    if [[ "${quiet}" != true ]]; then
         echo -e "${OVER}  ${TICK} Flushed ${logfile} ..."
     fi
 }
@@ -62,20 +67,23 @@ flush_log() {
 if [[ "$*" == *"once"* ]]; then
     # Nightly logrotation
     # Logrotate once
-    if [[ "$*" != *"quiet"* ]]; then
+    if [[ "${quiet}" != true ]]; then
         echo -ne "  ${INFO} Running logrotate ..."
     fi
     # Use logrotate's default state file so this run and the system's own
     # scheduled logrotate (which also reads /etc/logrotate.d/pihole) agree on
     # what's already been rotated, instead of rotating our logs twice.
-    /usr/sbin/logrotate --force /etc/logrotate.d/pihole
+    logrotate --force /etc/logrotate.d/pihole
+    if [[ "${quiet}" != true ]]; then
+        echo -e "${OVER}  ${TICK} Rotated logs"
+    fi
 else
     # Manual flushing
     flush_log "${LOGFILE}"
     flush_log "${FTLFILE}"
     flush_log "${WEBFILE}"
 
-    if [[ "$*" != *"quiet"* ]]; then
+    if [[ "${quiet}" != true ]]; then
         echo -ne "  ${INFO} Flushing the queries of the last 24 hours ..."
     fi
 
@@ -97,7 +105,7 @@ else
         echo -e "      $(jq <<< "${data}" '.error')"
         LogoutAPI
         exit 1
-    elif [[ "${status}" == "200" && "$*" != *"quiet"* ]]; then
+    elif [[ "${status}" == "200" && "${quiet}" != true ]]; then
         echo -e "${OVER}  ${TICK} Flushed the queries of the last 24 hours"
     fi
 
