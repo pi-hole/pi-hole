@@ -599,8 +599,15 @@ mark_repos_safe() {
     for repo in "${PI_HOLE_LOCAL_REPO}" "${webInterfaceDir}"; do
         [[ -n "${repo}" ]] || continue
         repo="$(cd "${repo}" 2>/dev/null && pwd -P)" || continue
-        [[ -n "${repo}" && -O "${repo}" && -O "${repo}/.git" ]] || continue
-        [[ -z "$(find "${repo}" "${repo}/.git" -maxdepth 0 -perm /002 2>/dev/null)" ]] || continue
+        [[ -n "${repo}" && -e "${repo}/.git" ]] || continue
+        if [[ ! -O "${repo}" || ! -O "${repo}/.git" ]] ||
+            [[ -n "$(find "${repo}" "${repo}/.git" -maxdepth 0 -perm /002 2>/dev/null)" ]]; then
+            # Skipping it silently would leave local version detection broken
+            # without a hint why (e.g. a Web repo still owned by www-data).
+            printf "  %b %s is not owned by root or is world-writable, so it is not marked as safe for git\\n" "${INFO}" "${repo}"
+            printf "      and its local version can't be detected. Make it root-owned and not world-writable, then run 'pihole -r'.\\n"
+            continue
+        fi
         if ! git config --system --get-all safe.directory 2>/dev/null | grep -qxF "${repo}"; then
             # Non-fatal: a missing entry only degrades version reporting, and
             # the installer runs under 'set -e'.
