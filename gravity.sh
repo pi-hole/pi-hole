@@ -1065,7 +1065,8 @@ gravity_optimize() {
     # query planning choices
     local str="Optimizing database"
     echo -ne "  ${INFO} ${str}..."
-    output=$( { pihole-FTL sqlite3 -ni "${gravityTEMPfile}" "PRAGMA analysis_limit=0; ANALYZE" 2>&1; } 2>&1 )
+    # A sample of 1000 rows per index records the same statistics as reading all of them
+    output=$( { pihole-FTL sqlite3 -ni "${gravityTEMPfile}" "PRAGMA analysis_limit=1000; ANALYZE" 2>&1; } 2>&1 )
     status="$?"
 
     if [[ "${status}" -ne 0 ]]; then
