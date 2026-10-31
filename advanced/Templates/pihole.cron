@@ -14,6 +14,9 @@
 # is updated or re-installed. Please make any changes to the appropriate crontab
 # or other cron file snippets.
 
+# The pihole user has no home directory, cronie refuses to run its jobs without one
+HOME=/
+
 # Pi-hole: Update the ad sources once a week on Sunday at a random time in the
 #          early morning. Download any updates from the adlists
 #          Squash output to log, then splat the log to stdout on error to allow for
