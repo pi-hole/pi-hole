@@ -35,9 +35,12 @@ case "$*" in
 esac
 EOF
 
-    cat > "${BATS_TEST_TMPDIR}/shim/sudo" <<'EOF'
+    cat > "${BATS_TEST_TMPDIR}/shim/setpriv" <<'EOF'
 #!/bin/sh
-shift 2
+while [ "$#" -gt 0 ] && [ "$1" != "--" ]; do
+    shift
+done
+[ "$1" = "--" ] && shift
 exec "$@"
 EOF
 
@@ -45,7 +48,7 @@ EOF
         "${BATS_TEST_TMPDIR}/shim/pihole-FTL" \
         "${BATS_TEST_TMPDIR}/shim/dig" \
         "${BATS_TEST_TMPDIR}/shim/curl" \
-        "${BATS_TEST_TMPDIR}/shim/sudo"
+        "${BATS_TEST_TMPDIR}/shim/setpriv"
 
     export PATH="${BATS_TEST_TMPDIR}/shim:${PATH}"
 

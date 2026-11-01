@@ -17,7 +17,7 @@ export LC_ALL=C
 # Without a terminal on stdin, mv replaces leftover root-owned files instead of prompting
 if [[ "${EUID}" -eq 0 ]]; then
   chown pihole:pihole /etc/pihole
-  exec sudo -u pihole bash "$0" "$@" </dev/null
+  exec setpriv --reuid=pihole --regid=pihole --init-groups -- bash "$0" "$@" </dev/null
 fi
 
 PI_HOLE_SCRIPT_DIR="/opt/pihole"
@@ -746,10 +746,9 @@ gravity_DownloadBlocklistFromUrl() {
   fi
 
   # If we "download" a local file (file://), verify read access before using it.
-  # When running as root (e.g., via pihole -g), check that the 'pihole' user can read the file
-  # to match the effective runtime user of FTL; otherwise, check the current user's read access
-  # (e.g., in Docker or when invoked by a non-root user). The target must
-  # resolve to a regular file and be readable by the evaluated user.
+  # When invoked as root gravity drops down to the 'pihole' user, matching FTL's
+  # runtime user and its file access. The target must resolve to a regular file
+  # and be readable by the evaluated user.
   if [[ "${url}" == "file:/"* ]]; then
     # Strip the scheme and an empty authority: file:///path and file:/path both give /path
     file_path="${url#file:}"
@@ -760,25 +759,13 @@ gravity_DownloadBlocklistFromUrl() {
         echo -e "${OVER}  ${CROSS} ${file_path} does not exist"
         download=false
     else
-        if [ "$(id -un)" == "root" ]; then
-            # If we are root, we need to check if the pihole user has read permission
-            #  otherwise, we might read files that the pihole user should not be able to read
-            if sudo -u pihole test -r "${file_path}"; then
-                echo -e "${OVER}  ${INFO} Using local file ${file_path}"
-            else
-                echo -e "${OVER}  ${CROSS} Cannot read file (user 'pihole' lacks read permission)"
-                download=false
-            fi
+        if [[ -r "${file_path}" ]]; then
+            # Output that we are using the local file
+            echo -e "${OVER}  ${INFO} Using local file ${file_path}"
         else
-            # If we are not root, we just check if the current user has read permission
-            if [[ -r "${file_path}" ]]; then
-                # Output that we are using the local file
-                echo -e "${OVER}  ${INFO} Using local file ${file_path}"
-            else
-                # Output that the file is not readable by the current user
-                echo -e "${OVER}  ${CROSS} Cannot read file (current user '$(id -un)' lacks read permission)"
-                download=false
-            fi
+            # Output that the file is not readable by the current user
+            echo -e "${OVER}  ${CROSS} Cannot read file (current user '$(id -un)' lacks read permission)"
+            download=false
         fi
     fi
   fi
@@ -824,13 +811,8 @@ gravity_DownloadBlocklistFromUrl() {
       # Read local files as the user whose access was checked above, curl would
       # resolve the URL path on its own and possibly open a different file
       if [[ -n "${file_path}" ]]; then
-        if [ "$(id -un)" == "root" ]; then
-          # The buffer belongs to the calling user, only the read must happen as pihole
-          # shellcheck disable=SC2024
-          sudo -u pihole cat -- "${file_path}" >"${listCurlBuffer}"
-        else
-          cat -- "${file_path}" >"${listCurlBuffer}"
-        fi
+        # Gravity runs as a non-root user, so a plain cat is sufficient.
+        cat -- "${file_path}" >"${listCurlBuffer}"
       fi
     else
       curlOutput=$(curl --connect-timeout ${curl_connect_timeout} -s --fail -L ${compression:+${compression}} ${customUpstreamResolver:+${customUpstreamResolver}} "${modifiedOptions[@]}" -w "${curlOutputFormat}" "${url}" -o "${listCurlBuffer}")

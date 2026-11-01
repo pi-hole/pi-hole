@@ -43,7 +43,7 @@ fi
 # The log paths come from the pihole-owned config, so never write to them as root
 as_pihole() {
     if [[ "${EUID}" -eq 0 ]]; then
-        sudo -u pihole "$@"
+        setpriv --reuid=pihole --regid=pihole --init-groups -- "$@"
     else
         "$@"
     fi
