@@ -63,6 +63,7 @@ trusted_dirs() {
     make_repo "${BATS_TEST_TMPDIR}/web"
 
     run_mark_repos_safe "${BATS_TEST_TMPDIR}/core" "${BATS_TEST_TMPDIR}/web"
+    refute_output --partial "is not owned by root or is world-writable"
 
     run trusted_dirs
     assert_line "${BATS_TEST_TMPDIR}/core"
@@ -87,6 +88,7 @@ trusted_dirs() {
     chown -R pihole "${BATS_TEST_TMPDIR}/web"
 
     run_mark_repos_safe "${BATS_TEST_TMPDIR}/core" "${BATS_TEST_TMPDIR}/web"
+    assert_output --partial "${BATS_TEST_TMPDIR}/web is not owned by root or is world-writable"
 
     run trusted_dirs
     assert_line "${BATS_TEST_TMPDIR}/core"
@@ -99,6 +101,7 @@ trusted_dirs() {
     chown -R pihole "${BATS_TEST_TMPDIR}/web/.git"
 
     run_mark_repos_safe "${BATS_TEST_TMPDIR}/core" "${BATS_TEST_TMPDIR}/web"
+    assert_output --partial "${BATS_TEST_TMPDIR}/web is not owned by root or is world-writable"
 
     run trusted_dirs
     refute_line "${BATS_TEST_TMPDIR}/web"
@@ -110,6 +113,7 @@ trusted_dirs() {
     chmod 0777 "${BATS_TEST_TMPDIR}/web"
 
     run_mark_repos_safe "${BATS_TEST_TMPDIR}/core" "${BATS_TEST_TMPDIR}/web"
+    assert_output --partial "${BATS_TEST_TMPDIR}/web is not owned by root or is world-writable"
 
     run trusted_dirs
     refute_line "${BATS_TEST_TMPDIR}/web"
@@ -137,7 +141,9 @@ trusted_dirs() {
     make_repo "${BATS_TEST_TMPDIR}/core"
 
     run_mark_repos_safe "${BATS_TEST_TMPDIR}/core" "${BATS_TEST_TMPDIR}/does-not-exist"
+    refute_output --partial "is not owned by root or is world-writable"
     run_mark_repos_safe "${BATS_TEST_TMPDIR}/core" ""
+    refute_output --partial "is not owned by root or is world-writable"
 
     run trusted_dirs
     assert_output "${BATS_TEST_TMPDIR}/core"
