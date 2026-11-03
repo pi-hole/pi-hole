@@ -69,6 +69,7 @@ jobs:
             fedora_42,
             fedora_43,
             fedora_44,
+            fedora_45,
             alpine_3_21,
             alpine_3_22,
             alpine_3_23,
