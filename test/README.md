@@ -1,10 +1,10 @@
 # Recommended way to run tests
 
-The test suite is implemented with BATS and runs inside distro-specific Docker containers.
+The test suite is implemented with BATS and runs inside distro-specific OCI containers.
 
 ## Requirements
 
-- Docker (with buildx support)
+- Docker (with buildx support) or Podman
 - Bash shell
 
 ## Run tests

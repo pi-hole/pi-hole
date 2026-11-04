@@ -13,11 +13,11 @@ This is Pi-hole's core repository: the installer, the `pihole` command line inte
 - `advanced/Templates` and `advanced/` generally - service files, templates and assets installed onto the system
 - `gravity.sh` - builds `gravity.db` from configured blocklists
 - `manpages/` - man pages
-- `test/` - BATS test suite, run inside distro-specific Docker containers
+- `test/` - BATS test suite, run inside distro-specific OCI containers
 
 ## Dev environment tips
 
-- You need Docker (with buildx) and a bash shell; tests and most realistic verification run inside containers, not on the host.
+- You need Docker (with buildx) or Podman and a bash shell; tests and most realistic verification run inside containers, not on the host.
 - Keep scripts bash-compatible across all supported distros; do not introduce dependencies that are not available (or installed by the installer) on all of them.
 - Installed scripts must remain executable.
 
