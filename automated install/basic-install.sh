@@ -114,7 +114,7 @@ c=70
 
 # Version of Pi-hole's meta package on APT based systems
 # Must be incremented whenever dependencies in PIHOLE_META_PACKAGE_CONTROL_APT change
-PIHOLE_META_VERSION_APT=0.7
+PIHOLE_META_VERSION_APT=0.8
 
 # Content of Pi-hole's meta package control file on APT based systems
 PIHOLE_META_PACKAGE_CONTROL_APT=$(
@@ -124,7 +124,7 @@ Version: ${PIHOLE_META_VERSION_APT}
 Maintainer: Pi-hole team <adblock@pi-hole.net>
 Architecture: all
 Description: Pi-hole dependency meta package
-Depends: awk,bash-completion,binutils,ca-certificates,cron|cron-daemon,curl,dialog,bind9-dnsutils|dnsutils,dns-root-data,git,grep,iproute2,iputils-ping,jq,libcap2,libcap2-bin,logrotate,lshw,procps,psmisc,sudo,unzip
+Depends: awk,bash-completion,binutils,ca-certificates,cron|cron-daemon,curl,dialog,bind9-dnsutils|dnsutils,dns-root-data,git,grep,iproute2,iputils-ping,jq,libcap2,libcap2-bin,logrotate,lshw,procps,psmisc,util-linux,unzip
 Section: contrib/metapackages
 Priority: optional
 EOM
@@ -134,12 +134,12 @@ EOM
 PIHOLE_META_PACKAGE_CONTROL_RPM=$(
     cat <<EOM
 Name: pihole-meta
-Version: 0.5
+Version: 0.6
 Release: 1
 License: EUPL
 BuildArch: noarch
 Summary: Pi-hole dependency meta package
-Requires: bash-completion,bind-utils,binutils,ca-certificates,chkconfig,cronie,curl,dialog,diffutils,findutils,gawk,git,grep,iproute,jq,libcap,logrotate,lshw,procps-ng,psmisc,sudo,unzip
+Requires: bash-completion,bind-utils,binutils,ca-certificates,chkconfig,cronie,curl,dialog,diffutils,findutils,gawk,git,grep,iproute,jq,libcap,logrotate,lshw,procps-ng,psmisc,util-linux,unzip
 %description
 Pi-hole dependency meta package
 %prep
@@ -147,6 +147,9 @@ Pi-hole dependency meta package
 %files
 %install
 %changelog
+* Mon Nov 02 2026 Pi-hole Team - 0.6
+- Replace sudo with util-linux in the list of dependencies
+
 * Sat Oct 17 2026 Pi-hole Team - 0.5
 - Add diffutils to the list of dependencies
 
@@ -165,7 +168,7 @@ EOM
 )
 
 # List of required packages on APK based systems
-PIHOLE_META_VERSION_APK=0.3
+PIHOLE_META_VERSION_APK=0.4
 PIHOLE_META_DEPS_APK=(
     bash
     bash-completion
@@ -188,8 +191,8 @@ PIHOLE_META_DEPS_APK=(
     ncurses
     procps-ng
     psmisc
+    setpriv
     shadow
-    sudo
     tzdata
     unzip
 )
@@ -1589,8 +1592,8 @@ installCron() {
 # Gravity is a very important script as it aggregates all of the domains into a single HOSTS formatted list,
 # which is what Pi-hole needs to begin blocking ads
 runGravity() {
-    # Run gravity in the current shell as user pihole
-    { sudo -u pihole bash /opt/pihole/gravity.sh --force; }
+    # gravity.sh drops to the pihole user itself
+    { bash /opt/pihole/gravity.sh --force; }
 }
 
 # Check if the pihole user exists and create if it does not
@@ -2423,26 +2426,34 @@ main() {
         printf "      The Pi-hole requires elevated privileges to install and run\\n"
         printf "      Please check the installer for any concerns regarding this requirement\\n"
         printf "      Make sure to download this script from a trusted source\\n\\n"
-        printf "  %b Sudo utility check" "${INFO}"
+        printf "  %b Privilege escalation utility check" "${INFO}"
 
-        # If the sudo command exists, try rerunning as admin
+        # Identify whether sudo or doas is present
+        local SUDO_COMMAND
         if is_command sudo; then
-            printf "%b  %b Sudo utility check\\n" "${OVER}" "${TICK}"
+            printf "%b  %b Privilege escalation utility check - sudo present\\n" "${OVER}" "${TICK}"
+            SUDO_COMMAND="sudo"
+        elif is_command doas; then
+            printf "%b  %b Privilege escalation utility check - doas present\\n" "${OVER}" "${TICK}"
+            SUDO_COMMAND="doas"
+        fi
 
+        # If the sudo/doas command exists, try rerunning as admin
+        if [[ -n "${SUDO_COMMAND}" ]]; then
             # when run via curl piping
             if [[ "$0" == "bash" ]]; then
                 # Download the install script and run it with admin rights
-                exec curl -sSL https://install.pi-hole.net | sudo bash "$@"
+                exec curl -sSL https://install.pi-hole.net | "${SUDO_COMMAND}" bash "$@"
             else
                 # when run via calling local bash script
-                exec sudo bash "$0" "$@"
+                exec "${SUDO_COMMAND}" bash "$0" "$@"
             fi
 
             exit $?
         else
             # Otherwise, tell the user they need to run the script as root, and bail
-            printf "%b  %b Sudo utility check\\n" "${OVER}" "${CROSS}"
-            printf "  %b Sudo is needed for the Web Interface to run pihole commands\\n\\n" "${INFO}"
+            printf "%b  %b Privilege escalation utility check\\n" "${OVER}" "${CROSS}"
+            printf "  %b Elevated privileges are needed to install Pi-hole\\n\\n" "${INFO}"
             printf "  %b %bPlease re-run this installer as root${COL_NC}\\n" "${INFO}" "${COL_RED}"
             exit 1
         fi
