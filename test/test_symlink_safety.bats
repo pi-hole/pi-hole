@@ -33,7 +33,7 @@ setup() {
 teardown() {
     git config --system --unset-all safe.directory || true
     rm -rf /etc/pihole/probe /etc/pihole/migration_backup_v6 /etc/pihole/hosts
-    rm -f /etc/pihole/versions /etc/pihole/dhcp.leases
+    rm -f /etc/pihole/versions /etc/pihole/dhcp.leases /etc/pihole/install.log
     rm -f /etc/dnsmasq.d/01-pihole.conf /etc/dnsmasq.d/06-rfc6761.conf
 }
 
@@ -259,4 +259,41 @@ trusted_dirs() {
 
     run ls -A "${BATS_TEST_TMPDIR}/target"
     assert_output ""
+}
+
+@test "copy_to_install_log does not follow a symlink at the install log path" {
+    chown pihole:pihole /etc/pihole
+    printf 'secret' > "${BATS_TEST_TMPDIR}/secret"
+    chmod 0600 "${BATS_TEST_TMPDIR}/secret"
+    chown root:root "${BATS_TEST_TMPDIR}/secret"
+    ln -sf "${BATS_TEST_TMPDIR}/secret" /etc/pihole/install.log
+
+    run bash -c "
+        source /opt/pihole/basic-install.sh
+        exec 3< <(printf 'installer output\n')
+        copy_to_install_log
+    "
+
+    run stat -c '%a %U' "${BATS_TEST_TMPDIR}/secret"
+    assert_output "600 root"
+    run cat "${BATS_TEST_TMPDIR}/secret"
+    assert_output "secret"
+}
+
+@test "copy_to_install_log writes a world-readable log owned by pihole" {
+    chown pihole:pihole /etc/pihole
+    rm -f /etc/pihole/install.log
+
+    run bash -c "
+        umask 0077
+        source /opt/pihole/basic-install.sh
+        exec 3< <(printf 'installer output\n')
+        copy_to_install_log
+    "
+    assert_success
+
+    run stat -c '%a %U' /etc/pihole/install.log
+    assert_output "644 pihole"
+    run cat /etc/pihole/install.log
+    assert_output "installer output"
 }

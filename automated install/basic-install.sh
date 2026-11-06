@@ -2331,9 +2331,10 @@ make_temporary_log() {
 copy_to_install_log() {
     # Copy the contents of file descriptor 3 into the install log
     # Since we use color codes such as '\e[1;33m', they should be removed
-    sed 's/\[[0-9;]\{1,5\}m//g' </proc/$$/fd/3 >"${installLogLoc}"
-    chmod 644 "${installLogLoc}"
-    chown pihole:pihole "${installLogLoc}"
+    # Root reads this shell's fd 3, but the log is written by the pihole user
+    # because it lives in the pihole-owned /etc/pihole
+    # shellcheck disable=SC2016 # $1 is expanded by the inner shell
+    sed 's/\[[0-9;]\{1,5\}m//g' </proc/$$/fd/3 | as_pihole sh -c 'umask 022 && cat >"$1"' sh "${installLogLoc}"
 }
 
 disableLighttpd() {
