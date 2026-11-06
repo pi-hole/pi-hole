@@ -275,6 +275,14 @@ is_command() {
     command -v "${check_command}" >/dev/null 2>&1
 }
 
+# /etc/pihole is owned by the pihole user, who can replace anything in it with a
+# symlink. Root would follow such a symlink, so anything written into
+# /etc/pihole must be written as pihole (GHSA-wp3p-45h3-2v82). Start from / so
+# the command does not inherit a working directory pihole cannot access.
+as_pihole() {
+    (cd / && setpriv --reuid=pihole --regid=pihole --init-groups -- "$@")
+}
+
 check_fresh_install() {
     # in case of an update (can be a v5 -> v6 or v6 -> v6 update) or repair
     if [[ -f "${PI_HOLE_V6_CONFIG}" ]] || [[ -f "/etc/pihole/setupVars.conf" ]]; then
@@ -1188,10 +1196,9 @@ installDefaultBlocklists() {
 }
 
 move_old_dnsmasq_ftl_configs() {
-    # Create migration directory /etc/pihole/migration_backup_v6
-    # and make it owned by pihole:pihole
-    mkdir -p "${V6_CONF_MIGRATION_DIR}"
-    chown pihole:pihole "${V6_CONF_MIGRATION_DIR}"
+    # Create migration directory /etc/pihole/migration_backup_v6 as the pihole
+    # user, so a symlink planted at that path cannot redirect root
+    as_pihole mkdir -p "${V6_CONF_MIGRATION_DIR}"
 
     # Move all conf files originally created by Pi-hole into this directory
     # - 01-pihole.conf
@@ -1199,8 +1206,17 @@ move_old_dnsmasq_ftl_configs() {
     # - 04-pihole-static-dhcp.conf
     # - 05-pihole-custom-cname.conf
     # - 06-rfc6761.conf
-    mv /etc/dnsmasq.d/0{1,2,4,5}-pihole*.conf "${V6_CONF_MIGRATION_DIR}/" 2>/dev/null || true
-    mv /etc/dnsmasq.d/06-rfc6761.conf "${V6_CONF_MIGRATION_DIR}/" 2>/dev/null || true
+    # Root only removes the originals from the root-owned /etc/dnsmasq.d; the
+    # copy into the pihole-owned directory is made by the pihole user
+    local conf
+    for conf in /etc/dnsmasq.d/0{1,2,4,5}-pihole*.conf /etc/dnsmasq.d/06-rfc6761.conf; do
+        [[ -f "${conf}" ]] || continue
+        if as_pihole cp "${conf}" "${V6_CONF_MIGRATION_DIR}/"; then
+            rm -f "${conf}"
+        else
+            printf "  %b Unable to move %s to %s\\n" "${CROSS}" "${conf}" "${V6_CONF_MIGRATION_DIR}"
+        fi
+    done
 
     # If the dnsmasq main config file exists
     local dnsmasq_conf="/etc/dnsmasq.conf"
@@ -1303,9 +1319,10 @@ installConfigs() {
     # Ensure that permissions are correctly set
     chown -R pihole:pihole /etc/pihole
 
-    # Install empty custom.list file if it does not exist
+    # Install empty custom.list file if it does not exist. Create it as the
+    # pihole user: install -D follows a symlink planted at hosts/
     if [[ ! -r "${PI_HOLE_CONFIG_DIR}/hosts/custom.list" ]]; then
-        if ! install -D -T -o pihole -g pihole -m 660 /dev/null "${PI_HOLE_CONFIG_DIR}/hosts/custom.list" &>/dev/null; then
+        if ! as_pihole install -D -T -m 660 /dev/null "${PI_HOLE_CONFIG_DIR}/hosts/custom.list" &>/dev/null; then
             printf "  %b Error: Unable to initialize configuration file %s/custom.list\\n" "${COL_RED}" "${PI_HOLE_CONFIG_DIR}/hosts"
             return 1
         fi
@@ -2037,8 +2054,9 @@ FTLinstall() {
         if sha1sum --status --quiet -c "${binary}".sha1; then
             printf "transferred... "
 
-            # Before stopping FTL, we download the macvendor database
-            curl -sSL "https://ftl.pi-hole.net/macvendor.db" -o "${PI_HOLE_CONFIG_DIR}/macvendor.db" || true
+            # Before stopping FTL, we download the macvendor database. It goes
+            # into the pihole-owned /etc/pihole, so download it as that user
+            as_pihole curl -sSL "https://ftl.pi-hole.net/macvendor.db" -o "${PI_HOLE_CONFIG_DIR}/macvendor.db" || true
 
 
             # If the binary already exists in /usr/bin, then we need to stop the service
@@ -2538,6 +2556,10 @@ main() {
 
     # Create the pihole user
     create_pihole_user
+
+    # Hand /etc/pihole to the pihole user before anything below writes into it
+    # as that user. On a fresh install it was created root-owned above.
+    chown pihole:pihole "${PI_HOLE_CONFIG_DIR}"
 
     # Download and install FTL
     local binary
