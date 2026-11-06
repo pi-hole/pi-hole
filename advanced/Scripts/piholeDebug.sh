@@ -853,6 +853,13 @@ make_array_from_file() {
     processed=$(read_pihole_file "${filename}" sed -e 's/^\s*#.*$//' -e '/^$/d' "${filename}")
 
     while IFS= read -r line; do
+        # Never log the password hashes or the TOTP secret from pihole.toml: the
+        # log may be uploaded to tricorder (GHSA-qfq3-88xg-765w). An empty value
+        # is shown as-is, so the log still tells whether one is set.
+        if [[ "${line}" =~ ^([[:space:]]*(pwhash|app_pwhash|totp_secret)[[:space:]]*=)[[:space:]]*(.*)$ ]] && \
+            [[ "${BASH_REMATCH[3]}" != '""'* ]]; then
+            line="${BASH_REMATCH[1]} \"<removed>\""
+        fi
         # If the string contains "### CHANGED", highlight this part in red
         log_write "   ${line//### CHANGED/${COL_RED}### CHANGED${COL_NC}}"
         ((i++))

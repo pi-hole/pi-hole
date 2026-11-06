@@ -293,3 +293,25 @@ setup_debug_dirs() {
     rm -rf /opt/pihole-test-shim
     assert_output --partial "token=https://tricorder.pi-hole.net/pihole:/var/log/pihole/pihole_debug.log"
 }
+
+@test "piholeDebug.sh does not log the password hashes or the TOTP secret" {
+    setup_debug_dirs
+    # As written by pihole-FTL, with a value-changed marker on one line
+    cat > /etc/pihole/pihole.toml <<'EOF'
+[webserver.api]
+  # Password hash
+  pwhash = "$BALLOON-SHA256$v=1$s=1024,t=32$CANARY-PWHASH" ### CHANGED, default = ""
+  totp_secret = "CANARY-TOTP"
+  app_pwhash = ""
+  app_sudo = false
+EOF
+    chown pihole:pihole /etc/pihole/pihole.toml
+
+    debug_fn 'make_array_from_file /etc/pihole/pihole.toml'
+    refute_output --partial "CANARY"
+    assert_output --partial 'pwhash = "<removed>"'
+    assert_output --partial 'totp_secret = "<removed>"'
+    # Empty values and other keys are kept
+    assert_output --partial 'app_pwhash = ""'
+    assert_output --partial "app_sudo = false"
+}
