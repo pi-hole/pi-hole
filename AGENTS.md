@@ -45,7 +45,7 @@ This is Pi-hole's core repository: the installer, the `pihole` command line inte
 
 - The installer and most scripts run as root on end-user systems. Quote variables, validate all user-supplied and downloaded input, and avoid constructs that can expand into unintended commands.
 - Gravity consumes remote blocklists; treat downloaded content as untrusted data, never as executable input.
-- If you believe you have found a vulnerability, do not open a public issue or PR; report it privately per the organisation's security policy (disclosure@pi-hole.net).
+- If you believe you have found a vulnerability, do not open a public issue or PR, but use the Security Advisory process detailed by GitHub at https://docs.github.com/en/code-security/how-tos/report-and-fix-vulnerabilities/report-privately. As a fallback you can report it privately per the organisation's security policy (disclosure@pi-hole.net).
 
 ## Common pitfalls
 
