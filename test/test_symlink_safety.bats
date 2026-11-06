@@ -34,6 +34,7 @@ teardown() {
     git config --system --unset-all safe.directory || true
     rm -rf /etc/pihole/probe
     rm -f /etc/pihole/versions /etc/pihole/dhcp.leases
+    rm -f /etc/pihole/pihole.toml /var/log/pihole/FTL.log /var/log/pihole/pihole_debug.log
 }
 
 # Create a git repository owned by root, readable by everyone
@@ -191,4 +192,104 @@ trusted_dirs() {
     assert_output "700"
     run stat -c '%a' /etc/pihole/probe/file
     assert_output "600"
+}
+
+# piholeDebug.sh (pihole -d) runs as root and reads and writes files in
+# /etc/pihole and /var/log/pihole (GHSA-jvg9-fm8x-2jqq). Its functions are
+# tested directly: the script is sourced without the list of steps at its end,
+# which needs a running pihole-FTL.
+debug_fn() {
+    sed '/^# Run through all the functions we made$/,$d' /opt/pihole/piholeDebug.sh > "${BATS_TEST_TMPDIR}/debug-functions.sh"
+    run bash -c "
+        source '${BATS_TEST_TMPDIR}/debug-functions.sh' 2>/dev/null
+        make_temporary_log
+        ${1}
+    "
+}
+
+# Directory layout as left by pihole-FTL-prestart.sh, plus a root-only file
+setup_debug_dirs() {
+    mkdir -p /etc/pihole /var/log/pihole
+    chown pihole:pihole /etc/pihole /var/log/pihole
+    printf 'root:CANARY-SECRET:0:0\n' > "${BATS_TEST_TMPDIR}/secret"
+    chmod 0600 "${BATS_TEST_TMPDIR}/secret"
+    chown root:root "${BATS_TEST_TMPDIR}/secret"
+}
+
+@test "piholeDebug.sh shows the content of a regular log in /var/log/pihole" {
+    setup_debug_dirs
+    printf 'FTL started\n' > /var/log/pihole/FTL.log
+    chown pihole:pihole /var/log/pihole/FTL.log
+    chmod 0640 /var/log/pihole/FTL.log
+
+    debug_fn 'head_tail_log /var/log/pihole/FTL.log 35'
+    assert_success
+    assert_output --partial "FTL started"
+}
+
+@test "piholeDebug.sh does not follow a symlink when reading a log in /var/log/pihole" {
+    setup_debug_dirs
+    ln -s "${BATS_TEST_TMPDIR}/secret" /var/log/pihole/FTL.log
+    chown -h pihole:pihole /var/log/pihole/FTL.log
+
+    debug_fn 'head_tail_log /var/log/pihole/FTL.log 35'
+    refute_output --partial "CANARY-SECRET"
+}
+
+@test "piholeDebug.sh does not follow a symlink when reading a file in /etc/pihole" {
+    setup_debug_dirs
+    ln -s "${BATS_TEST_TMPDIR}/secret" /etc/pihole/pihole.toml
+    chown -h pihole:pihole /etc/pihole/pihole.toml
+
+    debug_fn 'make_array_from_file /etc/pihole/pihole.toml'
+    refute_output --partial "CANARY-SECRET"
+}
+
+@test "piholeDebug.sh does not follow a symlink at the debug log path" {
+    setup_debug_dirs
+    ln -s "${BATS_TEST_TMPDIR}/secret" /var/log/pihole/pihole_debug.log
+    chown -h pihole:pihole /var/log/pihole/pihole_debug.log
+
+    debug_fn 'log_write "debug output"; copy_to_debug_log'
+    assert_success
+
+    # The target is untouched
+    run cat "${BATS_TEST_TMPDIR}/secret"
+    assert_output "root:CANARY-SECRET:0:0"
+    run stat -c '%a %U:%G' "${BATS_TEST_TMPDIR}/secret"
+    assert_output "600 root:root"
+
+    # The symlink has been replaced by a new log readable by the pihole group
+    run stat -c '%F %a %U:%G' /var/log/pihole/pihole_debug.log
+    assert_output "regular file 640 pihole:pihole"
+    run cat /var/log/pihole/pihole_debug.log
+    assert_output --partial "debug output"
+}
+
+@test "piholeDebug.sh replaces a root-owned debug log left by an older version" {
+    setup_debug_dirs
+    printf 'old log\n' > /var/log/pihole/pihole_debug.log
+    chown root:pihole /var/log/pihole/pihole_debug.log
+    chmod 0640 /var/log/pihole/pihole_debug.log
+
+    debug_fn 'log_write "new log"; copy_to_debug_log'
+    assert_success
+
+    run cat /var/log/pihole/pihole_debug.log
+    assert_output --partial "new log"
+    refute_output --partial "old log"
+}
+
+@test "piholeDebug.sh uploads the debug log as the pihole user" {
+    setup_debug_dirs
+    # curl stand-in: report who runs it and which file it was given
+    mkdir -p "${BATS_TEST_TMPDIR}/shim"
+    printf '#!/bin/sh\nfor a; do f="$a"; [ "$prev" = "--upload-file" ] && file="$a"; prev="$a"; done\necho "https://tricorder.pi-hole.net/$(id -un):${file}"\n' > "${BATS_TEST_TMPDIR}/shim/curl"
+    chmod 0755 "${BATS_TEST_TMPDIR}/shim" "${BATS_TEST_TMPDIR}/shim/curl"
+    # BATS_TEST_TMPDIR may not be traversable by the pihole user
+    cp -a "${BATS_TEST_TMPDIR}/shim" /opt/pihole-test-shim
+
+    debug_fn 'PATH="/opt/pihole-test-shim:${PATH}"; curl_to_tricorder; echo "token=${tricorder_token}"'
+    rm -rf /opt/pihole-test-shim
+    assert_output --partial "token=https://tricorder.pi-hole.net/pihole:/var/log/pihole/pihole_debug.log"
 }
