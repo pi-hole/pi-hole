@@ -363,3 +363,31 @@ teardown() {
     assert_line --partial "${INFO} Number of gravity domains: 1 (1 unique domains)"
     assert_line --partial "${TICK} Done."
 }
+
+@test "Gravity keeps list changes made while it runs" {
+    # The second run waits for the connect timeout of its download, the lists are changed meanwhile
+    run bash -c "
+        echo 'http://10.0.0.1/list' >/etc/pihole/adlists.list
+        pihole -g >/dev/null
+        pihole-FTL sqlite3 /etc/pihole/gravity.db \"INSERT INTO domainlist (type, domain) VALUES (1, 'removed.during.gravity'); UPDATE adlist SET number = 42, status = 0;\"
+        pihole -g >/tmp/gravity.out 2>&1 &
+        for i in \$(seq 1 100); do grep -q 'Target: http://10.0.0.1/list' /tmp/gravity.out && break; sleep 0.1; done
+        pihole-FTL sqlite3 /etc/pihole/gravity.db \"INSERT INTO domainlist (type, domain) VALUES (1, 'added.during.gravity'); DELETE FROM domainlist WHERE domain = 'removed.during.gravity'; INSERT INTO [group] (name) VALUES ('added during gravity'); UPDATE adlist SET comment = 'changed during gravity';\"
+        wait
+        cat /tmp/gravity.out
+        rm -f /tmp/gravity.out
+    "
+    assert_success
+    assert_line --partial "${TICK} Done."
+    refute_line --partial "Unable to take over list changes"
+
+    run pihole-FTL sqlite3 /etc/pihole/gravity.db "SELECT domain FROM domainlist JOIN domainlist_by_group ON domainlist_id = id;"
+    assert_output "added.during.gravity"
+
+    run pihole-FTL sqlite3 /etc/pihole/gravity.db "SELECT name FROM [group] WHERE id > 0;"
+    assert_output "added during gravity"
+
+    # The comment is taken over, number and status are what this run found
+    run pihole-FTL sqlite3 /etc/pihole/gravity.db "SELECT comment, number, status FROM adlist;"
+    assert_output "changed during gravity|0|4"
+}
