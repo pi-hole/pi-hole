@@ -1148,7 +1148,8 @@ database_integrity_check(){
 
       log_write "${INFO} Checking foreign key constraints of ${database} ... (this can take several minutes)"
       unset result
-      result="$(pihole-FTL sqlite3 -ni "${database}" -cmd ".headers on" -cmd ".mode column" "PRAGMA foreign_key_check" 2>&1 & spinner)"
+      # Domains of a deleted list stay in gravity and antigravity until the next run
+      result="$(pihole-FTL sqlite3 -ni "${database}" -cmd ".headers on" -cmd ".mode column" "SELECT * FROM pragma_foreign_key_check WHERE \"table\" NOT IN ('gravity','antigravity')" 2>&1 & spinner)"
       if [[ -z ${result} ]]; then
         log_write "${TICK} No foreign key errors in ${database}"
       else
