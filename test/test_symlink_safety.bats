@@ -73,7 +73,7 @@ trusted_dirs() {
 @test "mark_repos_safe trusts the resolved path, not the symlink pointing at it" {
     make_repo "${BATS_TEST_TMPDIR}/core"
     make_repo "${BATS_TEST_TMPDIR}/real-web"
-    ln -s "${BATS_TEST_TMPDIR}/real-web" "${BATS_TEST_TMPDIR}/web-link"
+    ln -sf "${BATS_TEST_TMPDIR}/real-web" "${BATS_TEST_TMPDIR}/web-link"
 
     run_mark_repos_safe "${BATS_TEST_TMPDIR}/core" "${BATS_TEST_TMPDIR}/web-link"
 
@@ -214,7 +214,7 @@ checkout_fn() {
 
 @test "piholeCheckout.sh does not follow a symlink at the ftlbranch path" {
     setup_root_secret
-    ln -s /opt/pihole-test-root/secret /etc/pihole/ftlbranch
+    ln -sf /opt/pihole-test-root/secret /etc/pihole/ftlbranch
     chown -h pihole:pihole /etc/pihole/ftlbranch
 
     checkout_fn 'set_ftl_branch development'
@@ -277,7 +277,7 @@ uninstall_fn() {
     make_repo "${BATS_TEST_TMPDIR}/admin"
     git -C "${BATS_TEST_TMPDIR}/admin" remote add origin https://github.com/pi-hole/web.git
     mkdir -p "${BATS_TEST_TMPDIR}/admin/sub" "${BATS_TEST_TMPDIR}/plain"
-    ln -s "${BATS_TEST_TMPDIR}/admin" "${BATS_TEST_TMPDIR}/link"
+    ln -sf "${BATS_TEST_TMPDIR}/admin" "${BATS_TEST_TMPDIR}/link"
 
     for dir in other admin/sub plain link; do
         uninstall_fn "ADMIN_INTERFACE_DIR='${BATS_TEST_TMPDIR}/${dir}/'; removeWebInterface"
