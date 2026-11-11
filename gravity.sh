@@ -468,8 +468,10 @@ gravity_DownloadBlocklists() {
   # Gravity copying SQL script
   copyGravity="$(cat "${gravityDBcopy}")"
   if [[ "${gravityDBfile}" != "${gravityDBfile_default}" ]]; then
-    # Replace default gravity script location by custom location
-    copyGravity="${copyGravity//"${gravityDBfile_default}"/"${gravityDBfile}"}"
+    # Replace default gravity script location by custom location, doubling
+    # single quotes so the path stays one SQL string literal
+    local gravityDBfile_sql=${gravityDBfile//"'"/"''"}
+    copyGravity="${copyGravity//"${gravityDBfile_default}"/"${gravityDBfile_sql}"}"
   fi
 
   output=$({ pihole-FTL sqlite3 -ni "${gravityTEMPfile}" <<<"${copyGravity}"; } 2>&1)
