@@ -10,6 +10,12 @@
 
 set -o pipefail
 
+# Start from a directory every user can read. `setpriv` keeps the caller's working
+# directory, and cron runs this from /root (mode 0700), which the pihole user
+# cannot read; git would then fail on repository discovery ("error reading
+# '/root/.git'") and the remote hashes would be written as "null".
+cd / || exit 1
+
 # This script writes into /etc/pihole, which is owned by the unprivileged
 # "pihole" user. Anything root does there by name can be redirected by a
 # symlink that user plants (GHSA-xch2-4qxw-g5vj), so never do that work as root:
@@ -20,7 +26,7 @@ if [[ "$(id -u)" -eq 0 ]]; then
     # Only the literal "reboot" argument (see below) is passed on
     reboot_arg=""
     [[ "${1:-}" == "reboot" ]] && reboot_arg="reboot"
-    su -s /bin/sh pihole -c "/opt/pihole/updatecheck.sh ${reboot_arg}"
+    setpriv --reuid=pihole --regid=pihole --init-groups -- /opt/pihole/updatecheck.sh ${reboot_arg}
     exit "$?"
 fi
 

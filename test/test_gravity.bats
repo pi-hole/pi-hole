@@ -138,7 +138,7 @@ teardown() {
     assert_line --partial "${INFO} Using local file /etc/pihole/localAdlist.txt"
     assert_line --partial "${TICK} Status: Retrieval successful"
     assert_line --partial "${TICK} Parsed 2 exact domains and 1 ABP-style domains (blocking, ignored 1 non-domain entries)"
-    assert_line --partial "- strange..domain..com"
+    refute_output --partial "strange..domain..com"
 
     assert_line --partial "${INFO} Number of gravity domains: 3 (3 unique domains)"
     assert_line --partial "${TICK} Done."

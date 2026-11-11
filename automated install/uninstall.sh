@@ -63,9 +63,32 @@ removeMetaPackage() {
 
 removeWebInterface() {
     # Remove the web interface of Pi-hole
+    # Its path comes from pihole.toml, which the pihole user controls
+    # (GHSA-5w4v-f65m-323f). Only remove it if it is a checkout of the Pi-hole
+    # web interface, so a planted path cannot make root delete anything else.
+    local dir="${ADMIN_INTERFACE_DIR:-/var/www/html/admin/}"
+    dir="${dir%/}"
     echo -ne "  ${INFO} Removing Web Interface..."
-    rm -rf "${ADMIN_INTERFACE_DIR:-/var/www/html/admin/}" &> /dev/null
-    echo -e "${OVER}  ${TICK} Removed Web Interface"
+    if [[ -d "${dir}" && ! -L "${dir}" ]] && \
+        [[ "$(git -C "${dir}" rev-parse --show-toplevel 2>/dev/null)" == "$(realpath "${dir}")" ]] && \
+        [[ "$(git -C "${dir}" remote get-url origin 2>/dev/null)" == "${webInterfaceGitUrl}" ]]; then
+        rm -rf "${dir}" &> /dev/null
+        echo -e "${OVER}  ${TICK} Removed Web Interface"
+    else
+        echo -e "${OVER}  ${CROSS} Not removing ${dir}: it is not a checkout of ${webInterfaceGitUrl}"
+    fi
+}
+
+removeDatabases() {
+    # Remove databases (including user specified non-default paths)
+    # Their paths come from pihole.toml, which the pihole user controls
+    # (GHSA-5w4v-f65m-323f), so delete them as that user: a planted path can then
+    # only make it delete what it could delete anyway. This needs the pihole
+    # user, so it runs before removeUser. The default locations are in
+    # /etc/pihole, which removePiholeFiles removes anyway.
+    if id pihole &> /dev/null; then
+        (cd / && setpriv --reuid=pihole --regid=pihole --init-groups -- rm -f -- "${PIHOLE_DB}" "${GRAVITY_DB}" "${MACVENDOR_DB}") &> /dev/null
+    fi
 }
 
 removeFTL() {
@@ -122,11 +145,6 @@ removeCronFiles() {
 }
 
 removePiholeFiles() {
-    # Remove databases (including user specified non-default paths)
-    rm -f "${PIHOLE_DB:-/etc/pihole/pihole-FTL.db}" &> /dev/null
-    rm -f "${GRAVITY_DB:-/etc/pihole/gravity.db}" &> /dev/null
-    rm -f "${MACVENDOR_DB:-/etc/pihole/macvendor.db}" &> /dev/null
-
     # Remove pihole config, repo and local files
     rm -rf "${PI_HOLE_CONFIG_DIR:-/etc/pihole}" &> /dev/null
     rm -rf "${PI_HOLE_LOCAL_REPO:-/etc/.pihole}" &> /dev/null
@@ -228,12 +246,14 @@ completionMessage() {
 # removed before anything that depends upon it.
 # eg removeFTL relies on scripts removed by removePiholeFiles
 # removeUser relies on commands removed by removeMetaPackage
+# removeDatabases runs as the pihole user, so it must come before removeUser
 package_manager_detect
 removeWebInterface
 removeCronFiles
 restoreResolved
 removeManPage
 removeFTL
+removeDatabases
 removeUser
 removeMetaPackage
 removePiholeFiles
