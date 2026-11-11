@@ -40,6 +40,17 @@ warning1() {
     esac
 }
 
+# /etc/pihole is owned by the pihole user, who can replace ftlbranch with a
+# symlink. Write it as that user, so such a symlink cannot redirect the write
+# of this root-run script (GHSA-5w4v-f65m-323f). Remove whatever is at the path
+# first: it may be a symlink, or a root-owned file left by an older version.
+# setpriv keeps the working directory, which the pihole user may not be able to
+# read, so run from / instead.
+set_ftl_branch() {
+    # shellcheck disable=SC2016 # $1 and $2 are expanded by the inner shell
+    (cd / && setpriv --reuid=pihole --regid=pihole --init-groups -- sh -c 'umask 0022 && rm -f -- "$1" && printf "%s\n" "$2" > "$1"' sh /etc/pihole/ftlbranch "${1}")
+}
+
 checkout() {
     local corebranches
     local webbranches
@@ -89,8 +100,7 @@ checkout() {
 
         local path
         path="development/${binary}"
-        echo "development" > /etc/pihole/ftlbranch
-        chmod 644 /etc/pihole/ftlbranch
+        set_ftl_branch "development"
     elif [[ "${1}" == "master" ]] ; then
         # Shortcut to check out master branches
         echo -e "  ${INFO} Shortcut \"${COL_YELLOW}master${COL_NC}\" detected - checking out master branches..."
@@ -101,8 +111,7 @@ checkout() {
         #echo -e "  ${TICK} Web Interface"
         local path
         path="master/${binary}"
-        echo "master" > /etc/pihole/ftlbranch
-        chmod 644 /etc/pihole/ftlbranch
+        set_ftl_branch "master"
     elif [[ "${1}" == "core" ]] ; then
         str="Fetching branches from ${piholeGitUrl}"
         echo -ne "  ${INFO} $str"
@@ -190,8 +199,7 @@ checkout() {
         check_download_exists "$path" && download_status=0 || download_status=$?
         if [ $download_status -eq 0 ]; then
             echo "  ${TICK} Binary exists"
-            echo "${2}" > /etc/pihole/ftlbranch
-            chmod 644 /etc/pihole/ftlbranch
+            set_ftl_branch "${2}"
             echo -e "  ${INFO} Switching to branch: ${COL_CYAN}${2}${COL_NC} from ${COL_CYAN}${oldbranch}${COL_NC}"
             FTLinstall "${binary}"
             restart_service pihole-FTL
