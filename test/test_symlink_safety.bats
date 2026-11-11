@@ -32,8 +32,24 @@ setup() {
 
 teardown() {
     git config --system --unset-all safe.directory || true
-    rm -rf /etc/pihole/probe
-    rm -f /etc/pihole/versions /etc/pihole/dhcp.leases
+    rm -rf /etc/pihole/probe /etc/pihole/migration_backup_v6 /etc/pihole/hosts
+    rm -f /etc/pihole/versions /etc/pihole/dhcp.leases /etc/pihole/install.log
+    rm -f /etc/dnsmasq.d/01-pihole.conf /etc/dnsmasq.d/06-rfc6761.conf
+}
+
+# A root-owned directory the pihole user must not be able to write into
+make_root_dir() {
+    mkdir -p "${1}"
+    chmod 0755 "${1}"
+    chown root:root "${1}"
+}
+
+# Plant the v5 dnsmasq configs that move_old_dnsmasq_ftl_configs migrates
+make_v5_dnsmasq_configs() {
+    mkdir -p /etc/dnsmasq.d
+    printf 'v5\n' > /etc/dnsmasq.d/01-pihole.conf
+    printf 'v5\n' > /etc/dnsmasq.d/06-rfc6761.conf
+    chmod 0644 /etc/dnsmasq.d/01-pihole.conf /etc/dnsmasq.d/06-rfc6761.conf
 }
 
 # Create a git repository owned by root, readable by everyone
@@ -301,4 +317,93 @@ uninstall_fn() {
     assert_output "root:CANARY-SECRET:0:0"
 
     rm -rf /opt/pihole-test-root
+}
+
+@test "move_old_dnsmasq_ftl_configs moves the v5 configs into a pihole-owned migration directory" {
+    chown pihole:pihole /etc/pihole
+    make_v5_dnsmasq_configs
+
+    run bash -c "
+        source /opt/pihole/basic-install.sh
+        move_old_dnsmasq_ftl_configs
+    "
+    assert_success
+
+    run stat -c '%U' /etc/pihole/migration_backup_v6
+    assert_output "pihole"
+    assert_file_exists /etc/pihole/migration_backup_v6/01-pihole.conf
+    assert_file_exists /etc/pihole/migration_backup_v6/06-rfc6761.conf
+    assert_file_not_exists /etc/dnsmasq.d/01-pihole.conf
+    assert_file_not_exists /etc/dnsmasq.d/06-rfc6761.conf
+}
+
+@test "move_old_dnsmasq_ftl_configs does not follow a symlink at the migration directory" {
+    chown pihole:pihole /etc/pihole
+    make_v5_dnsmasq_configs
+    make_root_dir "${BATS_TEST_TMPDIR}/target"
+    ln -s "${BATS_TEST_TMPDIR}/target" /etc/pihole/migration_backup_v6
+
+    run bash -c "
+        source /opt/pihole/basic-install.sh
+        move_old_dnsmasq_ftl_configs
+    "
+
+    run stat -c '%a %U' "${BATS_TEST_TMPDIR}/target"
+    assert_output "755 root"
+    run ls -A "${BATS_TEST_TMPDIR}/target"
+    assert_output ""
+    # Nothing was copied, so the originals must stay where they are
+    assert_file_exists /etc/dnsmasq.d/01-pihole.conf
+    assert_file_exists /etc/dnsmasq.d/06-rfc6761.conf
+}
+
+@test "installConfigs does not create custom.list through a symlink at hosts/" {
+    make_root_dir "${BATS_TEST_TMPDIR}/target"
+    ln -s "${BATS_TEST_TMPDIR}/target" /etc/pihole/hosts
+
+    run bash -c "
+        source /opt/pihole/basic-install.sh
+        installConfigs
+    "
+    assert_output --partial "Unable to initialize configuration file"
+
+    run ls -A "${BATS_TEST_TMPDIR}/target"
+    assert_output ""
+}
+
+@test "copy_to_install_log does not follow a symlink at the install log path" {
+    chown pihole:pihole /etc/pihole
+    printf 'secret' > "${BATS_TEST_TMPDIR}/secret"
+    chmod 0600 "${BATS_TEST_TMPDIR}/secret"
+    chown root:root "${BATS_TEST_TMPDIR}/secret"
+    ln -sf "${BATS_TEST_TMPDIR}/secret" /etc/pihole/install.log
+
+    run bash -c "
+        source /opt/pihole/basic-install.sh
+        exec 3< <(printf 'installer output\n')
+        copy_to_install_log
+    "
+
+    run stat -c '%a %U' "${BATS_TEST_TMPDIR}/secret"
+    assert_output "600 root"
+    run cat "${BATS_TEST_TMPDIR}/secret"
+    assert_output "secret"
+}
+
+@test "copy_to_install_log writes a world-readable log owned by pihole" {
+    chown pihole:pihole /etc/pihole
+    rm -f /etc/pihole/install.log
+
+    run bash -c "
+        umask 0077
+        source /opt/pihole/basic-install.sh
+        exec 3< <(printf 'installer output\n')
+        copy_to_install_log
+    "
+    assert_success
+
+    run stat -c '%a %U' /etc/pihole/install.log
+    assert_output "644 pihole"
+    run cat /etc/pihole/install.log
+    assert_output "installer output"
 }
