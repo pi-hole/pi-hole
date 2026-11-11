@@ -12,7 +12,7 @@ env:
 jobs:
   stale_action:
     if: github.event_name != 'issue_comment'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-slim
     permissions:
       issues: write
 
@@ -37,7 +37,7 @@ jobs:
     permissions:
       contents: read #  for actions/checkout
       issues: write #  to edit issues label
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-slim
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 #v7.0.1
