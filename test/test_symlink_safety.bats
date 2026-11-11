@@ -89,7 +89,7 @@ trusted_dirs() {
 @test "mark_repos_safe trusts the resolved path, not the symlink pointing at it" {
     make_repo "${BATS_TEST_TMPDIR}/core"
     make_repo "${BATS_TEST_TMPDIR}/real-web"
-    ln -s "${BATS_TEST_TMPDIR}/real-web" "${BATS_TEST_TMPDIR}/web-link"
+    ln -sf "${BATS_TEST_TMPDIR}/real-web" "${BATS_TEST_TMPDIR}/web-link"
 
     run_mark_repos_safe "${BATS_TEST_TMPDIR}/core" "${BATS_TEST_TMPDIR}/web-link"
 
@@ -207,6 +207,116 @@ trusted_dirs() {
     assert_output "700"
     run stat -c '%a' /etc/pihole/probe/file
     assert_output "600"
+}
+
+# A root-owned file the pihole user can reach but not change or delete
+setup_root_secret() {
+    mkdir -p /etc/pihole /opt/pihole-test-root
+    chown pihole:pihole /etc/pihole
+    chmod 0755 /opt/pihole-test-root
+    printf 'root:CANARY-SECRET:0:0\n' > /opt/pihole-test-root/secret
+    chmod 0644 /opt/pihole-test-root/secret
+    chown root:root /opt/pihole-test-root /opt/pihole-test-root/secret
+}
+
+# piholeCheckout.sh (pihole checkout) runs as root and writes
+# /etc/pihole/ftlbranch (GHSA-5w4v-f65m-323f)
+checkout_fn() {
+    run bash -c "
+        source /opt/pihole/piholeCheckout.sh
+        ${1}
+    "
+}
+
+@test "piholeCheckout.sh does not follow a symlink at the ftlbranch path" {
+    setup_root_secret
+    ln -sf /opt/pihole-test-root/secret /etc/pihole/ftlbranch
+    chown -h pihole:pihole /etc/pihole/ftlbranch
+
+    checkout_fn 'set_ftl_branch development'
+    assert_success
+
+    run cat /opt/pihole-test-root/secret
+    assert_output "root:CANARY-SECRET:0:0"
+    run stat -c '%F %a %U:%G' /etc/pihole/ftlbranch
+    assert_output "regular file 644 pihole:pihole"
+    run cat /etc/pihole/ftlbranch
+    assert_output "development"
+
+    rm -rf /opt/pihole-test-root /etc/pihole/ftlbranch
+}
+
+@test "piholeCheckout.sh replaces a root-owned ftlbranch left by an older version" {
+    mkdir -p /etc/pihole
+    chown pihole:pihole /etc/pihole
+    printf 'master\n' > /etc/pihole/ftlbranch
+    chown root:root /etc/pihole/ftlbranch
+    chmod 0644 /etc/pihole/ftlbranch
+
+    checkout_fn 'set_ftl_branch new/feature'
+    assert_success
+
+    run cat /etc/pihole/ftlbranch
+    assert_output "new/feature"
+
+    rm -f /etc/pihole/ftlbranch
+}
+
+# uninstall.sh runs as root and deletes paths taken from pihole.toml
+# (GHSA-5w4v-f65m-323f). Its functions are tested directly: the script is sourced
+# without its confirmation prompt, its config reads and its list of steps.
+uninstall_fn() {
+    sed -n '/^removeMetaPackage() {$/,/^######### SCRIPT/p' /opt/pihole/uninstall.sh > "${BATS_TEST_TMPDIR}/uninstall-functions.sh"
+    run bash -c "
+        source /opt/pihole/COL_TABLE
+        SKIP_INSTALL=true
+        source /opt/pihole/basic-install.sh
+        source '${BATS_TEST_TMPDIR}/uninstall-functions.sh'
+        ${1}
+    "
+}
+
+@test "uninstall.sh removes the web interface checkout" {
+    make_repo "${BATS_TEST_TMPDIR}/admin"
+    git -C "${BATS_TEST_TMPDIR}/admin" remote add origin https://github.com/pi-hole/web.git
+
+    uninstall_fn "ADMIN_INTERFACE_DIR='${BATS_TEST_TMPDIR}/admin/'; removeWebInterface"
+    assert_success
+    assert_not_exists "${BATS_TEST_TMPDIR}/admin"
+}
+
+@test "uninstall.sh does not remove a configured web interface path that is not the web interface" {
+    # Another root-owned repository (e.g. /etc under etckeeper), a subdirectory
+    # of one, a plain directory, and a symlink to the real web interface
+    make_repo "${BATS_TEST_TMPDIR}/other"
+    git -C "${BATS_TEST_TMPDIR}/other" remote add origin https://example.com/etc.git
+    make_repo "${BATS_TEST_TMPDIR}/admin"
+    git -C "${BATS_TEST_TMPDIR}/admin" remote add origin https://github.com/pi-hole/web.git
+    mkdir -p "${BATS_TEST_TMPDIR}/admin/sub" "${BATS_TEST_TMPDIR}/plain"
+    ln -sf "${BATS_TEST_TMPDIR}/admin" "${BATS_TEST_TMPDIR}/link"
+
+    for dir in other admin/sub plain link; do
+        uninstall_fn "ADMIN_INTERFACE_DIR='${BATS_TEST_TMPDIR}/${dir}/'; removeWebInterface"
+        assert_success
+        assert_output --partial "Not removing"
+        assert_exists "${BATS_TEST_TMPDIR}/${dir}"
+    done
+}
+
+@test "uninstall.sh deletes the configured databases as the pihole user" {
+    setup_root_secret
+    printf 'db\n' > /etc/pihole/custom-gravity.db
+    chown pihole:pihole /etc/pihole/custom-gravity.db
+
+    # rm fails for the root-owned file, so the status is not checked
+    uninstall_fn "PIHOLE_DB=/opt/pihole-test-root/secret; GRAVITY_DB=/etc/pihole/custom-gravity.db; MACVENDOR_DB=''; removeDatabases"
+
+    # A pihole-owned database is removed, a root-owned file is not
+    assert_not_exists /etc/pihole/custom-gravity.db
+    run cat /opt/pihole-test-root/secret
+    assert_output "root:CANARY-SECRET:0:0"
+
+    rm -rf /opt/pihole-test-root
 }
 
 @test "move_old_dnsmasq_ftl_configs moves the v5 configs into a pihole-owned migration directory" {
