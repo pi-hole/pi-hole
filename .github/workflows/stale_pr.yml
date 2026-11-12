@@ -8,13 +8,19 @@ on:
     - cron: '0 10 * * *'
   workflow_dispatch:
 
+permissions: {}
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
   stale:
-
+    name: Close stale PRs with merge conflicts
     runs-on: ubuntu-slim
     permissions:
-      issues: write
-      pull-requests: write
+      issues: write # to label and comment on stale PRs
+      pull-requests: write # to close stale PRs
 
     steps:
       - uses: actions/stale@4391f3da665fdf50b6810c1a66712fb9ba21aa93 #v11.0.0

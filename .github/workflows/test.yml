@@ -5,10 +5,15 @@ on:
     types: [opened, synchronize, reopened, ready_for_review]
 
 permissions:
-  contents: read
+  contents: read # to read the repository contents
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   smoke-tests:
+    name: smoke-tests
     if: github.event.pull_request.draft == false
     runs-on: ubuntu-latest
     steps:
@@ -16,6 +21,7 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 #v7.0.1
         with:
           fetch-depth: 0 # Differential ShellCheck requires full git history
+          persist-credentials: false
 
       - name: Check scripts in repository are executable
         run: |
@@ -48,6 +54,7 @@ jobs:
         run: editorconfig-checker
 
   distro-test:
+    name: distro-test (${{ matrix.distro }})
     if: github.event.pull_request.draft == false
     runs-on: ubuntu-latest
     needs: smoke-tests
@@ -78,6 +85,10 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 #v7.0.1
+        with:
+          persist-credentials: false
 
       - name: Run BATS test suite for ${{ matrix.distro }}
-        run: DISTRO=${{ matrix.distro }} bash test/run.sh
+        env:
+          DISTRO: ${{ matrix.distro }}
+        run: bash test/run.sh
