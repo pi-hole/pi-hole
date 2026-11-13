@@ -659,7 +659,7 @@ compareLists() {
 # Download specified URL and perform checks on HTTP status and file content
 gravity_DownloadBlocklistFromUrl() {
   local url="${1}" adlistID="${2}" saveLocation="${3}" compression="${4}" gravity_type="${5}" domain="${6}"
-  local listCurlBuffer str curlVersion curlOutput httpCode curlErrorMsg="" curlExitCode="" curlOutputFormat=""
+  local listCurlBuffer etagTmpFile="" str curlVersion curlOutput httpCode curlErrorMsg="" curlExitCode="" curlOutputFormat=""
   local success="" ip customUpstreamResolver="" file_path ip_addr port blocked=false download=true
   # modifiedOptions is an array to store all the options used to check if the adlist has been changed upstream
   local modifiedOptions=()
@@ -675,10 +675,15 @@ gravity_DownloadBlocklistFromUrl() {
     # Use the HTTP ETag header to determine if the file has changed if supported
     # by curl. Using ETags is supported by raw.githubusercontent.com URLs.
     if [[ "${etag_support}" == true ]]; then
-      # Save HTTP ETag to the specified file. An ETag is a caching related header,
+      # Save HTTP ETag to a temporary file. An ETag is a caching-related header,
       # usually returned in a response. If no ETag is sent by the server, an empty
       # file is created and can later be used consistently.
-      modifiedOptions=("${modifiedOptions[@]}" --etag-save "${saveLocation}".etag)
+      # We write the ETag to a temporary file because MAC tools such as AppArmor
+      # may prevent curl from saving it directly to "${saveLocation}.etag".
+      # We use a ".phgpb" suffix so that gravity_Cleanup() removes the file if
+      # the script is interrupted before moving the file.
+      etagTmpFile=$(mktemp -p "${GRAVITY_TMPDIR}" --suffix=".etag.phgpb")
+      modifiedOptions=("${modifiedOptions[@]}" --etag-save "${etagTmpFile}")
 
       if [[ -f "${saveLocation}.etag" ]]; then
         # This option makes a conditional HTTP request for the specific ETag read
@@ -899,6 +904,10 @@ gravity_DownloadBlocklistFromUrl() {
       mv "${listCurlBuffer}" "${saveLocation}"
       # Ensure the file has the correct permissions
       fix_owner_permissions "${saveLocation}"
+      # Move the ETag saved by curl to its final location next to the list
+      if [[ -n "${etagTmpFile}" && -f "${etagTmpFile}" ]]; then
+        mv -f "${etagTmpFile}" "${saveLocation}.etag"
+      fi
       # Compare lists if they are identical
       compareLists "${adlistID}" "${saveLocation}"
       # Set permissions for the *.etag file
@@ -929,6 +938,11 @@ gravity_DownloadBlocklistFromUrl() {
       database_adlist_number "${adlistID}" 0 0
       database_adlist_status "${adlistID}" "4"
     fi
+  fi
+
+  # Remove the temporary ETag file if it was not moved to its final location
+  if [[ -n "${etagTmpFile}" ]]; then
+    rm -f "${etagTmpFile}"
   fi
 }
 
