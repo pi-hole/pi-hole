@@ -46,7 +46,7 @@ SetWebPassword() {
         echo ""
 
         if [ "${PASSWORD}" == "" ]; then
-            setFTLConfigValue "webserver.api.password" ""
+            setFTLConfigValue "webserver.api.password" "" "true"
             echo -e "  ${TICK} Password Removed"
             exit 0
         fi
@@ -57,7 +57,8 @@ SetWebPassword() {
 
     if [ "${PASSWORD}" == "${CONFIRM}" ] ; then
         # pihole-FTL will automatically hash the password
-        setFTLConfigValue "webserver.api.password" "${PASSWORD}"
+        # use "true" to pass the password via stdin so it cannot leak via /proc/<pid>/cmdline
+        setFTLConfigValue "webserver.api.password" "${PASSWORD}" "true"
         echo -e "  ${TICK} New password set"
     else
         echo -e "  ${CROSS} Passwords don't match. Your password has not been changed"
