@@ -136,3 +136,19 @@ INFO="[i]"
 
     rm -f /etc/logrotate.d/pihole
 }
+
+@test "installScripts installs the scripts owned by root, whatever USER says" {
+    # USER keeps naming the original account after su without -
+    run bash -c "
+        source /opt/pihole/basic-install.sh
+        USER=nobody
+        installScripts
+    "
+    assert_success
+
+    run stat -c '%U' /opt/pihole /opt/pihole/gravity.sh /opt/pihole/COL_TABLE /usr/local/bin/pihole
+    assert_output "root
+root
+root
+root"
+}
