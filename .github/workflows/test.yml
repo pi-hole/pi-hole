@@ -5,10 +5,15 @@ on:
     types: [opened, synchronize, reopened, ready_for_review]
 
 permissions:
-  contents: read
+  contents: read # to read the repository contents
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   smoke-tests:
+    name: smoke-tests
     if: github.event.pull_request.draft == false
     runs-on: ubuntu-latest
     steps:
@@ -16,6 +21,7 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 #v7.0.1
         with:
           fetch-depth: 0 # Differential ShellCheck requires full git history
+          persist-credentials: false
 
       - name: Check scripts in repository are executable
         run: |
@@ -26,13 +32,13 @@ jobs:
           [[ $FAIL == 1 ]] && exit 1 || echo "Scripts are executable!"
 
       - name: Differential ShellCheck
-        uses: redhat-plumbers-in-action/differential-shellcheck@d965e66ec0b3b2f821f75c8eff9b12442d9a7d1e #v5.5.6
+        uses: redhat-plumbers-in-action/differential-shellcheck@f51c7c0d32777d00de777131d25918617a246415 #v5.5.7
         with:
           severity: warning
           display-engine: sarif-fmt
 
       - name: Secret Scanning with TruffleHog
-        uses: trufflesecurity/trufflehog@cc1fe982afc515d2991365ce8d4d0dd07170fcad #v3.97.2
+        uses: trufflesecurity/trufflehog@ea68ca03c865c5f324e86e849ced20ed3cf9dbbb #v3.99.8
         with:
           extra_args: --results=verified,unknown
 
@@ -48,6 +54,7 @@ jobs:
         run: editorconfig-checker
 
   distro-test:
+    name: distro-test (${{ matrix.distro }})
     if: github.event.pull_request.draft == false
     runs-on: ubuntu-latest
     needs: smoke-tests
@@ -69,6 +76,7 @@ jobs:
             fedora_42,
             fedora_43,
             fedora_44,
+            fedora_45,
             alpine_3_21,
             alpine_3_22,
             alpine_3_23,
@@ -77,6 +85,10 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 #v7.0.1
+        with:
+          persist-credentials: false
 
       - name: Run BATS test suite for ${{ matrix.distro }}
-        run: DISTRO=${{ matrix.distro }} bash test/run.sh
+        env:
+          DISTRO: ${{ matrix.distro }}
+        run: bash test/run.sh

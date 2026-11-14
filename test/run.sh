@@ -50,6 +50,19 @@ while [[ $# -gt 0 ]]; do
 done
 
 # ---------------------------------------------------------------------------
+# Detect the available and functional container runtime
+# ---------------------------------------------------------------------------
+if command -v docker &>/dev/null && docker info &>/dev/null; then
+    RUNTIME="docker"
+elif command -v podman &>/dev/null && podman info &>/dev/null; then
+    # podman is command-compatible for our use case; 'buildx' is and alias and '--load' is a valid no-op
+    RUNTIME="podman"
+else
+    echo "Error: Neither Docker nor Podman is installed and functional."
+    exit 1
+fi
+
+# ---------------------------------------------------------------------------
 # Distro selection
 # ---------------------------------------------------------------------------
 
@@ -99,6 +112,8 @@ SUITE_1=(
     test_network.bats
     test_utils.bats
     test_gravity.bats
+    test_symlink_safety.bats
+    test_logflush.bats
 )
 [[ "${DISTRO_FAMILY}" == "rhel" ]] && SUITE_1+=(test_selinux.bats)
 
@@ -123,7 +138,7 @@ BATS_FILE_VER="${BATS_FILE_VER:-v0.4.0}"
 
 IMAGE_TAG="pihole_test:${DISTRO}"
 
-docker buildx build \
+"${RUNTIME}" buildx build \
     --load \
     --progress plain \
     --build-arg "BATS_CORE_VER=${BATS_CORE_VER}" \
@@ -159,7 +174,7 @@ run_suite() {
 
     printf '\n=== Suite: %s ===\n' "${label}"
 
-    docker run --rm -t "${IMAGE_TAG}" \
+    "${RUNTIME}" run --rm -t "${IMAGE_TAG}" \
         bash -euo pipefail -c '
             cd /etc/.pihole/test
             exec libs/bats/bin/bats "$@"

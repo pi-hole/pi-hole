@@ -41,6 +41,56 @@ teardown() {
     assert_output "-1"
 }
 
+@test "getFTLPID rejects a PID file that is not a plain number" {
+    printf '%s' '1+a[$(touch /tmp/getFTLPID-injection)]' > /run/pihole-FTL.pid
+    run bash -c "
+        source /opt/pihole/utils.sh
+        getFTLPID
+    "
+    rm -f /run/pihole-FTL.pid
+    assert_output "-1"
+}
+
+@test "getFTLPID rejects a PID that does not belong to pihole-FTL" {
+    sleep 30 3>&- &
+    local pid=$!
+    printf '%s' "${pid}" > /run/pihole-FTL.pid
+    run bash -c "
+        source /opt/pihole/utils.sh
+        getFTLPID
+    "
+    kill "${pid}"
+    rm -f /run/pihole-FTL.pid
+    assert_output "-1"
+}
+
+@test "getFTLPID returns the PID of a running pihole-FTL" {
+    bash -c 'printf pihole-FTL > /proc/$$/comm; sleep 30; :' 3>&- &
+    local pid=$!
+    for _ in $(seq 50); do
+        [ "$(cat "/proc/${pid}/comm")" = "pihole-FTL" ] && break
+        sleep 0.1
+    done
+    printf '%s' "${pid}" > /run/pihole-FTL.pid
+    run bash -c "
+        source /opt/pihole/utils.sh
+        getFTLPID
+    "
+    pkill -P "${pid}"
+    kill "${pid}" 2>/dev/null || true
+    rm -f /run/pihole-FTL.pid
+    assert_output "${pid}"
+}
+
+@test "pihole reloaddns does not evaluate the PID file" {
+    printf '%s' '1+a[$(touch /tmp/reloaddns-injection)]' > /run/pihole-FTL.pid
+    run bash -c "
+        bash /opt/pihole/pihole reloaddns
+    "
+    rm -f /run/pihole-FTL.pid
+    assert_file_not_exists /tmp/reloaddns-injection
+}
+
 @test "setFTLConfigValue and getFTLConfigValue round-trip" {
     # FTL must be installed for this test
     bash -c "

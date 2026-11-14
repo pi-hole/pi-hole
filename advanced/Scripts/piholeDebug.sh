@@ -129,6 +129,32 @@ REQUIRED_FILES=("${PIHOLE_CRON_FILE}"
 "${DNSMASQ_CONF}"
 "${PIHOLE_VERSIONS_FILE}")
 
+# /etc/pihole and /var/log/pihole are owned by the unprivileged "pihole" user,
+# who can therefore replace anything in them with a symlink. This script runs as
+# root, so reading or writing a path in there as root would follow such a symlink
+# to any file on the system (GHSA-jvg9-fm8x-2jqq). Do that work as the pihole
+# user instead: a symlink can then only lead to what that user can already reach.
+# The databases are always queried as that user too: their paths come from
+# pihole.toml, which that user controls, and pihole-FTL itself runs as that user,
+# so it must be able to read them anyway.
+# setpriv keeps the working directory, which may be one the pihole user cannot
+# read (e.g. /root), so run from / instead. All paths used here are absolute.
+as_pihole() {
+    (cd / && setpriv --reuid=pihole --regid=pihole --init-groups -- "$@")
+}
+
+# Run a command that reads the given file, as the pihole user if the file is in
+# one of the directories that user controls.
+# Usage: read_pihole_file <file> <command> [args...]
+read_pihole_file() {
+    local file="${1}"
+    shift
+    case "${file}" in
+        "${PIHOLE_DIRECTORY}"/*|"${LOG_DIRECTORY}"/*) as_pihole "$@" ;;
+        *) "$@" ;;
+    esac
+}
+
 DISCLAIMER="This process collects information from your Pi-hole, and optionally uploads it to a unique and random directory on tricorder.pi-hole.net.
 
 The intent of this script is to allow users to self-diagnose their installations.  This is accomplished by running tests against our software and providing the user with links to FAQ articles when a problem is detected.  Since we are a small team and Pi-hole has been growing steadily, it is our hope that this will help us spend more time on development.
@@ -158,8 +184,16 @@ log_write() {
 }
 
 copy_to_debug_log() {
-    # Copy the contents of file descriptor 3 into the debug log
-    cat /proc/$$/fd/3 > "${PIHOLE_DEBUG_LOG}"
+    # Copy the contents of file descriptor 3 into the debug log. The log lives in
+    # a directory the pihole user owns, so write it as that user (see as_pihole).
+    # Remove whatever is at the path first: it may be a symlink, or a root-owned
+    # log left by an older version, which the pihole user could not overwrite.
+    # The umask makes the new log rw-r----- (pihole:pihole).
+    # fd 3 is opened here by root and handed over as stdin.
+    # shellcheck disable=SC2016 # $1 is expanded by the inner shell
+    if ! as_pihole sh -c 'umask 0027 && rm -f -- "$1" && cat > "$1"' sh "${PIHOLE_DEBUG_LOG}" < /proc/$$/fd/3; then
+        log_write "${CROSS} ${COL_RED}Could not write the debug log to ${PIHOLE_DEBUG_LOG}${COL_NC}"
+    fi
 }
 
 initialize_debug() {
@@ -664,7 +698,7 @@ dig_at() {
     # This helps emulate queries to different domains that a user might query
     # It will also give extra assurance that Pi-hole is correctly resolving and blocking domains
     local random_url
-    random_url=$(pihole-FTL sqlite3 -ni "${PIHOLE_GRAVITY_DB_FILE}" "SELECT domain FROM vw_gravity WHERE domain not like '||%^' ORDER BY RANDOM() LIMIT 1")
+    random_url=$(as_pihole pihole-FTL sqlite3 -ni "${PIHOLE_GRAVITY_DB_FILE}" "SELECT domain FROM vw_gravity WHERE domain not like '||%^' ORDER BY RANDOM() LIMIT 1")
     # Fallback if no non-ABP style domains were found
     if [ -z "${random_url}" ]; then
         random_url="flurry.com"
@@ -816,9 +850,16 @@ make_array_from_file() {
 
     # Process the file, strip out comments and blank lines
     local processed
-    processed=$(sed -e 's/^\s*#.*$//' -e '/^$/d' "${filename}")
+    processed=$(read_pihole_file "${filename}" sed -e 's/^\s*#.*$//' -e '/^$/d' "${filename}")
 
     while IFS= read -r line; do
+        # Never log the password hashes or the TOTP secret from pihole.toml: the
+        # log may be uploaded to tricorder (GHSA-qfq3-88xg-765w). An empty value
+        # is shown as-is, so the log still tells whether one is set.
+        if [[ "${line}" =~ ^([[:space:]]*(pwhash|app_pwhash|totp_secret)[[:space:]]*=)[[:space:]]*(.*)$ ]] && \
+            [[ "${BASH_REMATCH[3]}" != '""'* ]]; then
+            line="${BASH_REMATCH[1]} \"<removed>\""
+        fi
         # If the string contains "### CHANGED", highlight this part in red
         log_write "   ${line//### CHANGED/${COL_RED}### CHANGED${COL_NC}}"
         ((i++))
@@ -972,14 +1013,14 @@ head_tail_log() {
     # Get the lines that are in the file(s) and store them in an array for parsing later
     IFS=$'\r\n'
     local log_head=()
-    mapfile -t log_head < <(head -n "${qty}" "${filename}")
+    mapfile -t log_head < <(read_pihole_file "${filename}" head -n "${qty}" "${filename}")
     log_write "   ${COL_CYAN}-----head of ${filebasename}------${COL_NC}"
     for head_line in "${log_head[@]}"; do
         log_write "   ${head_line}"
     done
     log_write ""
     local log_tail=()
-    mapfile -t log_tail < <(tail -n "${qty}" "${filename}")
+    mapfile -t log_tail < <(read_pihole_file "${filename}" tail -n "${qty}" "${filename}")
     log_write "   ${COL_CYAN}-----tail of ${filebasename}------${COL_NC}"
     for tail_line in "${log_tail[@]}"; do
         log_write "   ${tail_line}"
@@ -999,7 +1040,7 @@ show_db_entries() {
     IFS=$'\r\n'
     local entries=()
     mapfile -t entries < <(\
-        pihole-FTL sqlite3 -ni "${PIHOLE_GRAVITY_DB_FILE}" \
+        as_pihole pihole-FTL sqlite3 -ni "${PIHOLE_GRAVITY_DB_FILE}" \
             -cmd ".headers on" \
             -cmd ".mode column" \
             -cmd ".width ${widths}" \
@@ -1042,7 +1083,7 @@ show_FTL_db_entries() {
     IFS=$'\r\n'
     local entries=()
     mapfile -t entries < <(\
-        pihole-FTL sqlite3 -ni "${PIHOLE_FTL_DB_FILE}" \
+        as_pihole pihole-FTL sqlite3 -ni "${PIHOLE_FTL_DB_FILE}" \
             -cmd ".headers on" \
             -cmd ".mode column" \
             -cmd ".width ${widths}" \
@@ -1108,7 +1149,7 @@ analyze_gravity_list() {
     fi
 
     show_db_entries "Info table" "SELECT property,value FROM info" "20 40"
-    gravity_updated_raw="$(pihole-FTL sqlite3 -ni "${PIHOLE_GRAVITY_DB_FILE}" "SELECT value FROM info where property = 'updated'")"
+    gravity_updated_raw="$(as_pihole pihole-FTL sqlite3 -ni "${PIHOLE_GRAVITY_DB_FILE}" "SELECT value FROM info where property = 'updated'")"
     gravity_updated="$(date -d @"${gravity_updated_raw}")"
     log_write "   Last gravity run finished at: ${COL_CYAN}${gravity_updated}${COL_NC}"
     log_write ""
@@ -1116,7 +1157,7 @@ analyze_gravity_list() {
     OLD_IFS="$IFS"
     IFS=$'\r\n'
     local gravity_sample=()
-    mapfile -t gravity_sample < <(pihole-FTL sqlite3 -ni "${PIHOLE_GRAVITY_DB_FILE}" "SELECT domain FROM vw_gravity LIMIT 10")
+    mapfile -t gravity_sample < <(as_pihole pihole-FTL sqlite3 -ni "${PIHOLE_GRAVITY_DB_FILE}" "SELECT domain FROM vw_gravity LIMIT 10")
     log_write "   ${COL_CYAN}----- First 10 Gravity Domains -----${COL_NC}"
 
     for line in "${gravity_sample[@]}"; do
@@ -1141,7 +1182,7 @@ database_integrity_check(){
     local database="${1}"
 
     log_write "${INFO} Checking integrity of ${database} ... (this can take several minutes)"
-    result="$(pihole-FTL sqlite3 -ni "${database}" "PRAGMA integrity_check" 2>&1 & spinner)"
+    result="$(as_pihole pihole-FTL sqlite3 -ni "${database}" "PRAGMA integrity_check" 2>&1 & spinner)"
     if [[ ${result} = "ok" ]]; then
       log_write "${TICK} Integrity of ${database} intact"
 
@@ -1149,7 +1190,7 @@ database_integrity_check(){
       log_write "${INFO} Checking foreign key constraints of ${database} ... (this can take several minutes)"
       unset result
       # Domains of a deleted list stay in gravity and antigravity until the next run
-      result="$(pihole-FTL sqlite3 -ni "${database}" -cmd ".headers on" -cmd ".mode column" "SELECT * FROM pragma_foreign_key_check WHERE \"table\" NOT IN ('gravity','antigravity')" 2>&1 & spinner)"
+      result="$(as_pihole pihole-FTL sqlite3 -ni "${database}" -cmd ".headers on" -cmd ".mode column" "SELECT * FROM pragma_foreign_key_check WHERE \"table\" NOT IN ('gravity','antigravity')" 2>&1 & spinner)"
       if [[ -z ${result} ]]; then
         log_write "${TICK} No foreign key errors in ${database}"
       else
@@ -1228,7 +1269,9 @@ curl_to_tricorder() {
     # Users can submit their debug logs using curl (encrypted)
     log_write "    * Using ${COL_GREEN}curl${COL_NC} for transmission."
     # transmit the log via TLS and store the token returned in a variable
-    tricorder_token=$(curl --silent --fail --show-error --upload-file ${PIHOLE_DEBUG_LOG} https://tricorder.pi-hole.net 2>&1)
+    # Run as the pihole user so a symlink planted at the log path cannot make
+    # root upload some other file (see as_pihole)
+    tricorder_token=$(as_pihole curl --silent --fail --show-error --upload-file "${PIHOLE_DEBUG_LOG}" https://tricorder.pi-hole.net 2>&1)
     if [[ "${tricorder_token}" != "https://tricorder.pi-hole.net/"* ]]; then
         log_write "    * ${COL_GREEN}curl${COL_NC} failed, contact Pi-hole support for assistance."
         # Log curl error (if available)
@@ -1241,10 +1284,8 @@ curl_to_tricorder() {
 
 
 upload_to_tricorder() {
-    local username="pihole"
-    # Set the permissions and owner
-    chmod 640 ${PIHOLE_DEBUG_LOG}
-    chown "$USER":"${username}" ${PIHOLE_DEBUG_LOG}
+    # The debug log's owner and mode are set by copy_to_debug_log. Changing them
+    # here as root would follow a symlink planted at the path.
 
     # Let the user know debugging is complete with something strikingly visual
     log_write ""

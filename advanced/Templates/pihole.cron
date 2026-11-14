@@ -14,20 +14,18 @@
 # is updated or re-installed. Please make any changes to the appropriate crontab
 # or other cron file snippets.
 
+# The pihole user has no home directory, cronie refuses to run its jobs without one
+HOME=/
+
 # Pi-hole: Update the ad sources once a week on Sunday at a random time in the
 #          early morning. Download any updates from the adlists
 #          Squash output to log, then splat the log to stdout on error to allow for
 #          standard crontab job error handling.
 59 1    * * 7   pihole    PATH="$PATH:/usr/sbin:/usr/local/bin/" pihole updateGravity >/var/log/pihole/pihole_updateGravity.log || cat /var/log/pihole/pihole_updateGravity.log
 
-# Pi-hole: Flush the log daily at 00:00
-#          The flush script uses logrotate
-#          parameter "once": logrotate only once (default is twice)
-#          parameter "quiet": don't print messages
-00 00   * * *   root    PATH="$PATH:/usr/sbin:/usr/local/bin/" pihole flush once quiet
-
-@reboot root /usr/sbin/logrotate /etc/logrotate.d/pihole
-
-# Pi-hole: Grab remote and local version every 24 hours
-59 17  * * *   root    PATH="$PATH:/usr/sbin:/usr/local/bin/" pihole updatechecker
-@reboot root    PATH="$PATH:/usr/sbin:/usr/local/bin/" pihole updatechecker reboot
+# Pi-hole: Grab remote and local version every 24 hours.
+#          Runs as the unprivileged "pihole" user (like updateGravity above) so
+#          that root never writes into the pihole-owned /etc/pihole directory.
+#          See GHSA-xch2-4qxw-g5vj.
+59 17  * * *   pihole    PATH="$PATH:/usr/sbin:/usr/local/bin/" pihole updatechecker
+@reboot pihole    PATH="$PATH:/usr/sbin:/usr/local/bin/" pihole updatechecker reboot

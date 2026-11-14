@@ -159,7 +159,7 @@ teardown() {
     assert_line --partial "${INFO} Using local file /etc/pihole/localAdlist.txt"
     assert_line --partial "${TICK} Status: Retrieval successful"
     assert_line --partial "${TICK} Parsed 2 exact domains and 1 ABP-style domains (blocking, ignored 1 non-domain entries)"
-    assert_line --partial "- strange..domain..com"
+    refute_output --partial "strange..domain..com"
 
     assert_line --partial "${INFO} Number of gravity domains: 3 (3 unique domains)"
     assert_line --partial "${TICK} Done."
@@ -332,7 +332,7 @@ teardown() {
     assert_line --partial "${INFO} Migrating content of /etc/pihole/adlists.list into new database"
 
     assert_line --partial "${INFO} Target: file:///etc/shadow"
-    assert_line --partial "${CROSS} Cannot read file (user 'pihole' lacks read permission)"
+    assert_line --partial "${CROSS} Cannot read file (current user 'pihole' lacks read permission)"
     assert_line --partial "${CROSS} List download failed: no cached list available"
 
     refute_line --regexp "Parsed [[:digit:]]+ exact domains and [[:digit:]]+ ABP-style domains.*"
@@ -355,11 +355,60 @@ teardown() {
     assert_line --partial "${INFO} Migrating content of /etc/pihole/adlists.list into new database"
 
     assert_line --partial "${INFO} Target: file:/./etc/shadow"
-    assert_line --partial "${CROSS} etc/shadow does not exist"
+    assert_line --partial "${CROSS} Cannot read file (current user 'pihole' lacks read permission)"
     assert_line --partial "${CROSS} List download failed: no cached list available"
 
     refute_line --regexp "Parsed [[:digit:]]+ exact domains and [[:digit:]]+ ABP-style domains.*"
     refute_line --partial "Sample of non-domain entries:"
     assert_line --partial "${INFO} Number of gravity domains: 0 (0 unique domains)"
     assert_line --partial "${TICK} Done."
+}
+
+
+@test "Gravity reads local file the pihole user was checked against" {
+    assert_file_exists /etc/shadow
+
+    run bash -c "
+        mkdir -p /lf/a/b /lf/etc
+        ln -s /lf/a/b /lf/l
+        echo 'decoy.example.com' >/lf/etc/shadow
+        chmod 644 /lf/etc/shadow
+        echo 'file:///lf/l/../../etc/shadow' >/etc/pihole/adlists.list
+        pihole -g
+    "
+    assert_success
+    assert_line --partial "${INFO} Using local file /lf/l/../../etc/shadow"
+    assert_line --partial "${TICK} Status: Retrieval successful"
+    assert_line --partial "${TICK} Parsed 1 exact domains and 0 ABP-style domains (blocking, ignored 0 non-domain entries)"
+    refute_line --partial "Sample of non-domain entries:"
+    assert_line --partial "${INFO} Number of gravity domains: 1 (1 unique domains)"
+    assert_line --partial "${TICK} Done."
+}
+
+@test "Gravity keeps list changes made while it runs" {
+    # The second run waits for the connect timeout of its download, the lists are changed meanwhile
+    run bash -c "
+        echo 'http://10.0.0.1/list' >/etc/pihole/adlists.list
+        pihole -g >/dev/null
+        pihole-FTL sqlite3 /etc/pihole/gravity.db \"INSERT INTO domainlist (type, domain) VALUES (1, 'removed.during.gravity'); UPDATE adlist SET number = 42, status = 0;\"
+        pihole -g >/tmp/gravity.out 2>&1 &
+        for i in \$(seq 1 100); do grep -q 'Target: http://10.0.0.1/list' /tmp/gravity.out && break; sleep 0.1; done
+        pihole-FTL sqlite3 /etc/pihole/gravity.db \"INSERT INTO domainlist (type, domain) VALUES (1, 'added.during.gravity'); DELETE FROM domainlist WHERE domain = 'removed.during.gravity'; INSERT INTO [group] (name) VALUES ('added during gravity'); UPDATE adlist SET comment = 'changed during gravity';\"
+        wait
+        cat /tmp/gravity.out
+        rm -f /tmp/gravity.out
+    "
+    assert_success
+    assert_line --partial "${TICK} Done."
+    refute_line --partial "Unable to take over list changes"
+
+    run pihole-FTL sqlite3 /etc/pihole/gravity.db "SELECT domain FROM domainlist JOIN domainlist_by_group ON domainlist_id = id;"
+    assert_output "added.during.gravity"
+
+    run pihole-FTL sqlite3 /etc/pihole/gravity.db "SELECT name FROM [group] WHERE id > 0;"
+    assert_output "added during gravity"
+
+    # The comment is taken over, number and status are what this run found
+    run pihole-FTL sqlite3 /etc/pihole/gravity.db "SELECT comment, number, status FROM adlist;"
+    assert_output "changed during gravity|0|4"
 }

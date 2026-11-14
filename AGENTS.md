@@ -13,11 +13,11 @@ This is Pi-hole's core repository: the installer, the `pihole` command line inte
 - `advanced/Templates` and `advanced/` generally - service files, templates and assets installed onto the system
 - `gravity.sh` - builds `gravity.db` from configured blocklists
 - `manpages/` - man pages
-- `test/` - BATS test suite, run inside distro-specific Docker containers
+- `test/` - BATS test suite, run inside distro-specific OCI containers
 
 ## Dev environment tips
 
-- You need Docker (with buildx) and a bash shell; tests and most realistic verification run inside containers, not on the host.
+- You need Docker (with buildx) or Podman and a bash shell; tests and most realistic verification run inside containers, not on the host.
 - Keep scripts bash-compatible across all supported distros; do not introduce dependencies that are not available (or installed by the installer) on all of them.
 - Installed scripts must remain executable.
 
@@ -45,7 +45,7 @@ This is Pi-hole's core repository: the installer, the `pihole` command line inte
 
 - The installer and most scripts run as root on end-user systems. Quote variables, validate all user-supplied and downloaded input, and avoid constructs that can expand into unintended commands.
 - Gravity consumes remote blocklists; treat downloaded content as untrusted data, never as executable input.
-- If you believe you have found a vulnerability, do not open a public issue or PR; report it privately per the organisation's security policy (disclosure@pi-hole.net).
+- If you believe you have found a vulnerability, do not open a public issue or PR, but use the Security Advisory process detailed by GitHub at https://docs.github.com/en/code-security/how-tos/report-and-fix-vulnerabilities/report-privately. As a fallback you can report it privately per the organisation's security policy (disclosure@pi-hole.net).
 
 ## Common pitfalls
 

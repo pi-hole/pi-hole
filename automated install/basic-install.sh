@@ -49,7 +49,7 @@ OpenDNS (ECS, DNSSEC);208.67.222.222;208.67.220.220;2620:119:35::35;2620:119:53:
 Level3;4.2.2.1;4.2.2.2;;
 Comodo;8.26.56.26;8.20.247.20;;
 Quad9 (filtered, DNSSEC);9.9.9.9;149.112.112.112;2620:fe::fe;2620:fe::9
-Quad9 (unfiltered, no DNSSEC);9.9.9.10;149.112.112.10;2620:fe::10;2620:fe::fe:10
+Quad9 (unfiltered, DNSSEC);9.9.9.10;149.112.112.10;2620:fe::10;2620:fe::fe:10
 Quad9 (filtered, ECS, DNSSEC);9.9.9.11;149.112.112.11;2620:fe::11;2620:fe::fe:11
 Cloudflare (DNSSEC);1.1.1.1;1.0.0.1;2606:4700:4700::1111;2606:4700:4700::1001
 EOM
@@ -60,7 +60,7 @@ DNS_SERVERS_IPV6_ONLY=$(
 Google (ECS, DNSSEC);2001:4860:4860:0:0:0:0:8888;2001:4860:4860:0:0:0:0:8844
 OpenDNS (ECS, DNSSEC);2620:119:35::35;2620:119:53::53
 Quad9 (filtered, DNSSEC);2620:fe::fe;2620:fe::9
-Quad9 (unfiltered, no DNSSEC);2620:fe::10;2620:fe::fe:10
+Quad9 (unfiltered, DNSSEC);2620:fe::10;2620:fe::fe:10
 Quad9 (filtered, ECS, DNSSEC);2620:fe::11;2620:fe::fe:11
 Cloudflare (DNSSEC);2606:4700:4700::1111;2606:4700:4700::1001
 EOM
@@ -104,17 +104,13 @@ PIHOLE_INTERFACE=
 # Where old configs go to if a v6 migration is performed
 V6_CONF_MIGRATION_DIR="/etc/pihole/migration_backup_v6"
 
-if [ -z "${USER}" ]; then
-    USER="$(id -un)"
-fi
-
 # dialog dimensions: Let dialog handle appropriate sizing.
 r=20
 c=70
 
 # Version of Pi-hole's meta package on APT based systems
 # Must be incremented whenever dependencies in PIHOLE_META_PACKAGE_CONTROL_APT change
-PIHOLE_META_VERSION_APT=0.7
+PIHOLE_META_VERSION_APT=0.8
 
 # Content of Pi-hole's meta package control file on APT based systems
 PIHOLE_META_PACKAGE_CONTROL_APT=$(
@@ -124,7 +120,7 @@ Version: ${PIHOLE_META_VERSION_APT}
 Maintainer: Pi-hole team <adblock@pi-hole.net>
 Architecture: all
 Description: Pi-hole dependency meta package
-Depends: awk,bash-completion,binutils,ca-certificates,cron|cron-daemon,curl,dialog,bind9-dnsutils|dnsutils,dns-root-data,git,grep,iproute2,iputils-ping,jq,libcap2,libcap2-bin,logrotate,lshw,procps,psmisc,sudo,unzip
+Depends: awk,bash-completion,binutils,ca-certificates,cron|cron-daemon,curl,dialog,bind9-dnsutils|dnsutils,dns-root-data,git,grep,iproute2,iputils-ping,jq,libcap2,libcap2-bin,logrotate,lshw,procps,psmisc,util-linux,unzip
 Section: contrib/metapackages
 Priority: optional
 EOM
@@ -134,12 +130,12 @@ EOM
 PIHOLE_META_PACKAGE_CONTROL_RPM=$(
     cat <<EOM
 Name: pihole-meta
-Version: 0.4
+Version: 0.6
 Release: 1
 License: EUPL
 BuildArch: noarch
 Summary: Pi-hole dependency meta package
-Requires: bash-completion,bind-utils,binutils,ca-certificates,chkconfig,cronie,curl,dialog,findutils,gawk,git,grep,iproute,jq,libcap,logrotate,lshw,procps-ng,psmisc,sudo,unzip
+Requires: bash-completion,bind-utils,binutils,ca-certificates,chkconfig,cronie,curl,dialog,diffutils,findutils,gawk,git,grep,iproute,jq,libcap,logrotate,lshw,procps-ng,psmisc,util-linux,unzip
 %description
 Pi-hole dependency meta package
 %prep
@@ -147,6 +143,12 @@ Pi-hole dependency meta package
 %files
 %install
 %changelog
+* Mon Nov 02 2026 Pi-hole Team - 0.6
+- Replace sudo with util-linux in the list of dependencies
+
+* Sat Oct 17 2026 Pi-hole Team - 0.5
+- Add diffutils to the list of dependencies
+
 * Thu Dec 18 2025 Pi-hole Team - 0.4
 - Add logrotate to the list of dependencies
 
@@ -162,7 +164,7 @@ EOM
 )
 
 # List of required packages on APK based systems
-PIHOLE_META_VERSION_APK=0.3
+PIHOLE_META_VERSION_APK=0.4
 PIHOLE_META_DEPS_APK=(
     bash
     bash-completion
@@ -185,8 +187,8 @@ PIHOLE_META_DEPS_APK=(
     ncurses
     procps-ng
     psmisc
+    setpriv
     shadow
-    sudo
     tzdata
     unzip
 )
@@ -267,6 +269,14 @@ is_command() {
     local check_command="$1"
 
     command -v "${check_command}" >/dev/null 2>&1
+}
+
+# /etc/pihole is owned by the pihole user, who can replace anything in it with a
+# symlink. Root would follow such a symlink, so anything written into
+# /etc/pihole must be written as pihole (GHSA-wp3p-45h3-2v82). Start from / so
+# the command does not inherit a working directory pihole cannot access.
+as_pihole() {
+    (cd / && setpriv --reuid=pihole --regid=pihole --init-groups -- "$@")
 }
 
 check_fresh_install() {
@@ -573,6 +583,54 @@ resetRepo() {
     # Return to where we came from
     popd &>/dev/null || return 1
     # Function succeeded, as "git reset" would have triggered a return earlier if it failed
+    return 0
+}
+
+mark_repos_safe() {
+    # The updatechecker cron job runs as the unprivileged "pihole" user so that
+    # root never writes into the pihole-owned /etc/pihole directory (see
+    # GHSA-xch2-4qxw-g5vj). git refuses to operate in the root-owned local repos
+    # when invoked by another user ("detected dubious ownership"), which would
+    # break local version detection, so record them in git's system-wide
+    # safe.directory list (safe.directory is only honoured from system/global
+    # config, hence --system).
+    #
+    # webInterfaceDir comes from pihole.toml, which the pihole user can edit, so
+    # it must not be trusted as given. If it were, that user could point it at a
+    # directory it controls, swap in a crafted repository and have root run git
+    # in it later (e.g. during `pihole -up`). So only trust a path that
+    #   - resolves (without symlinks) to a real directory,
+    #   - and, together with its .git, is owned by root and not world-writable,
+    #     i.e. that the pihole user cannot modify.
+    local repo
+    for repo in "${PI_HOLE_LOCAL_REPO}" "${webInterfaceDir}"; do
+        [[ -n "${repo}" ]] || continue
+        repo="$(cd "${repo}" 2>/dev/null && pwd -P)" || continue
+        [[ -n "${repo}" && -e "${repo}/.git" ]] || continue
+        if [[ ! -O "${repo}" || ! -O "${repo}/.git" ]] ||
+            [[ -n "$(find "${repo}" "${repo}/.git" -maxdepth 0 -perm /002 2>/dev/null)" ]]; then
+            # Skipping it silently would leave local version detection broken
+            # without a hint why (e.g. a Web repo still owned by www-data).
+            printf "  %b %s is not owned by root or is world-writable, so it is not marked as safe for git\\n" "${INFO}" "${repo}"
+            printf "      and its local version can't be detected. Make it root-owned and not world-writable, then run 'pihole -r'.\\n"
+            continue
+        fi
+        if ! git config --system --get-all safe.directory 2>/dev/null | grep -qxF "${repo}"; then
+            # Non-fatal: a missing entry only degrades version reporting, and
+            # the installer runs under 'set -e'.
+            git config --system --add safe.directory "${repo}" || true
+        fi
+    done
+
+    # git silently ignores a system config file that the pihole user cannot read,
+    # which is what happens if it was just created under a restrictive umask.
+    # It applies to every user, so it is meant to be world-readable anyway.
+    local gitconfig
+    gitconfig="$(git config --system --show-origin --get-all safe.directory 2>/dev/null | head -n 1 | cut -f 1)"
+    gitconfig="${gitconfig#file:}"
+    if [[ -f "${gitconfig}" ]]; then
+        chmod a+r "${gitconfig}" || true
+    fi
     return 0
 }
 
@@ -1134,10 +1192,9 @@ installDefaultBlocklists() {
 }
 
 move_old_dnsmasq_ftl_configs() {
-    # Create migration directory /etc/pihole/migration_backup_v6
-    # and make it owned by pihole:pihole
-    mkdir -p "${V6_CONF_MIGRATION_DIR}"
-    chown pihole:pihole "${V6_CONF_MIGRATION_DIR}"
+    # Create migration directory /etc/pihole/migration_backup_v6 as the pihole
+    # user, so a symlink planted at that path cannot redirect root
+    as_pihole mkdir -p "${V6_CONF_MIGRATION_DIR}"
 
     # Move all conf files originally created by Pi-hole into this directory
     # - 01-pihole.conf
@@ -1145,8 +1202,17 @@ move_old_dnsmasq_ftl_configs() {
     # - 04-pihole-static-dhcp.conf
     # - 05-pihole-custom-cname.conf
     # - 06-rfc6761.conf
-    mv /etc/dnsmasq.d/0{1,2,4,5}-pihole*.conf "${V6_CONF_MIGRATION_DIR}/" 2>/dev/null || true
-    mv /etc/dnsmasq.d/06-rfc6761.conf "${V6_CONF_MIGRATION_DIR}/" 2>/dev/null || true
+    # Root only removes the originals from the root-owned /etc/dnsmasq.d; the
+    # copy into the pihole-owned directory is made by the pihole user
+    local conf
+    for conf in /etc/dnsmasq.d/0{1,2,4,5}-pihole*.conf /etc/dnsmasq.d/06-rfc6761.conf; do
+        [[ -f "${conf}" ]] || continue
+        if as_pihole cp "${conf}" "${V6_CONF_MIGRATION_DIR}/"; then
+            rm -f "${conf}"
+        else
+            printf "  %b Unable to move %s to %s\\n" "${CROSS}" "${conf}" "${V6_CONF_MIGRATION_DIR}"
+        fi
+    done
 
     # If the dnsmasq main config file exists
     local dnsmasq_conf="/etc/dnsmasq.conf"
@@ -1219,17 +1285,18 @@ installScripts() {
         # move into the directory
         cd "${PI_HOLE_LOCAL_REPO}"
         # Install the scripts by:
-        #  -o setting the owner to the user
+        #  -o setting the owner to root. Root runs these scripts, so no other account may own them:
+        #     $USER is not always root here (e.g. after su without -)
         #  -Dm755 create all leading components of destination except the last, then copy the source to the destination and setting the permissions to 755
         #
         # This first one is the directory
-        install -o "${USER}" -Dm755 -d "${PI_HOLE_INSTALL_DIR}"
+        install -o root -Dm755 -d "${PI_HOLE_INSTALL_DIR}"
         # The rest are the scripts Pi-hole needs
-        install -o "${USER}" -Dm755 -t "${PI_HOLE_INSTALL_DIR}" gravity.sh
-        install -o "${USER}" -Dm755 -t "${PI_HOLE_INSTALL_DIR}" ./advanced/Scripts/*.sh
-        install -o "${USER}" -Dm755 -t "${PI_HOLE_INSTALL_DIR}" ./automated\ install/uninstall.sh
-        install -o "${USER}" -Dm755 -t "${PI_HOLE_INSTALL_DIR}" ./advanced/Scripts/COL_TABLE
-        install -o "${USER}" -Dm755 -t "${PI_HOLE_BIN_DIR}" pihole
+        install -o root -Dm755 -t "${PI_HOLE_INSTALL_DIR}" gravity.sh
+        install -o root -Dm755 -t "${PI_HOLE_INSTALL_DIR}" ./advanced/Scripts/*.sh
+        install -o root -Dm755 -t "${PI_HOLE_INSTALL_DIR}" ./automated\ install/uninstall.sh
+        install -o root -Dm755 -t "${PI_HOLE_INSTALL_DIR}" ./advanced/Scripts/COL_TABLE
+        install -o root -Dm755 -t "${PI_HOLE_BIN_DIR}" pihole
         install -Dm644 ./advanced/bash-completion/pihole.bash /etc/bash_completion.d/pihole
         install -Dm644 ./advanced/bash-completion/pihole-ftl.bash /etc/bash_completion.d/pihole-FTL
         printf "%b  %b %s\\n" "${OVER}" "${TICK}" "${str}"
@@ -1249,9 +1316,10 @@ installConfigs() {
     # Ensure that permissions are correctly set
     chown -R pihole:pihole /etc/pihole
 
-    # Install empty custom.list file if it does not exist
+    # Install empty custom.list file if it does not exist. Create it as the
+    # pihole user: install -D follows a symlink planted at hosts/
     if [[ ! -r "${PI_HOLE_CONFIG_DIR}/hosts/custom.list" ]]; then
-        if ! install -D -T -o pihole -g pihole -m 660 /dev/null "${PI_HOLE_CONFIG_DIR}/hosts/custom.list" &>/dev/null; then
+        if ! as_pihole install -D -T -m 660 /dev/null "${PI_HOLE_CONFIG_DIR}/hosts/custom.list" &>/dev/null; then
             printf "  %b Error: Unable to initialize configuration file %s/custom.list\\n" "${COL_RED}" "${PI_HOLE_CONFIG_DIR}/hosts"
             return 1
         fi
@@ -1538,8 +1606,8 @@ installCron() {
 # Gravity is a very important script as it aggregates all of the domains into a single HOSTS formatted list,
 # which is what Pi-hole needs to begin blocking ads
 runGravity() {
-    # Run gravity in the current shell as user pihole
-    { sudo -u pihole bash /opt/pihole/gravity.sh --force; }
+    # gravity.sh drops to the pihole user itself
+    { bash /opt/pihole/gravity.sh --force; }
 }
 
 # Check if the pihole user exists and create if it does not
@@ -1691,6 +1759,19 @@ EOF
         sed -i "s/# su #/su ${logusergroup}/g;" "${rendered}"
     fi
     current="${rendered}"
+
+    # Older files signal whatever the pihole-owned PID file contains, so swap in the
+    # validated lookup. The v6.4.3 reference gets the same swap so it still matches
+    local old_kill new_kill file content
+    old_kill='kill -USR2 $(cat /run/pihole-FTL.pid 2>/dev/null) 2>/dev/null || true'
+    new_kill='. /opt/pihole/utils.sh; pid="$(getFTLPID)"; [ "${pid}" -gt 0 ] && kill -USR2 "${pid}" 2>/dev/null || true'
+    for file in "${target}" "${rendered_643}"; do
+        [[ -f "${file}" ]] || continue
+        content="$(<"${file}")"
+        if [[ "${content}" == *"${old_kill}"* ]]; then
+            printf '%s\n' "${content//"${old_kill}"/"${new_kill}"}" > "${file}"
+        fi
+    done
 
     printf "\\n  %b %s..." "${INFO}" "${str}"
     if [[ -f ${target} ]]; then
@@ -1924,6 +2005,9 @@ clone_or_reset_repos() {
                 exit 1
             }
     fi
+
+    # Let the "pihole"-user updatechecker cron job read these root-owned repos
+    mark_repos_safe
 }
 
 # Download FTL binary to random temp directory and install FTL binary
@@ -1967,8 +2051,9 @@ FTLinstall() {
         if sha1sum --status --quiet -c "${binary}".sha1; then
             printf "transferred... "
 
-            # Before stopping FTL, we download the macvendor database
-            curl -sSL "https://ftl.pi-hole.net/macvendor.db" -o "${PI_HOLE_CONFIG_DIR}/macvendor.db" || true
+            # Before stopping FTL, we download the macvendor database. It goes
+            # into the pihole-owned /etc/pihole, so download it as that user
+            as_pihole curl -sSL "https://ftl.pi-hole.net/macvendor.db" -o "${PI_HOLE_CONFIG_DIR}/macvendor.db" || true
 
 
             # If the binary already exists in /usr/bin, then we need to stop the service
@@ -2243,9 +2328,10 @@ make_temporary_log() {
 copy_to_install_log() {
     # Copy the contents of file descriptor 3 into the install log
     # Since we use color codes such as '\e[1;33m', they should be removed
-    sed 's/\[[0-9;]\{1,5\}m//g' </proc/$$/fd/3 >"${installLogLoc}"
-    chmod 644 "${installLogLoc}"
-    chown pihole:pihole "${installLogLoc}"
+    # Root reads this shell's fd 3, but the log is written by the pihole user
+    # because it lives in the pihole-owned /etc/pihole
+    # shellcheck disable=SC2016 # $1 is expanded by the inner shell
+    sed 's/\[[0-9;]\{1,5\}m//g' </proc/$$/fd/3 | as_pihole sh -c 'umask 022 && cat >"$1"' sh "${installLogLoc}"
 }
 
 disableLighttpd() {
@@ -2356,26 +2442,34 @@ main() {
         printf "      The Pi-hole requires elevated privileges to install and run\\n"
         printf "      Please check the installer for any concerns regarding this requirement\\n"
         printf "      Make sure to download this script from a trusted source\\n\\n"
-        printf "  %b Sudo utility check" "${INFO}"
+        printf "  %b Privilege escalation utility check" "${INFO}"
 
-        # If the sudo command exists, try rerunning as admin
+        # Identify whether sudo or doas is present
+        local SUDO_COMMAND
         if is_command sudo; then
-            printf "%b  %b Sudo utility check\\n" "${OVER}" "${TICK}"
+            printf "%b  %b Privilege escalation utility check - sudo present\\n" "${OVER}" "${TICK}"
+            SUDO_COMMAND="sudo"
+        elif is_command doas; then
+            printf "%b  %b Privilege escalation utility check - doas present\\n" "${OVER}" "${TICK}"
+            SUDO_COMMAND="doas"
+        fi
 
+        # If the sudo/doas command exists, try rerunning as admin
+        if [[ -n "${SUDO_COMMAND}" ]]; then
             # when run via curl piping
             if [[ "$0" == "bash" ]]; then
                 # Download the install script and run it with admin rights
-                exec curl -sSL https://install.pi-hole.net | sudo bash "$@"
+                exec curl -sSL https://install.pi-hole.net | "${SUDO_COMMAND}" bash "$@"
             else
                 # when run via calling local bash script
-                exec sudo bash "$0" "$@"
+                exec "${SUDO_COMMAND}" bash "$0" "$@"
             fi
 
             exit $?
         else
             # Otherwise, tell the user they need to run the script as root, and bail
-            printf "%b  %b Sudo utility check\\n" "${OVER}" "${CROSS}"
-            printf "  %b Sudo is needed for the Web Interface to run pihole commands\\n\\n" "${INFO}"
+            printf "%b  %b Privilege escalation utility check\\n" "${OVER}" "${CROSS}"
+            printf "  %b Elevated privileges are needed to install Pi-hole\\n\\n" "${INFO}"
             printf "  %b %bPlease re-run this installer as root${COL_NC}\\n" "${INFO}" "${COL_RED}"
             exit 1
         fi
@@ -2460,6 +2554,10 @@ main() {
 
     # Create the pihole user
     create_pihole_user
+
+    # Hand /etc/pihole to the pihole user before anything below writes into it
+    # as that user. On a fresh install it was created root-owned above.
+    chown pihole:pihole "${PI_HOLE_CONFIG_DIR}"
 
     # Download and install FTL
     local binary

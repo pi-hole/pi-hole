@@ -12,6 +12,14 @@
 
 export LC_ALL=C
 
+# Never run gravity as root, as it writes to paths taken from the pihole-owned config.
+# /etc/pihole may still be root-owned when gravity runs before the FTL prestart script.
+# Without a terminal on stdin, mv replaces leftover root-owned files instead of prompting
+if [[ "${EUID}" -eq 0 ]]; then
+  chown pihole:pihole /etc/pihole
+  exec setpriv --reuid=pihole --regid=pihole --init-groups -- bash "$0" "$@" </dev/null
+fi
+
 PI_HOLE_SCRIPT_DIR="/opt/pihole"
 # Source utils.sh for GetFTLConfigValue
 utilsfile="${PI_HOLE_SCRIPT_DIR}/utils.sh"
@@ -29,9 +37,6 @@ PIHOLE_COMMAND="/usr/local/bin/${basename}"
 
 piholeDir="/etc/${basename}"
 
-# Gravity aux files directory
-listsCacheDir="${piholeDir}/listsCache"
-
 # Legacy (pre v5.0) list file locations
 whitelistFile="${piholeDir}/whitelist.txt"
 blacklistFile="${piholeDir}/blacklist.txt"
@@ -43,6 +48,7 @@ GRAVITYDB=$(getFTLConfigValue files.gravity)
 GRAVITY_TMPDIR=$(getFTLConfigValue files.gravity_tmp)
 gravityDBschema="${piholeGitDir}/advanced/Templates/gravity.db.sql"
 gravityDBcopy="${piholeGitDir}/advanced/Templates/gravity_copy.sql"
+gravityDBresync="${piholeGitDir}/advanced/Templates/gravity_resync.sql"
 
 domainsExtension="domains"
 curl_connect_timeout=10
@@ -63,6 +69,9 @@ gravityDIR="$(dirname -- "${gravityDBfile}")"
 gravityOLDfile="${gravityDIR}/gravity_old.db"
 gravityBCKdir="${gravityDIR}/gravity_backups"
 gravityBCKfile="${gravityBCKdir}/gravity.db"
+
+# Gravity aux files directory
+listsCacheDir="${gravityDIR}/listsCache"
 
 fix_owner_permissions() {
   # Fix ownership and permissions for the specified file
@@ -115,8 +124,28 @@ rotate_gravity_backup() {
   done
 }
 
+# Take over the list changes made while gravity was running, keeping what this run
+# found out about each list
+gravity_resync_lists() {
+  local resyncGravity
+  resyncGravity="$(cat "${gravityDBresync}")"
+  if [[ "${gravityDBfile}" != "${gravityDBfile_default}" ]]; then
+    resyncGravity="${resyncGravity//"${gravityDBfile_default}"/"${gravityDBfile}"}"
+  fi
+
+  output=$({ pihole-FTL sqlite3 -ni "${gravityTEMPfile}" <<<"${resyncGravity}"; } 2>&1)
+  status="$?"
+
+  if [[ "${status}" -ne 0 ]]; then
+    echo -e "\\n  ${CROSS} Unable to take over list changes made while gravity was running\\n"
+    echo -e "  ${CROSS} ${output}\\n"
+  fi
+}
+
 # Copy data from old to new database file and swap them
 gravity_swap_databases() {
+  gravity_resync_lists
+
   str="Swapping databases"
   echo -ne "  ${INFO} ${str}..."
 
@@ -460,8 +489,10 @@ gravity_DownloadBlocklists() {
   # Gravity copying SQL script
   copyGravity="$(cat "${gravityDBcopy}")"
   if [[ "${gravityDBfile}" != "${gravityDBfile_default}" ]]; then
-    # Replace default gravity script location by custom location
-    copyGravity="${copyGravity//"${gravityDBfile_default}"/"${gravityDBfile}"}"
+    # Replace default gravity script location by custom location, doubling
+    # single quotes so the path stays one SQL string literal
+    local gravityDBfile_sql=${gravityDBfile//"'"/"''"}
+    copyGravity="${copyGravity//"${gravityDBfile_default}"/"${gravityDBfile_sql}"}"
   fi
 
   output=$({ pihole-FTL sqlite3 -ni "${gravityTEMPfile}" <<<"${copyGravity}"; } 2>&1)
@@ -503,9 +534,14 @@ gravity_DownloadBlocklists() {
   # Parse source domains from $sources
   mapfile -t sourceDomains <<<"$(
     # Logic: Split by folder/port
-    awk -F '[/:]' '{
-      # Remove URL protocol & optional username:password@
-      gsub(/(.*:\/\/|.*:.*@)/, "", $0)
+    awk -F '[/:?#]' '{
+      # Remove URL protocol
+      gsub(/^[a-zA-Z][a-zA-Z0-9+.-]*:\/\//, "", $0)
+
+      # Remove optional credentials "username:password@", but keep other "@" characters,
+      # if present (see https://github.com/pi-hole/pi-hole/issues/6685)
+      gsub(/^[^\/?#@]*@/, "", $0)
+
       if(length($1)>0){print $1}
       else {print "local"}
     }' <<<"$(printf '%s\n' "${sources[@]}")" 2>/dev/null
@@ -733,38 +769,26 @@ gravity_DownloadBlocklistFromUrl() {
   fi
 
   # If we "download" a local file (file://), verify read access before using it.
-  # When running as root (e.g., via pihole -g), check that the 'pihole' user can read the file
-  # to match the effective runtime user of FTL; otherwise, check the current user's read access
-  # (e.g., in Docker or when invoked by a non-root user). The target must
-  # resolve to a regular file and be readable by the evaluated user.
+  # When invoked as root gravity drops down to the 'pihole' user, matching FTL's
+  # runtime user and its file access. The target must resolve to a regular file
+  # and be readable by the evaluated user.
   if [[ "${url}" == "file:/"* ]]; then
-    # Get the file path
-    file_path=$(echo "${url}" | cut -d'/' -f3-)
+    # Strip the scheme and an empty authority: file:///path and file:/path both give /path
+    file_path="${url#file:}"
+    file_path="${file_path#//}"
     # Check if the file exists and is a regular file (i.e. not a socket, fifo, tty, block). Might still be a symlink.
     if [[ ! -f ${file_path} ]]; then
         # Output that the file does not exist
         echo -e "${OVER}  ${CROSS} ${file_path} does not exist"
         download=false
     else
-        if [ "$(id -un)" == "root" ]; then
-            # If we are root, we need to check if the pihole user has read permission
-            #  otherwise, we might read files that the pihole user should not be able to read
-            if sudo -u pihole test -r "${file_path}"; then
-                echo -e "${OVER}  ${INFO} Using local file ${file_path}"
-            else
-                echo -e "${OVER}  ${CROSS} Cannot read file (user 'pihole' lacks read permission)"
-                download=false
-            fi
+        if [[ -r "${file_path}" ]]; then
+            # Output that we are using the local file
+            echo -e "${OVER}  ${INFO} Using local file ${file_path}"
         else
-            # If we are not root, we just check if the current user has read permission
-            if [[ -r "${file_path}" ]]; then
-                # Output that we are using the local file
-                echo -e "${OVER}  ${INFO} Using local file ${file_path}"
-            else
-                # Output that the file is not readable by the current user
-                echo -e "${OVER}  ${CROSS} Cannot read file (current user '$(id -un)' lacks read permission)"
-                download=false
-            fi
+            # Output that the file is not readable by the current user
+            echo -e "${OVER}  ${CROSS} Cannot read file (current user '$(id -un)' lacks read permission)"
+            download=false
         fi
     fi
   fi
@@ -806,8 +830,17 @@ gravity_DownloadBlocklistFromUrl() {
     # this, we use the "--fail" option to force curl to return a non-zero exit code.
     # If curl version is older than 7.75.0, curl can't generate the errormsg output. In this case,
     # a generic message is returned.
-    curlOutput=$(curl --connect-timeout ${curl_connect_timeout} -s --fail -L ${compression:+${compression}} ${customUpstreamResolver:+${customUpstreamResolver}} "${modifiedOptions[@]}" -w "${curlOutputFormat}" "${url}" -o "${listCurlBuffer}")
-    curlExitCode="$?"
+    if [[ ${url} == "file"* ]]; then
+      # Read local files as the user whose access was checked above, curl would
+      # resolve the URL path on its own and possibly open a different file
+      if [[ -n "${file_path}" ]]; then
+        # Gravity runs as a non-root user, so a plain cat is sufficient.
+        cat -- "${file_path}" >"${listCurlBuffer}"
+      fi
+    else
+      curlOutput=$(curl --connect-timeout ${curl_connect_timeout} -s --fail -L ${compression:+${compression}} ${customUpstreamResolver:+${customUpstreamResolver}} "${modifiedOptions[@]}" -w "${curlOutputFormat}" "${url}" -o "${listCurlBuffer}")
+      curlExitCode="$?"
+    fi
 
 
     # Retrieve http_code and errormsg values, returned by curl command
@@ -858,7 +891,7 @@ gravity_DownloadBlocklistFromUrl() {
       # Set list status to "unchanged/cached"
       database_adlist_status "${adlistID}" "2"
       # Add domains to database table file
-      pihole-FTL "${gravity_type}" parseList "${saveLocation}" "${gravityTEMPfile}" "${adlistID}"
+      pihole-FTL "${gravity_type}" parseList "${saveLocation}" "${gravityTEMPfile}" "${adlistID}" "${url}"
       done="true"
     # Check if $listCurlBuffer is a non-zero length file
     elif [[ -s "${listCurlBuffer}" ]]; then
@@ -873,7 +906,7 @@ gravity_DownloadBlocklistFromUrl() {
           fix_owner_permissions "${saveLocation}.etag"
       fi
       # Add domains to database table file
-      pihole-FTL "${gravity_type}" parseList "${saveLocation}" "${gravityTEMPfile}" "${adlistID}"
+      pihole-FTL "${gravity_type}" parseList "${saveLocation}" "${gravityTEMPfile}" "${adlistID}" "${url}"
       done="true"
     else
       # Fall back to previously cached list if $listCurlBuffer is empty
@@ -889,7 +922,7 @@ gravity_DownloadBlocklistFromUrl() {
       # Set list status to "download-failed/cached"
       database_adlist_status "${adlistID}" "3"
       # Add domains to database table file
-      pihole-FTL "${gravity_type}" parseList "${saveLocation}" "${gravityTEMPfile}" "${adlistID}"
+      pihole-FTL "${gravity_type}" parseList "${saveLocation}" "${gravityTEMPfile}" "${adlistID}" "${url}"
     else
       echo -e "  ${CROSS} List download failed: ${COL_RED}no cached list available${COL_NC}"
       # Manually reset these two numbers because we do not call parseList here
@@ -1038,7 +1071,8 @@ gravity_optimize() {
     # query planning choices
     local str="Optimizing database"
     echo -ne "  ${INFO} ${str}..."
-    output=$( { pihole-FTL sqlite3 -ni "${gravityTEMPfile}" "PRAGMA analysis_limit=0; ANALYZE" 2>&1; } 2>&1 )
+    # A sample of 1000 rows per index records the same statistics as reading all of them
+    output=$( { pihole-FTL sqlite3 -ni "${gravityTEMPfile}" "PRAGMA analysis_limit=1000; ANALYZE" 2>&1; } 2>&1 )
     status="$?"
 
     if [[ "${status}" -ne 0 ]]; then
@@ -1106,15 +1140,33 @@ migrate_to_listsCache_dir() {
   echo -ne "  ${INFO} ${str}..."
   mkdir -p "${listsCacheDir}" && chown pihole:pihole "${listsCacheDir}"
 
-  # Move the old files to the new directory
+  local migrated=false
+
+  # Move the old (pre v6) files to the new directory
   if mv "${piholeDir}"/list.* "${listsCacheDir}/" 2>/dev/null; then
+    migrated=true
+    # Update the list's paths in the corresponding .sha1 files to the new location
+    sed -i "s|${piholeDir}/|${listsCacheDir}/|g" "${listsCacheDir}"/*.sha1 2>/dev/null
+  fi
+
+  # The cache directory used to live in ${piholeDir}, but follows gravity.db now.
+  # If gravity.db is outside of ${piholeDir}, move the existing cache over
+  local oldListsCacheDir="${piholeDir}/listsCache"
+  if [[ "${oldListsCacheDir}" != "${listsCacheDir}" && -d "${oldListsCacheDir}" ]]; then
+    if mv "${oldListsCacheDir}"/* "${listsCacheDir}/" 2>/dev/null; then
+      migrated=true
+      # The paths in the .sha1 files still point into the old cache directory
+      sed -i "s|${oldListsCacheDir}/|${listsCacheDir}/|g" "${listsCacheDir}"/*.sha1 2>/dev/null
+    fi
+    # Remove the old directory, this only succeeds if it is empty
+    rmdir "${oldListsCacheDir}" 2>/dev/null
+  fi
+
+  if [[ "${migrated}" == true ]]; then
     echo -e "${OVER}  ${TICK} ${str}"
   else
     echo -e "${OVER}  ${CROSS} ${str}"
   fi
-
-  # Update the list's paths in the corresponding .sha1 files to the new location
-  sed -i "s|${piholeDir}/|${listsCacheDir}/|g" "${listsCacheDir}"/*.sha1 2>/dev/null
 }
 
 helpFunc() {
