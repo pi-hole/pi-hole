@@ -351,7 +351,8 @@ teardown() {
         ln -s /lf/a/b /lf/l
         echo 'decoy.example.com' >/lf/etc/shadow
         chmod 644 /lf/etc/shadow
-        echo 'file:///lf/l/../../etc/shadow' >/etc/pihole/adlists.list
+        /opt/pihole/gravity.sh --newdb
+        /opt/pihole/gravity.sh --addadlist 'file:///lf/l/../../etc/shadow'
         pihole -g
     "
     assert_success
@@ -366,7 +367,8 @@ teardown() {
 @test "Gravity keeps list changes made while it runs" {
     # The second run waits for the connect timeout of its download, the lists are changed meanwhile
     run bash -c "
-        echo 'http://10.0.0.1/list' >/etc/pihole/adlists.list
+        /opt/pihole/gravity.sh --newdb
+        /opt/pihole/gravity.sh --addadlist 'http://10.0.0.1/list'
         pihole -g >/dev/null
         pihole-FTL sqlite3 /etc/pihole/gravity.db \"INSERT INTO domainlist (type, domain) VALUES (1, 'removed.during.gravity'); UPDATE adlist SET number = 42, status = 0;\"
         pihole -g >/tmp/gravity.out 2>&1 &
