@@ -124,7 +124,10 @@ gravity_resync_lists() {
   local resyncGravity
   resyncGravity="$(cat "${gravityDBresync}")"
   if [[ "${gravityDBfile}" != "${gravityDBfile_default}" ]]; then
-    resyncGravity="${resyncGravity//"${gravityDBfile_default}"/"${gravityDBfile}"}"
+    # Replace default gravity script location by custom location, doubling
+    # single quotes so the path stays one SQL string literal
+    local gravityDBfile_sql=${gravityDBfile//"'"/"''"}
+    resyncGravity="${resyncGravity//"${gravityDBfile_default}"/"${gravityDBfile_sql}"}"
   fi
 
   output=$({ pihole-FTL sqlite3 -ni "${gravityTEMPfile}" <<<"${resyncGravity}"; } 2>&1)
