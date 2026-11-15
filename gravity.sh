@@ -423,19 +423,29 @@ try_restore_backup () {
   # Check if a backup exists
   if [ -f "${filename}" ]; then
     echo -e "  ${INFO} Attempting to restore previous database from backup no. ${num}"
-    cp "${filename}" "${gravityDBfile}"
 
     # If the backup was successfully copied, prepare a new gravity database from
     # it
-    if [ -f "${gravityDBfile}" ]; then
+    if cp "${filename}" "${gravityDBfile}"; then
+      # The failed copy attempt may have left the temporary database empty,
+      # partially filled or missing, so start again from the schema
+      rm -f "${gravityTEMPfile}" >/dev/null 2>&1
+      output=$({ pihole-FTL sqlite3 -ni "${gravityTEMPfile}" <"${gravityDBschema}"; } 2>&1)
+      status="$?"
+      if [[ "${status}" -ne 0 ]]; then
+        echo -e "  ${CROSS} Unable to create new database ${gravityTEMPfile}"
+        echo -e "  ${CROSS} ${output}\\n"
+        return 1
+      fi
+
       output=$({ pihole-FTL sqlite3 -ni "${gravityTEMPfile}" <<<"${copyGravity}"; } 2>&1)
       status="$?"
 
-      # Error checking
+      # Error checking: try the next backup instead of giving up
       if [[ "${status}" -ne 0 ]]; then
-        echo -e "\\n  ${CROSS} Unable to copy data from ${gravityDBfile} to ${gravityTEMPfile}\\n"
+        echo -e "  ${CROSS} Unable to copy data from backup no. ${num} to ${gravityTEMPfile}"
         echo -e "  ${CROSS} ${output}\\n"
-        gravity_Cleanup "error"
+        return 1
       fi
 
       # Get the timestamp of the backup file in a human-readable format
@@ -450,6 +460,7 @@ try_restore_backup () {
       return 0
     else
       echo -e "  ${CROSS} Unable to restore backup no. ${num}"
+      return 1
     fi
   fi
 
@@ -1207,6 +1218,31 @@ Available options:
     ;;
   esac
 }
+
+# Make sure only one gravity run works on the database at a time. Concurrent runs
+# (e.g. the weekly cron job and a custom cron job or a manual "pihole -g") share
+# the same temporary database file and swap gravity.db under each other, which
+# can leave the new database without group assignments.
+# A second run exits right away instead of waiting, like the API does for
+# concurrent gravity runs. The lock is released automatically when this script exits.
+gravity_lock() {
+  local lockfile="${gravityDIR}/gravity.lock"
+
+  if ! exec {gravity_lock_fd}>>"${lockfile}"; then
+    echo -e "  ${CROSS} Unable to open lock file ${lockfile}"
+    exit 1
+  fi
+
+  if ! flock -n "${gravity_lock_fd}"; then
+    echo -e "  ${CROSS} Another gravity run is in progress, not starting a second one"
+    exit 1
+  fi
+}
+
+case "${1:-}" in
+  "-h" | "--help") ;;
+  *) gravity_lock ;;
+esac
 
 for var in "$@"; do
   case "${var}" in
