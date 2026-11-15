@@ -1,4 +1,5 @@
 .timeout 30000
+.bail on
 
 PRAGMA foreign_keys=OFF;
 
