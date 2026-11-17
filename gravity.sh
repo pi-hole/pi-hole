@@ -616,14 +616,14 @@ gravity_DownloadBlocklistFromUrl() {
       # Save HTTP ETag to the specified file. An ETag is a caching related header,
       # usually returned in a response. If no ETag is sent by the server, an empty
       # file is created and can later be used consistently.
-      modifiedOptions=("${modifiedOptions[@]}" --etag-save "${saveLocation}".etag)
+      modifiedOptions+=("--etag-save" "${saveLocation}.etag")
 
       if [[ -f "${saveLocation}.etag" ]]; then
         # This option makes a conditional HTTP request for the specific ETag read
         # from the given file by sending a custom If-None-Match header using the
         # stored ETag. This way, the server will only send the file if it has
         # changed since the last request.
-        modifiedOptions=("${modifiedOptions[@]}" --etag-compare "${saveLocation}".etag)
+        modifiedOptions+=("--etag-compare" "${saveLocation}.etag")
       fi
     fi
 
@@ -636,7 +636,7 @@ gravity_DownloadBlocklistFromUrl() {
       # Interstingly, this option is not supported by raw.githubusercontent.com
       # URLs, however, it is still supported by many older web servers which may
       # not support the HTTP ETag method so we keep it as a fallback.
-      modifiedOptions=("${modifiedOptions[@]}" -z "${saveLocation}")
+      modifiedOptions+=("-z" "${saveLocation}")
     fi
   fi
 
