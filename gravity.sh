@@ -609,7 +609,9 @@ compareLists() {
 gravity_DownloadBlocklistFromUrl() {
   local url="${1}" adlistID="${2}" saveLocation="${3}" compression="${4}" gravity_type="${5}" domain="${6}"
   local listCurlBuffer str curlVersion curlOutput httpCode curlErrorMsg="" curlExitCode="" curlOutputFormat=""
-  local success="" ip customUpstreamResolver="" file_path ip_addr port blocked=false download=true
+  local success="" ip dig_output file_path ip_addr port blocked=false download=true
+  # customUpstreamResolver is an array so the --resolve option is passed to curl as exactly two arguments
+  local customUpstreamResolver=()
   # modifiedOptions is an array to store all the options used to check if the adlist has been changed upstream
   local modifiedOptions=()
 
@@ -705,15 +707,26 @@ gravity_DownloadBlocklistFromUrl() {
       else
         printf -v port "%s" "${upstream#*#}"
       fi
-      ip=$(dig "@${ip_addr}" -p "${port}" +short "${domain}" | tail -1)
-      if [[ $(echo "${url}" | awk -F '://' '{print $1}') = "https" ]]; then
-        port=443
-      else
-        port=80
-      fi
       echo -e "${OVER}  ${CROSS} ${str} ${domain} is blocked by one of your lists. Using DNS server ${upstream} instead"
-      echo -ne "  ${INFO} ${str} Pending..."
-      customUpstreamResolver="--resolve ${domain}:${port}:${ip}"
+      # Do not pipe dig into another command: its exit status would be lost, and
+      # with +short dig prints errors such as ";; no servers could be reached" to stdout
+      ip=""
+      if dig_output=$(dig "@${ip_addr}" -p "${port}" +short "${domain}"); then
+        # The last line holds the address, earlier lines may be CNAMEs
+        ip="${dig_output##*$'\n'}"
+      fi
+      if [[ ! "${ip}" =~ ^[0-9]{1,3}(\.[0-9]{1,3}){3}$ ]]; then
+        echo -e "  ${CROSS} ${str} Unable to resolve ${domain} using DNS server ${upstream}"
+        download=false
+      else
+        if [[ $(echo "${url}" | awk -F '://' '{print $1}') = "https" ]]; then
+          port=443
+        else
+          port=80
+        fi
+        echo -ne "  ${INFO} ${str} Pending..."
+        customUpstreamResolver=(--resolve "${domain}:${port}:${ip}")
+      fi
     fi
   fi
 
@@ -787,7 +800,7 @@ gravity_DownloadBlocklistFromUrl() {
         cat -- "${file_path}" >"${listCurlBuffer}"
       fi
     else
-      curlOutput=$(curl --connect-timeout ${curl_connect_timeout} -s --fail -L ${compression:+${compression}} ${customUpstreamResolver:+${customUpstreamResolver}} "${modifiedOptions[@]}" -w "${curlOutputFormat}" "${url}" -o "${listCurlBuffer}")
+      curlOutput=$(curl --connect-timeout ${curl_connect_timeout} -s --fail -L ${compression:+${compression}} "${customUpstreamResolver[@]}" "${modifiedOptions[@]}" -w "${curlOutputFormat}" "${url}" -o "${listCurlBuffer}")
       curlExitCode="$?"
     fi
 
