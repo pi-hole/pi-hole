@@ -392,3 +392,29 @@ teardown() {
     run pihole-FTL sqlite3 /etc/pihole/gravity.db "SELECT comment, number, status FROM adlist;"
     assert_output "changed during gravity|0|4"
 }
+
+@test "Gravity reports a failed upstream lookup for a blocked list domain" {
+    # A fake dig reports the list's domain as blocked (0.0.0.0) and fails the
+    # lookup through the upstream server the way the real dig does: error text
+    # on stdout and exit code 9
+    run bash -c "
+        mkdir -p /tmp/fakedig
+        printf '%s\n' '#!/bin/bash' \
+            'if [[ \"\$1\" == @* ]]; then echo \";; no servers could be reached\"; exit 9; fi' \
+            'echo 0.0.0.0' > /tmp/fakedig/dig
+        chmod 755 /tmp/fakedig /tmp/fakedig/dig
+        source /opt/pihole/utils.sh
+        setFTLConfigValue 'dns.upstreams' '[\"192.0.2.1\"]' > /dev/null
+        /opt/pihole/gravity.sh --newdb
+        /opt/pihole/gravity.sh --addadlist 'https://blocked.example.com/list.txt'
+        PATH=\"/tmp/fakedig:\${PATH}\" pihole -g
+    "
+    rm -rf /tmp/fakedig
+    assert_success
+    assert_line --partial "${CROSS} Status: blocked.example.com is blocked by one of your lists. Using DNS server 192.0.2.1 instead"
+    assert_line --partial "${CROSS} Status: Unable to resolve blocked.example.com using DNS server 192.0.2.1"
+    refute_line --partial "Retrieval failed"
+    refute_line --partial "curl:"
+    assert_line --partial "${CROSS} List download failed: no cached list available"
+    assert_line --partial "${TICK} Done."
+}
