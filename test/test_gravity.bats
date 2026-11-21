@@ -392,3 +392,74 @@ teardown() {
     run pihole-FTL sqlite3 /etc/pihole/gravity.db "SELECT comment, number, status FROM adlist;"
     assert_output "changed during gravity|0|4"
 }
+
+@test "Gravity does not start while another gravity run holds the lock" {
+    # Hold the lock on another file descriptor, like a concurrent gravity run would
+    run bash -c "
+        touch /etc/pihole/gravity.lock
+        chown pihole:pihole /etc/pihole/gravity.lock
+        (
+            flock -n 9 || exit 99
+            pihole -g
+        ) 9>>/etc/pihole/gravity.lock
+    "
+    assert_failure 1
+    assert_line --partial "${CROSS} Another gravity run is in progress, not starting a second one"
+    refute_line --partial "Neutrino emissions detected"
+    assert_file_not_exists /etc/pihole/gravity.db
+
+    # The lock is released once the other run is gone
+    run bash -c "
+        pihole -g
+    "
+    assert_success
+    assert_line --partial "${TICK} Done."
+}
+
+@test "Gravity restores the database from a backup if copying the old data fails" {
+    # Create a client with a custom group, keep it in backup no. 1, then break the current database
+    run bash -c "
+        rm -rf /etc/pihole/gravity_backups
+        pihole -g >/dev/null
+        pihole-FTL sqlite3 /etc/pihole/gravity.db \"INSERT INTO [group] (name) VALUES ('restore test'); INSERT INTO client (ip) VALUES ('10.1.2.3'); INSERT INTO client_by_group (client_id, group_id) SELECT c.id, g.id FROM client c, [group] g WHERE c.ip = '10.1.2.3' AND g.name = 'restore test';\"
+        pihole -g >/dev/null
+        pihole-FTL sqlite3 /etc/pihole/gravity.db 'DROP TABLE client_by_group;'
+        pihole -g
+    "
+    assert_success
+    assert_line --partial "${CROSS} Unable to copy data from /etc/pihole/gravity.db to /etc/pihole/gravity.db_temp"
+    assert_line --partial "${INFO} Attempting to restore previous database from backup no. 1"
+    assert_line --partial "${TICK} Successfully restored from backup (/etc/pihole/gravity_backups/gravity.db.1 at"
+    assert_line --partial "${TICK} Done."
+
+    run pihole-FTL sqlite3 /etc/pihole/gravity.db "SELECT g.name FROM client_by_group cg JOIN client c ON c.id = cg.client_id JOIN [group] g ON g.id = cg.group_id WHERE c.ip = '10.1.2.3' AND g.id > 0;"
+    assert_output "restore test"
+
+    run pihole-FTL sqlite3 /etc/pihole/gravity.db "SELECT value FROM info WHERE property = 'gravity_restored';"
+    refute_output "failed"
+    assert_output --regexp "^[0-9]{4}-[0-9]{2}-[0-9]{2} "
+}
+
+@test "Gravity tries the next backup if restoring a backup fails" {
+    # Keep the client in backups no. 1 and no. 2, then break the current database and backup no. 1
+    run bash -c "
+        rm -rf /etc/pihole/gravity_backups
+        pihole -g >/dev/null
+        pihole-FTL sqlite3 /etc/pihole/gravity.db \"INSERT INTO [group] (name) VALUES ('restore test'); INSERT INTO client (ip) VALUES ('10.1.2.3'); INSERT INTO client_by_group (client_id, group_id) SELECT c.id, g.id FROM client c, [group] g WHERE c.ip = '10.1.2.3' AND g.name = 'restore test';\"
+        pihole -g >/dev/null
+        pihole -g >/dev/null
+        pihole-FTL sqlite3 /etc/pihole/gravity.db 'DROP TABLE client_by_group;'
+        pihole-FTL sqlite3 /etc/pihole/gravity_backups/gravity.db.1 'DROP TABLE client_by_group;'
+        pihole -g
+    "
+    assert_success
+    assert_line --partial "${CROSS} Unable to copy data from /etc/pihole/gravity.db to /etc/pihole/gravity.db_temp"
+    assert_line --partial "${INFO} Attempting to restore previous database from backup no. 1"
+    assert_line --partial "${CROSS} Unable to copy data from backup no. 1 to /etc/pihole/gravity.db_temp"
+    assert_line --partial "${INFO} Attempting to restore previous database from backup no. 2"
+    assert_line --partial "${TICK} Successfully restored from backup (/etc/pihole/gravity_backups/gravity.db.2 at"
+    assert_line --partial "${TICK} Done."
+
+    run pihole-FTL sqlite3 /etc/pihole/gravity.db "SELECT g.name FROM client_by_group cg JOIN client c ON c.id = cg.client_id JOIN [group] g ON g.id = cg.group_id WHERE c.ip = '10.1.2.3' AND g.id > 0;"
+    assert_output "restore test"
+}
