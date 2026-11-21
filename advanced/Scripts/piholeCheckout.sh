@@ -52,6 +52,22 @@ set_ftl_branch() {
 }
 
 checkout() {
+
+    local skipFTL additionalFlag
+    skipFTL=false
+    # Check arguments
+    for var in "$@"; do
+        case "$var" in
+            "--skipFTL") skipFTL=true ;;
+        esac
+    done
+
+    if [ "${skipFTL}" == true ]; then
+        additionalFlag="--skipFTL"
+    else
+        additionalFlag=""
+    fi
+
     local corebranches
     local webbranches
 
@@ -243,7 +259,7 @@ checkout() {
     # Force updating everything
     if [[  ! "${1}" == "web" && ! "${1}" == "ftl" ]]; then
         echo -e "  ${INFO} Running installer to upgrade your installation"
-        if "${PI_HOLE_FILES_DIR}/automated install/basic-install.sh" --unattended; then
+        if "${PI_HOLE_FILES_DIR}/automated install/basic-install.sh" --unattended ${additionalFlag}; then
             exit 0
         else
             echo -e "  ${COL_RED} Error: Unable to complete update, please contact support${COL_NC}"
