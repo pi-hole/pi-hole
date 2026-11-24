@@ -89,26 +89,6 @@ generate_gravity_database() {
   fix_owner_permissions "${gravityDBfile}"
 }
 
-# Build gravity tree
-gravity_build_tree() {
-  local table="$1"
-  local str
-  str="Building ${table} tree"
-  echo -ne "  ${INFO} ${str}..."
-
-  # The index is intentionally not UNIQUE as poor quality adlists may contain domains more than once
-  output=$({ pihole-FTL sqlite3 -ni "${gravityTEMPfile}" "CREATE INDEX idx_${table} ON ${table} (domain, adlist_id);"; } 2>&1)
-  status="$?"
-
-  if [[ "${status}" -ne 0 ]]; then
-    echo -e "\\n  ${CROSS} Unable to build ${table} tree in ${gravityTEMPfile}\\n"
-    echo -e "  ${CROSS} ${output}\\n"
-    echo -e "  ${INFO} If you have a large amount of domains, make sure your Pi-hole has enough RAM available\\n"
-    gravity_Cleanup "error"
-  fi
-  echo -e "${OVER}  ${TICK} ${str}"
-}
-
 # Rotate gravity backup files
 rotate_gravity_backup() {
   for i in {9..1}; do
@@ -1210,10 +1190,6 @@ update_gravity_timestamp
 
 # Ensure proper permissions are set for the database
 fix_owner_permissions "${gravityTEMPfile}"
-
-# Build the tree
-timeit gravity_build_tree gravity
-timeit gravity_build_tree antigravity
 
 # Compute numbers to be displayed (do this after building the tree to get the
 # numbers quickly from the tree instead of having to scan the whole database)

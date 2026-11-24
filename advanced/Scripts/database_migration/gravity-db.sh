@@ -163,4 +163,11 @@ upgrade_gravityDB(){
         pihole-FTL sqlite3 -ni "${database}" < "${scriptPath}/20_to_21.sql"
         version=21
     fi
+    if [[ "$version" == "21" ]]; then
+        # Store gravity and antigravity without a rowid, removing the
+        # redundant idx_gravity and idx_antigravity covering indexes
+        echo -e "  ${INFO} Upgrading gravity database from version 21 to 22"
+        pihole-FTL sqlite3 -ni "${database}" < "${scriptPath}/21_to_22.sql"
+        version=22
+    fi
 }
