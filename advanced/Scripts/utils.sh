@@ -138,7 +138,7 @@ setFTLConfigValue(){
     local err
     { pihole-FTL --config "${1}" "${2}" >/dev/null; err="$?"; } || true
 
-    case $err in
+    case ${err} in
     0) ;;
     5)
         # FTL returns 5 if the value was set by an environment variable and is therefore read-only

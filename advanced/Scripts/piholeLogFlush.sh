@@ -23,15 +23,15 @@ source "${utilsfile}"
 
 # Determine log file location
 LOGFILE=$(getFTLConfigValue "files.log.dnsmasq")
-if [ -z "$LOGFILE" ]; then
+if [ -z "${LOGFILE}" ]; then
     LOGFILE="/var/log/pihole/pihole.log"
 fi
 FTLFILE=$(getFTLConfigValue "files.log.ftl")
-if [ -z "$FTLFILE" ]; then
+if [ -z "${FTLFILE}" ]; then
     FTLFILE="/var/log/pihole/FTL.log"
 fi
 WEBFILE=$(getFTLConfigValue "files.log.webserver")
-if [ -z "$WEBFILE" ]; then
+if [ -z "${WEBFILE}" ]; then
     WEBFILE="/var/log/pihole/webserver.log"
 fi
 

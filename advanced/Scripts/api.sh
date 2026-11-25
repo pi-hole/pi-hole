@@ -305,7 +305,7 @@ secretRead() {
         fi
         if [ "${key}" = "$(printf '\177')" ] ; then
             # Backspace
-            if [ $charcount -gt 0 ] ; then
+            if [ ${charcount} -gt 0 ] ; then
                 charcount=$((charcount-1))
                 printf '\b \b'
                 password="${password%?}"
@@ -314,7 +314,7 @@ secretRead() {
             # any other character
             charcount=$((charcount+1))
             printf '*'
-            password="$password$key"
+            password="${password}${key}"
         fi
     done
 

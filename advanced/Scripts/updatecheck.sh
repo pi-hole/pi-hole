@@ -84,8 +84,8 @@ trap 'rm -f "${VERSION_FILE_TMP}"' EXIT
 # if /pihole.docker.tag file exists, we will use it's value later in this script
 DOCKER_TAG=$(cat /pihole.docker.tag 2>/dev/null)
 release_regex='^([0-9]+\.){1,2}(\*|[0-9]+)(-.*)?$'
-regex=$release_regex'|(^nightly$)|(^dev.*$)'
-if [[ ! "${DOCKER_TAG}" =~ $regex ]]; then
+regex=${release_regex}'|(^nightly$)|(^dev.*$)'
+if [[ ! "${DOCKER_TAG}" =~ ${regex} ]]; then
     # DOCKER_TAG does not match the pattern (see https://regex101.com/r/RsENuz/1), so unset it.
     unset DOCKER_TAG
 fi
@@ -153,7 +153,7 @@ if [[ "${DOCKER_TAG}" ]]; then
 
     # Remote version check only if the tag is a valid release version
     docker_branch=""
-    if [[ "${DOCKER_TAG}" =~ $release_regex ]]; then
+    if [[ "${DOCKER_TAG}" =~ ${release_regex} ]]; then
         docker_branch="master"
     fi
 

@@ -47,7 +47,7 @@ start() {
     # Cleanup if startup failed
     if [ "${rc}" != 0 ]; then
         cleanup
-        exit $rc
+        exit ${rc}
     fi
     echo
   fi

@@ -20,13 +20,13 @@ source "${apifile}"
 
 # Determine database location
 DBFILE=$(getFTLConfigValue "files.database")
-if [ -z "$DBFILE" ]; then
+if [ -z "${DBFILE}" ]; then
     DBFILE="/etc/pihole/pihole-FTL.db"
 fi
 
 # Determine gravity database location
 GRAVITYDB=$(getFTLConfigValue "files.gravity")
-if [ -z "$GRAVITYDB" ]; then
+if [ -z "${GRAVITYDB}" ]; then
     GRAVITYDB="/etc/pihole/gravity.db"
 fi
 
@@ -92,7 +92,7 @@ AddDomain() {
     if [[ "${num}" -gt 0 ]] && [[ "${verbose}" == true ]]; then
         echo -e "  ${TICK} Added ${num} domain(s):"
         for i in $(seq 0 $((num-1))); do
-            echo -e "    - ${COL_BLUE}$(echo "${data}" | jq --raw-output ".processed.success[$i].item")${COL_NC}"
+            echo -e "    - ${COL_BLUE}$(echo "${data}" | jq --raw-output ".processed.success[${i}].item")${COL_NC}"
         done
     fi
     # Display failed domain(s)
@@ -101,8 +101,8 @@ AddDomain() {
     if [[ "${num}" -gt 0 ]] && [[ "${verbose}" == true ]]; then
         echo -e "  ${CROSS} Failed to add ${num} domain(s):"
         for i in $(seq 0 $((num-1))); do
-            echo -e "    - ${COL_BLUE}$(echo "${data}" | jq --raw-output ".processed.errors[$i].item")${COL_NC}"
-            error=$(echo "${data}" | jq --raw-output ".processed.errors[$i].error")
+            echo -e "    - ${COL_BLUE}$(echo "${data}" | jq --raw-output ".processed.errors[${i}].item")${COL_NC}"
+            error=$(echo "${data}" | jq --raw-output ".processed.errors[${i}].error")
             if [[ "${error}" == "UNIQUE constraint failed: domainlist.domain, domainlist.type" ]]; then
                 error="Domain already in the specified list"
             fi
@@ -140,7 +140,7 @@ RemoveDomain() {
     # If there is an .error object in the returned data, display it
     local error
     error=$(jq --compact-output <<< "${data}" '.error')
-    if [[ $error != "null" && $error != "" ]]; then
+    if [[ ${error} != "null" && ${error} != "" ]]; then
         echo -e "  ${CROSS} Failed to remove domain(s):"
         echo -e "      $(jq <<< "${data}" '.error')"
     elif [[ "${verbose}" == true && "${status}" == "204" ]]; then
@@ -173,11 +173,11 @@ Displaylist() {
     if [[ "${num}" -gt 0 ]]; then
         echo -e "  ${TICK} Found ${num} domain(s) in the ${kindId} ${typeId}list:"
         for i in $(seq 0 $((num-1))); do
-            echo -e "    - ${COL_BLUE}$(echo "${data}" | jq --compact-output ".domains[$i].domain")${COL_NC}"
-            echo -e "      Comment: $(echo "${data}" | jq --compact-output ".domains[$i].comment")"
-            echo -e "      Groups: $(echo "${data}" | jq --compact-output ".domains[$i].groups")"
-            echo -e "      Added: $(date -d @"$(echo "${data}" | jq --compact-output ".domains[$i].date_added")")"
-            echo -e "      Last modified: $(date -d @"$(echo "${data}" | jq --compact-output ".domains[$i].date_modified")")"
+            echo -e "    - ${COL_BLUE}$(echo "${data}" | jq --compact-output ".domains[${i}].domain")${COL_NC}"
+            echo -e "      Comment: $(echo "${data}" | jq --compact-output ".domains[${i}].comment")"
+            echo -e "      Groups: $(echo "${data}" | jq --compact-output ".domains[${i}].groups")"
+            echo -e "      Added: $(date -d @"$(echo "${data}" | jq --compact-output ".domains[${i}].date_added")")"
+            echo -e "      Last modified: $(date -d @"$(echo "${data}" | jq --compact-output ".domains[${i}].date_modified")")"
         done
     else
         echo -e "  ${INFO} No domains found in the ${kindId} ${typeId}list"
