@@ -171,11 +171,11 @@ make_temporary_log() {
     TEMPLOG=$(mktemp /tmp/pihole_temp.XXXXXX)
     # Open handle 3 for templog
     # https://stackoverflow.com/questions/18460186/writing-outputs-to-log-file-and-console
-    exec 3>"$TEMPLOG"
+    exec 3>"${TEMPLOG}"
     # Delete templog, but allow for addressing via file handle
     # This lets us write to the log without having a temporary file on the drive, which
     # is meant to be a security measure so there is not a lingering file on the drive during the debug process
-    rm "$TEMPLOG"
+    rm "${TEMPLOG}"
 }
 
 log_write() {
@@ -233,7 +233,7 @@ compare_local_version_to_git_version() {
         # move into it
         cd "${git_dir}" || \
         # If not, show an error
-        log_write "${COL_RED}Could not cd into ${git_dir}$COL_NC"
+        log_write "${COL_RED}Could not cd into ${git_dir}${COL_NC}"
         if git status &> /dev/null; then
             # The current version the user is on
             local local_version
@@ -367,20 +367,20 @@ check_selinux() {
         DEFAULT_SELINUX=$(awk -F= '/^SELINUX=/ {print $2}' /etc/selinux/config)
         case "${DEFAULT_SELINUX,,}" in
             enforcing)
-                log_write "${CROSS} ${COL_RED}Default SELinux: $DEFAULT_SELINUX${COL_NC}"
+                log_write "${CROSS} ${COL_RED}Default SELinux: ${DEFAULT_SELINUX}${COL_NC}"
                 ;;
             *)  # 'permissive' and 'disabled'
-                log_write "${TICK} ${COL_GREEN}Default SELinux: $DEFAULT_SELINUX${COL_NC}";
+                log_write "${TICK} ${COL_GREEN}Default SELinux: ${DEFAULT_SELINUX}${COL_NC}";
                 ;;
         esac
         # Check the current state of SELinux
         CURRENT_SELINUX=$(getenforce)
         case "${CURRENT_SELINUX,,}" in
             enforcing)
-                log_write "${CROSS} ${COL_RED}Current SELinux: $CURRENT_SELINUX${COL_NC}"
+                log_write "${CROSS} ${COL_RED}Current SELinux: ${CURRENT_SELINUX}${COL_NC}"
                 ;;
             *)  # 'permissive' and 'disabled'
-                log_write "${TICK} ${COL_GREEN}Current SELinux: $CURRENT_SELINUX${COL_NC}";
+                log_write "${TICK} ${COL_GREEN}Current SELinux: ${CURRENT_SELINUX}${COL_NC}";
                 ;;
         esac
     else
@@ -473,7 +473,7 @@ disk_usage() {
 
     # only show those lines not containing a sensitive phrase
     for line in "${file_system[@]}"; do
-      if [[ ! $line =~ $hide ]]; then
+      if [[ ! ${line} =~ ${hide} ]]; then
         log_write "   ${line}"
       fi
     done
@@ -520,9 +520,9 @@ ping_gateway() {
 
     # Find the first default route
     default_route=$(ip -j -"${protocol}" route show default)
-    if echo "$default_route" | grep 'gateway' | grep -q 'dev'; then
-        gateway_addr=$(echo "$default_route" | jq -r -c '.[0].gateway')
-        gateway_iface=$(echo "$default_route" | jq -r -c '.[0].dev')
+    if echo "${default_route}" | grep 'gateway' | grep -q 'dev'; then
+        gateway_addr=$(echo "${default_route}" | jq -r -c '.[0].gateway')
+        gateway_iface=$(echo "${default_route}" | jq -r -c '.[0].dev')
     else
         log_write "     Unable to determine gateway address for IPv${protocol}"
     fi
@@ -542,7 +542,7 @@ ping_gateway() {
         # If pinging the gateway is not successful,
         if ! ${cmd} -c 1 -W 2 -n "${gateway}" >/dev/null; then
             # let the user know
-            log_write "${CROSS} ${COL_RED}Gateway did not respond.${COL_NC} ($FAQ_GATEWAY)\\n"
+            log_write "${CROSS} ${COL_RED}Gateway did not respond.${COL_NC} (${FAQ_GATEWAY})\\n"
             # and return an error code
             return 1
         # Otherwise,
@@ -600,7 +600,7 @@ check_required_ports() {
     ports_in_use=()
     # Sort the addresses and remove duplicates
     while IFS= read -r line; do
-        ports_in_use+=( "$line" )
+        ports_in_use+=( "${line}" )
     done < <( ss --listening --numeric --tcp --udp --processes --no-header )
 
     local ports_configured
@@ -622,7 +622,7 @@ check_required_ports() {
                 gsub(/users:\(\("/,"",s)
                 gsub(/".*/,"",s)
                 print p, n, s
-            }' <<< "${ports_in_use[$i]}"
+            }' <<< "${ports_in_use[${i}]}"
         )"
 
         # Check if the right services are using the right ports
@@ -864,21 +864,21 @@ make_array_from_file() {
         log_write "   ${line//### CHANGED/${COL_RED}### CHANGED${COL_NC}}"
         ((i++))
         # if the limit of lines we want to see is exceeded do nothing
-        [[ -n ${limit} && $i -eq ${limit} ]] && break
-    done <<< "$processed"
+        [[ -n ${limit} && ${i} -eq ${limit} ]] && break
+    done <<< "${processed}"
 }
 
 parse_file() {
     # Set the first argument passed to this function as a named variable for better readability
     local filename="${1}"
     # Put the current Internal Field Separator into another variable so it can be restored later
-    OLD_IFS="$IFS"
+    OLD_IFS="${IFS}"
     # Get the lines that are in the file(s) and store them in an array for parsing later
     local file_info
-    if [[ -f "$filename" ]]; then
+    if [[ -f "${filename}" ]]; then
         IFS=$'\r\n' command eval 'file_info=( $(cat "${filename}") )'
     else
-        read -r -a file_info <<< "$filename"
+        read -r -a file_info <<< "${filename}"
     fi
     # Set a named variable for better readability
     local file_lines
@@ -894,7 +894,7 @@ parse_file() {
         fi
     done
     # Set the IFS back to what it was
-    IFS="$OLD_IFS"
+    IFS="${OLD_IFS}"
 }
 
 check_name_resolution() {
@@ -957,7 +957,7 @@ list_files_in_dir() {
         else
             # Then, parse the file's content into an array so each line can be analyzed if need be
             for i in "${!REQUIRED_FILES[@]}"; do
-                if [[ "${each_file}" == "${REQUIRED_FILES[$i]}" ]]; then
+                if [[ "${each_file}" == "${REQUIRED_FILES[${i}]}" ]]; then
                     # display the filename
                     log_write "\\n${COL_GREEN}$(ls -lhd "${each_file}")${COL_NC}"
                     # Check if the file we want to view has a limit (because sometimes we just need a little bit of info from the file, not the entire thing)
@@ -1009,7 +1009,7 @@ head_tail_log() {
     local head_line
     local tail_line
     # Put the current Internal Field Separator into another variable so it can be restored later
-    OLD_IFS="$IFS"
+    OLD_IFS="${IFS}"
     # Get the lines that are in the file(s) and store them in an array for parsing later
     IFS=$'\r\n'
     local log_head=()
@@ -1026,7 +1026,7 @@ head_tail_log() {
         log_write "   ${tail_line}"
     done
     # Set the IFS back to what it was
-    IFS="$OLD_IFS"
+    IFS="${OLD_IFS}"
 }
 
 show_db_entries() {
@@ -1036,7 +1036,7 @@ show_db_entries() {
 
     echo_current_diagnostic "${title}"
 
-    OLD_IFS="$IFS"
+    OLD_IFS="${IFS}"
     IFS=$'\r\n'
     local entries=()
     mapfile -t entries < <(\
@@ -1053,7 +1053,7 @@ show_db_entries() {
         line=${line//--yes--/  yes  }
 
         # Use red for "deny" and green for "allow"
-        if [ "$title" = "Domainlist" ]; then
+        if [ "${title}" = "Domainlist" ]; then
             line=${line//regex-deny/${COL_RED}regex-deny${COL_NC}}
             line=${line//regex-allow/${COL_GREEN}regex-allow${COL_NC}}
             line=${line//exact-deny/${COL_RED}exact-deny${COL_NC}}
@@ -1061,7 +1061,7 @@ show_db_entries() {
         fi
 
         # Use red for "block" and green for "allow"
-        if [ "$title" = "Adlists" ]; then
+        if [ "${title}" = "Adlists" ]; then
             line=${line//-BLOCK-/${COL_RED} Block ${COL_NC}}
             line=${line//-ALLOW-/${COL_GREEN} Allow ${COL_NC}}
         fi
@@ -1069,7 +1069,7 @@ show_db_entries() {
         log_write "   ${line}"
     done
 
-    IFS="$OLD_IFS"
+    IFS="${OLD_IFS}"
 }
 
 show_FTL_db_entries() {
@@ -1079,7 +1079,7 @@ show_FTL_db_entries() {
 
     echo_current_diagnostic "${title}"
 
-    OLD_IFS="$IFS"
+    OLD_IFS="${IFS}"
     IFS=$'\r\n'
     local entries=()
     mapfile -t entries < <(\
@@ -1094,13 +1094,13 @@ show_FTL_db_entries() {
         log_write "   ${line}"
     done
 
-    IFS="$OLD_IFS"
+    IFS="${OLD_IFS}"
 }
 
 check_dhcp_servers() {
     echo_current_diagnostic "Discovering active DHCP servers (takes 6 seconds)"
 
-    OLD_IFS="$IFS"
+    OLD_IFS="${IFS}"
     IFS=$'\n'
     local entries=()
     mapfile -t entries < <(pihole-FTL dhcp-discover & spinner)
@@ -1109,7 +1109,7 @@ check_dhcp_servers() {
         log_write "   ${line}"
     done
 
-    IFS="$OLD_IFS"
+    IFS="${OLD_IFS}"
 }
 
 show_groups() {
@@ -1154,7 +1154,7 @@ analyze_gravity_list() {
     log_write "   Last gravity run finished at: ${COL_CYAN}${gravity_updated}${COL_NC}"
     log_write ""
 
-    OLD_IFS="$IFS"
+    OLD_IFS="${IFS}"
     IFS=$'\r\n'
     local gravity_sample=()
     mapfile -t gravity_sample < <(as_pihole pihole-FTL sqlite3 -ni "${PIHOLE_GRAVITY_DB_FILE}" "SELECT domain FROM vw_gravity LIMIT 10")
@@ -1165,7 +1165,7 @@ analyze_gravity_list() {
     done
 
     log_write ""
-    IFS="$OLD_IFS"
+    IFS="${OLD_IFS}"
 }
 
 analyze_ftl_db() {
@@ -1195,15 +1195,15 @@ database_integrity_check(){
       else
         log_write "${CROSS} ${COL_RED}Foreign key errors in ${database} found.${COL_NC}"
         while IFS= read -r line ; do
-            log_write "    $line"
-        done <<< "$result"
+            log_write "    ${line}"
+        done <<< "${result}"
       fi
 
     else
       log_write "${CROSS} ${COL_RED}Integrity errors in ${database} found.\n${COL_NC}"
       while IFS= read -r line ; do
-        log_write "    $line"
-      done <<< "$result"
+        log_write "    ${line}"
+      done <<< "${result}"
     fi
 
 }
@@ -1228,10 +1228,10 @@ spinner(){
         # ensures cursor is visible again, in case of premature exit
         trap 'tput cnorm > /dev/tty' EXIT
 
-        while [ -d /proc/$_PID ]; do
+        while [ -d /proc/${_PID} ]; do
             _elapsed=$(( $(date +%s) - _start ))
             # use hours only if needed
-            if [ "$_elapsed" -lt 3600 ]; then
+            if [ "${_elapsed}" -lt 3600 ]; then
                 printf "\r${_spin:_i++%${#_spin}:1} %02d:%02d" $((_elapsed/60)) $((_elapsed%60)) >"$(tty)"
             else
                 printf "\r${_spin:_i++%${#_spin}:1} %02d:%02d:%02d" $((_elapsed/3600)) $(((_elapsed/60)%60)) $((_elapsed%60)) >"$(tty)"
