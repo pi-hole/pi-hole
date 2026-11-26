@@ -114,6 +114,7 @@ SUITE_1=(
     test_gravity.bats
     test_symlink_safety.bats
     test_logflush.bats
+    test_tail.bats
 )
 [[ "${DISTRO_FAMILY}" == "rhel" ]] && SUITE_1+=(test_selinux.bats)
 
