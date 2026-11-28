@@ -102,7 +102,7 @@ removeFTL() {
         rm -f /etc/systemd/system/pihole-FTL.service &> /dev/null
         if [[ -d '/etc/systemd/system/pihole-FTL.service.d' ]]; then
             read -rp "  ${QST} FTL service override directory /etc/systemd/system/pihole-FTL.service.d detected. Do you wish to remove this from your system? [y/N] " answer
-            case $answer in
+            case ${answer} in
                 [yY]*)
                     echo -ne "  ${INFO} Removing /etc/systemd/system/pihole-FTL.service.d..."
                     rm -R /etc/systemd/system/pihole-FTL.service.d &> /dev/null

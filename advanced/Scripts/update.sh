@@ -42,7 +42,7 @@ GitCheckUpdateAvail() {
     local directory
     local curBranch
     directory="${1}"
-    curdir=$PWD
+    curdir=${PWD}
     cd "${directory}" || exit 1
 
     # Fetch latest changes in this repo
