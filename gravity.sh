@@ -221,7 +221,7 @@ database_adlist_table_from_array() {
     tmpFile="$(mktemp -p "${GRAVITY_TMPDIR}" --suffix=".gravity")"
 
     local timestamp
-    timestamp="$(date --utc +'%s')"
+    timestamp="${EPOCHSECONDS}"
 
     local rowid
     declare -i rowid
