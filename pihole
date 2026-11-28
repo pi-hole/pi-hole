@@ -331,7 +331,7 @@ analyze_ports() {
 
 statusFunc() {
     # Determine if there is pihole-FTL service is listening
-    local pid port block_status
+    local pid port data block_status timer extra
 
     pid="$(getFTLPID)"
 
@@ -358,17 +358,37 @@ statusFunc() {
         fi
     fi
 
-  # Determine if Pi-hole's blocking is enabled
-  block_status=$(getFTLConfigValue dns.blocking.active)
-  if [ ${block_status} == "true" ]; then
+  # A timed disable is not stored in pihole.toml, so ask the API when this
+  # needs no password prompt (in a subshell, as the API functions may exit)
+  data=$(
+    TestAPIAvailability > /dev/null
+    if [[ "${needAuth}" == false ]] || [[ -r /etc/pihole/cli_pw && -s /etc/pihole/cli_pw ]]; then
+      LoginAPI > /dev/null
+      GetFTLData "dns/blocking"
+      LogoutAPI > /dev/null
+    fi
+  )
+  block_status=$(echo "${data}" | jq --raw-output '.blocking // empty' 2>/dev/null)
+  timer=$(echo "${data}" | jq --raw-output '.timer // empty | round' 2>/dev/null)
+  if [[ -z "${block_status}" ]]; then
+    if [[ "$(getFTLConfigValue dns.blocking.active)" == "true" ]]; then
+      block_status="enabled"
+    else
+      block_status="disabled"
+    fi
+  fi
+  if [[ -n "${timer}" ]]; then
+    extra=" for another ${timer}s"
+  fi
+  if [[ "${block_status}" == "enabled" ]]; then
     case "${1}" in
       "web") echo "$port";;
-      *) echo -e "  ${TICK} Pi-hole blocking is enabled";;
+      *) echo -e "  ${TICK} Pi-hole blocking is enabled${extra}";;
     esac
   else
     case "${1}" in
       "web") echo 0;;
-      *) echo -e "  ${CROSS} Pi-hole blocking is disabled";;
+      *) echo -e "  ${CROSS} Pi-hole blocking is ${block_status}${extra}";;
     esac
   fi
 
