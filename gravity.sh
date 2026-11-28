@@ -1052,10 +1052,11 @@ gravity_optimize() {
 #   timeit ls -l
 #
 timeit(){
-  local start_time end_time elapsed_time ret
+  local ts start_time end_time elapsed_time ret
 
   # Capture the start time
-  start_time=$(date +%s%3N)
+  ts="${EPOCHREALTIME/./}"
+  start_time="${ts::-3}"
 
   # Execute the command passed as arguments
   "$@"
@@ -1066,7 +1067,8 @@ timeit(){
   fi
 
   # Capture the end time
-  end_time=$(date +%s%3N)
+  ts="${EPOCHREALTIME/./}"
+  end_time="${ts::-3}"
 
   # Calculate the elapsed time
   elapsed_time=$((end_time - start_time))
