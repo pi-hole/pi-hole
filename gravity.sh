@@ -59,7 +59,7 @@ fi
 gravityDBfile="${GRAVITYDB}"
 gravityDBfile_default="${piholeDir}/gravity.db"
 gravityTEMPfile="${GRAVITYDB}_temp"
-gravityDIR="$(dirname -- "${gravityDBfile}")"
+gravityDIR="${gravityDBfile%/*}"
 gravityOLDfile="${gravityDIR}/gravity_old.db"
 gravityBCKdir="${gravityDIR}/gravity_backups"
 gravityBCKfile="${gravityBCKdir}/gravity.db"
@@ -77,7 +77,7 @@ fix_owner_permissions() {
   # Ensure the containing directory is owned by pihole:pihole
   # so the pihole user can write to it without requiring group-write
   # permissions (which would change the directory mode unexpectedly)
-  chown pihole:pihole "$(dirname -- "${1}")"
+  chown pihole:pihole "${1%/*}"
 }
 
 # Generate new SQLite3 file from schema template
@@ -546,7 +546,7 @@ gravity_DownloadBlocklists() {
     # Check if we can write to the save location file without actually creating
     # it (in case it doesn't exist)
     # First, check if the directory is writable
-    directory="$(dirname -- "${saveLocation}")"
+    directory="${saveLocation%/*}"
     if [ ! -w "${directory}" ]; then
       echo -e "  ${CROSS} Unable to write to ${directory}"
       echo "      Please run pihole -g as root"
