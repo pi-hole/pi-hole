@@ -52,14 +52,16 @@ CREATE INDEX idx_adlist_by_group_gid ON adlist_by_group (group_id, adlist_id);
 CREATE TABLE gravity
 (
     domain TEXT NOT NULL,
-    adlist_id INTEGER NOT NULL REFERENCES adlist (id)
-);
+    adlist_id INTEGER NOT NULL REFERENCES adlist (id),
+    PRIMARY KEY (domain, adlist_id)
+) WITHOUT ROWID;
 
 CREATE TABLE antigravity
 (
     domain TEXT NOT NULL,
-    adlist_id INTEGER NOT NULL REFERENCES adlist (id)
-);
+    adlist_id INTEGER NOT NULL REFERENCES adlist (id),
+    PRIMARY KEY (domain, adlist_id)
+) WITHOUT ROWID;
 
 CREATE TABLE info
 (
@@ -67,7 +69,7 @@ CREATE TABLE info
     value TEXT NOT NULL
 ) WITHOUT ROWID;
 
-INSERT INTO "info" VALUES('version','21');
+INSERT INTO "info" VALUES('version','22');
 /* This is a flag to indicate if gravity was restored from a backup
     false = not restored,
     failed = restoration failed due to no backup
